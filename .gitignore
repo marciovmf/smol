@@ -36,3 +36,7 @@ MakeFile
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
+
+# More auto generated stuff
+build/
+tags
