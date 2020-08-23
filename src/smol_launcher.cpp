@@ -32,8 +32,9 @@ namespace smol
 #ifdef SMOL_PLATFORM_WINDOWS
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-  //TODO(marcio): Handle command line arguments
-  return smol::launcher::smolMain(0, nullptr);
+  //TODO(marcio) handle command line here
+  return smol::launcher::smolMain(0, (char**) lpCmdLine);
 }
-#endif
+
+#endif  // SMOL_PLATFORM_WINDOWS
 
