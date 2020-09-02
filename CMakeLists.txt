@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
+include(CMakeDependentOption)
 project("smol" LANGUAGES CXX)
 
 # General compiler settings
@@ -30,15 +31,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/smolSDK/bin
 # Directory output files for multi config generators
 foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
   string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/bin" CACHE PATH "" FORCE)
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/smolSDK/bin CACHE PATH "" FORCE)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/smolSDK/lib CACHE PATH "" FORCE)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/smolSDK/lib CACHE PATH "" FORCE)
 endforeach()
 
 #
 # smol_platform.dll: OS dependent code implementation of the platform layer
 #
-add_library(smol_platform SHARED "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp")
+add_library(smol_platform SHARED
+  "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp")
 target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include")
 target_compile_options(smol_platform PRIVATE -DSMOL_PLATFORM_IMPLEMENTATION)
 
@@ -56,5 +58,5 @@ add_custom_command(TARGET smol POST_BUILD
 #
 # slauncher.exe: Editor / Game launcher
 #
-add_executable(slauncher WIN32 "${SOURCE_PATH}/smol_launcher.cpp")
+add_executable(slauncher WIN32 ${SOURCE_PATH}/smol_launcher.cpp ${SOURCE_PATH}/win64/slauncher.rc)
 target_link_libraries(slauncher PRIVATE smol smol_platform)

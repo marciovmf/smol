@@ -11,18 +11,6 @@ namespace smol
     {
       smol::Engine engine;
       engine.platform.showMessage("Hello SMOL engine!");
-
-      //TODO(marcio): Load game dll
-      //TODO(marcio): implement game loop
-      /*
-       - update window events
-       - update keyboard events
-       - update mouse events
-       - update joystick events
-       - update game logic
-       - update renderer
-       - update audio
-       */
       return 0;
     }
   }
@@ -30,9 +18,12 @@ namespace smol
 
 // Windows program entrypoint
 #ifdef SMOL_PLATFORM_WINDOWS
+#include "win64\smol_resource.h"
+
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   //TODO(marcio) handle command line here
+  LoadIcon(hInstance, MAKEINTRESOURCE(SMOL_ICON_ID));
   return smol::launcher::smolMain(0, (char**) lpCmdLine);
 }
 

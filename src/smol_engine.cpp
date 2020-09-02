@@ -1,4 +1,3 @@
-
 #include <smol/smol_engine.h>
 #include <stdio.h>
 
