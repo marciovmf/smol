@@ -1,3 +1,0 @@
-#include "smol_resource.h"
-
-SMOL_ICON_ID ICON "..\\smol.ico"

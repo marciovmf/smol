@@ -16,7 +16,7 @@ if (MSVC)
   add_compile_options(/W3 /WX)
 endif()
 
-set(SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Directory output files single config generators
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/smolSDK/lib 
@@ -40,14 +40,26 @@ endforeach()
 # smol_platform.dll: OS dependent code implementation of the platform layer
 #
 add_library(smol_platform SHARED
-  "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp")
+  "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
+  ${SOURCE_PATH}/include/smol/smol_platform.h)
 target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include")
 target_compile_options(smol_platform PRIVATE -DSMOL_PLATFORM_IMPLEMENTATION)
+
+
+#
+# Add windows resource files only if we are building for windows
+#
+if("${PLATFORM}" STREQUAL win64)
+  set(SMOL_WINDOWS_RESOURCE_FILE "${SOURCE_PATH}/win64/smol_resource_win64.rc")
+endif()
 
 #
 # smol.dll: Smol engine itself
 #
-add_library(smol SHARED ${SOURCE_PATH}/smol_engine.cpp)
+add_library(smol SHARED ${SOURCE_PATH}/smol_engine.cpp 
+  ${SOURCE_PATH}/include/smol/smol_engine.h
+  ${SOURCE_PATH}/include/smol/smol.h
+  "${SMOL_WINDOWS_RESOURCE_FILE}")
 target_include_directories(smol PUBLIC "${SOURCE_PATH}/include")
 target_compile_options(smol PRIVATE -DSMOL_ENGINE_IMPLEMENTATION)
 target_link_libraries(smol PRIVATE smol_platform)
@@ -58,5 +70,7 @@ add_custom_command(TARGET smol POST_BUILD
 #
 # slauncher.exe: Editor / Game launcher
 #
-add_executable(slauncher WIN32 ${SOURCE_PATH}/smol_launcher.cpp ${SOURCE_PATH}/win64/slauncher.rc)
+add_executable(slauncher WIN32 ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
 target_link_libraries(slauncher PRIVATE smol smol_platform)
+
+
