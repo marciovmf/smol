@@ -1,4 +1,3 @@
-
 #include <smol/smol.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_engine.h>
@@ -18,7 +17,7 @@ namespace smol
 
 // Windows program entrypoint
 #ifdef SMOL_PLATFORM_WINDOWS
-#include "win64\smol_resource.h"
+#include "win64\smol_resource_win64.h"
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
