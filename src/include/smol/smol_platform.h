@@ -21,6 +21,7 @@
 
 namespace smol
 {
+  //TODO(marcio): @consistency convert this class to struct
   class SMOL_PLATFORM_API Platform final
   {
     public:

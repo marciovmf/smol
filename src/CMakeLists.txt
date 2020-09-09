@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
 include(CMakeDependentOption)
-project("smol" LANGUAGES CXX)
+set(SMOL_VERSION_MAJOR 0)
+set(SMOL_VERSION_MINOR 0)
+set(SMOL_VERSION_PATCH 1)
+set(SMOL_VERSION_TWEAK 0)
+set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATCH}.${SMOL_VERSION_TWEAK})
+cmake_policy(SET CMP0048 NEW)
+project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
+
 
 # General compiler settings
 set(CMAKE_CXX_STANDARD 11)
@@ -36,6 +43,9 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
 endforeach()
 
+# Genereate correct smol_version.h
+configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/include/smol/smol_version.h)
+
 #
 # smol_platform.dll: OS dependent code implementation of the platform layer
 #
@@ -58,8 +68,10 @@ endif()
 #
 add_library(smol SHARED ${SOURCE_PATH}/smol_engine.cpp 
   ${SOURCE_PATH}/include/smol/smol_engine.h
+  ${SOURCE_PATH}/include/smol/smol_version.h
   ${SOURCE_PATH}/include/smol/smol.h
   "${SMOL_WINDOWS_RESOURCE_FILE}")
+set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_include_directories(smol PUBLIC "${SOURCE_PATH}/include")
 target_compile_options(smol PRIVATE -DSMOL_ENGINE_IMPLEMENTATION)
 target_link_libraries(smol PRIVATE smol_platform)

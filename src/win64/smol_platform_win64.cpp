@@ -1,10 +1,13 @@
 
+#include <smol/smol_version.h>
 #include <smol/smol_platform.h>
-
+#include <cstdio>
 namespace smol
 {
   void Platform::showMessage(char* message)
   {
-      MessageBox(0, message, "SMOL WIN64 Platform:", 0);
+      char title[64];
+      snprintf(title, 64, "SMOL engine v%s", smol::SMOL_VERSION);
+      MessageBox(0, message, title, 0);
   }
 } 
