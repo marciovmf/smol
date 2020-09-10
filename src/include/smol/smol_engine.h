@@ -15,10 +15,8 @@
 
 namespace smol
 {
-  //TODO(marcio): @consistency convert this class to struct
-  class SMOL_ENGINE_API Engine final
+  struct SMOL_ENGINE_API Engine final
   {
-    public:
     Platform platform;
 
     Engine();

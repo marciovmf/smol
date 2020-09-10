@@ -21,11 +21,16 @@
 
 namespace smol
 {
-  //TODO(marcio): @consistency convert this class to struct
-  class SMOL_PLATFORM_API Platform final
+  struct Window;
+
+  struct SMOL_PLATFORM_API Platform final
   {
-    public:
     void showMessage(char* message);
+    Window* createWindow(int width, int height, const char* title);
+    void updateWindowEvents(Window* window);
+    bool getWindowCloseFlag(Window* window);
+    void clearWindowCloseFlag(Window* window);
+    void destroyWindow(Window* window);
   };
 } 
 
