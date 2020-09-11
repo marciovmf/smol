@@ -1,4 +1,3 @@
-
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
 #include "smol_resource_win64.h"
@@ -22,7 +21,7 @@ namespace smol
     switch(uMsg) 
     {
       case WM_CLOSE:
-          PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
+        PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
         break;
 
       default:
@@ -55,7 +54,7 @@ namespace smol
     wc.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
     wc.lpszClassName = smolWindowClass;
 
-    if ( !RegisterClassExA(&wc))
+    if (! RegisterClassExA(&wc))
     {
       //TODO(marcio): Log error here.
       return nullptr;
@@ -75,7 +74,7 @@ namespace smol
         hInstance,
         NULL);
 
-    if ( !windowHandle)
+    if (! windowHandle)
     {
       //TODO(marcio): Log error here.
       return nullptr;
@@ -117,8 +116,9 @@ namespace smol
 
   void Platform::destroyWindow(Window* window)
   {
-
     //TODO(marcio): Use our own memory allocator/manager here
+    //TODO(marcio): Explain DestroyWindow on the next video. It was missing on the previous one
+    DestroyWindow(window->handle);
     delete window;
   }
 } 
