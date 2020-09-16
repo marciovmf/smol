@@ -31,14 +31,6 @@ namespace smol
     return 0;
   }
 
-  void Platform::showMessage(char* message)
-  {
-    char title[64];
-    snprintf(title, 64, "SMOL engine v%s", smol::SMOL_VERSION);
-    MessageBox(0, message, title, 0);
-  }
-
-
   Window* Platform::createWindow(int width, int height, const char* title)
   {
     const char* smolWindowClass = "SMOL_WINDOW_CLASS";
