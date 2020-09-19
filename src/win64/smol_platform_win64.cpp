@@ -9,7 +9,7 @@ namespace smol
   struct Window
   {
     HWND handle;
-    bool shouldClose;
+    bool shouldClose = false;
   };
 
   LRESULT smolWindowProc(
@@ -75,7 +75,6 @@ namespace smol
     //TODO(marcio): Use our own memory allocator/manager here
     Window* window = new Window;
     window->handle = windowHandle;
-    window->shouldClose = false;
     return window;
   }
 
