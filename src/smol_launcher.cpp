@@ -11,6 +11,9 @@ namespace smol
       smol::Engine engine;
       smol::Platform& platform = engine.platform;
       smol::Window* window = platform.createWindow(800, 600, (const char*)"Small Engine");
+      
+      if (!platform.initOpenGL(window, 3, 1))
+        return 1;
 
       while(! platform.getWindowCloseFlag(window))
       {

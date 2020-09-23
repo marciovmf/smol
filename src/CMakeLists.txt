@@ -7,7 +7,7 @@ set(SMOL_VERSION_TWEAK 0)
 set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATCH}.${SMOL_VERSION_TWEAK})
 cmake_policy(SET CMP0048 NEW)
 project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
-
+find_package(OpenGL REQUIRED)
 
 # General compiler settings
 set(CMAKE_CXX_STANDARD 11)
@@ -53,8 +53,9 @@ add_library(smol_platform SHARED
   "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
   ${SOURCE_PATH}/include/smol/smol_platform.h)
 target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include")
+target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include/smol")
 target_compile_options(smol_platform PRIVATE -DSMOL_PLATFORM_IMPLEMENTATION)
-
+target_link_libraries(smol_platform PRIVATE ${OPENGL_LIBRARY})
 
 #
 # Add windows resource files only if we are building for windows

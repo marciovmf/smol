@@ -31,6 +31,7 @@ namespace smol
     bool getWindowCloseFlag(Window* window);
     void clearWindowCloseFlag(Window* window);
     void destroyWindow(Window* window);
+    bool initOpenGL(Window* window, int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
   };
 } 
 
