@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.9)
 include(CMakeDependentOption)
 set(SMOL_VERSION_MAJOR 0)
 set(SMOL_VERSION_MINOR 0)
@@ -83,7 +83,14 @@ add_custom_command(TARGET smol POST_BUILD
 #
 # slauncher.exe: Editor / Game launcher
 #
-add_executable(slauncher WIN32 ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
+add_executable(slauncher ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
 target_link_libraries(slauncher PRIVATE smol smol_platform)
 
-
+# Make windows Debug builds to have a console subsystem
+if(CMAKE_CONFIGURATION_TYPES)
+  set_property(TARGET slauncher PROPERTY
+    LINK_OPTIONS
+    $<$<CXX_COMPILER_ID:MSVC>:$<IF:$<CONFIG:Release>,/SUBSYSTEM:WINDOWS,/SUBSYSTEM:CONSOLE>>)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+   set_property(TARGET slauncher PROPERTY LINK_OPTIONS $<$<CXX_COMPILER_ID:MSVC>:/SUBSYSTEM:WINDOWS>)
+endif()

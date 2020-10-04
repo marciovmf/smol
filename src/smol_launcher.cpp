@@ -35,6 +35,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
   //TODO(marcio): handle command line here when we support any
   return smol::launcher::smolMain(0, (char**) lpCmdLine);
 }
-
 #endif  // SMOL_PLATFORM_WINDOWS
 
+int main(int argc, char** argv)
+{
+  return smol::launcher::smolMain(argc, argv);
+}
