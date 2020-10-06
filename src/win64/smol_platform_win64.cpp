@@ -2,52 +2,52 @@
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
 #include "smol_resource_win64.h"
-#include "../include/smol/gl/glcorearb.h"
-#include "../include/smol/gl/wglext.h"
+#include <smol/gl/glcorearb.h>
+#include <smol/gl/wglext.h>
 #include <smol/smol_gl.h>
 #include <cstdio>
 namespace smol
 {
-  const UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
+  constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
 
-
-  enum RenderAPIName
-  {
-    NONE = 0,
-    OPENGL = 1
-  };
-
-  struct OpenGL
-  {
-    HGLRC rc;
-    unsigned int versionMajor;
-    unsigned int versionMinor;
-    PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
-    PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-    int pixelFormatAttribs[16];
-    int contextAttribs[16];
-  };
-
-  struct RenderAPIInfo
-  {
-    RenderAPIName name;
-    OpenGL gl;
-  };
-
-  RenderAPIInfo renderApiInfo;
-
+  //
+  // A Windows specific implementation of a SMOL engine window
+  //
   struct Window
   {
     HWND handle;
-    bool shouldClose = false;
     HDC dc;
+    HGLRC rc;
+    bool shouldClose = false;
   };
 
-  LRESULT smolWindowProc(
-      HWND   hwnd,
-      UINT   uMsg,
-      WPARAM wParam,
-      LPARAM lParam)
+  //
+  // A Global structure for storing information about the currently used rendering API
+  //
+  static struct RenderAPIInfo
+  {
+    enum APIName
+    {
+      NONE = 0,
+      OPENGL = 1
+    };
+
+    struct OpenGL
+    {
+      HGLRC sharedContext;
+      unsigned int versionMajor;
+      unsigned int versionMinor;
+      PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+      PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+      int pixelFormatAttribs[16];
+      int contextAttribs[16];
+    };
+
+    APIName name;
+    OpenGL gl;
+  } globalRenderApiInfo;
+
+  LRESULT smolWindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
     switch(uMsg) 
     {
@@ -88,14 +88,14 @@ namespace smol
     int pixelFormat = ChoosePixelFormat(dummyWindow->dc, &pfd);
     if (! pixelFormat)
     {
-      LOGERROR("Unable to allocate a pixel format");
+      LogError("Unable to allocate a pixel format");
       destroyWindow(dummyWindow);
       return false;
     }
 
     if (! SetPixelFormat(dummyWindow->dc, pixelFormat, &pfd))
     {
-      LOGERROR("Unable to set a pixel format");
+      LogError("Unable to set a pixel format");
       destroyWindow(dummyWindow);
       return false;
     }
@@ -103,14 +103,14 @@ namespace smol
     HGLRC rc = wglCreateContext(dummyWindow->dc);
     if (! rc)
     {
-      LOGERROR("Unable to create a valid OpenGL context");
+      LogError("Unable to create a valid OpenGL context");
       destroyWindow(dummyWindow);
       return false;
     }
 
     if (! wglMakeCurrent(dummyWindow->dc, rc))
     {
-      LOGERROR("Unable to set OpenGL context current");
+      LogError("Unable to set OpenGL context current");
       destroyWindow(dummyWindow);
       return false;
     }
@@ -137,31 +137,31 @@ namespace smol
       0
     };
 
-    // Initialize OpenGL rendering API info
-    renderApiInfo.name = RenderAPIName::OPENGL;
-    renderApiInfo.gl.versionMajor = glVersionMajor;
-    renderApiInfo.gl.versionMinor = glVersionMinor;
-    renderApiInfo.gl.wglChoosePixelFormatARB = 
+    // Initialize the global rendering api info with OpenGL api details
+    globalRenderApiInfo.name = RenderAPIInfo::APIName::OPENGL;
+    globalRenderApiInfo.gl.sharedContext = 0;
+    globalRenderApiInfo.gl.versionMajor = glVersionMajor;
+    globalRenderApiInfo.gl.versionMinor = glVersionMinor;
+    globalRenderApiInfo.gl.wglChoosePixelFormatARB = 
       (PFNWGLCHOOSEPIXELFORMATARBPROC) wglGetProcAddress("wglChoosePixelFormatARB");
-    renderApiInfo.gl.wglCreateContextAttribsARB = 
+    globalRenderApiInfo.gl.wglCreateContextAttribsARB = 
       (PFNWGLCREATECONTEXTATTRIBSARBPROC) wglGetProcAddress("wglCreateContextAttribsARB");
-    memcpy(renderApiInfo.gl.pixelFormatAttribs, pixelFormatAttribList, sizeof(pixelFormatAttribList));
-    memcpy(renderApiInfo.gl.contextAttribs, contextAttribs, sizeof(contextAttribs));
+    memcpy(globalRenderApiInfo.gl.pixelFormatAttribs, pixelFormatAttribList, sizeof(pixelFormatAttribList));
+    memcpy(globalRenderApiInfo.gl.contextAttribs, contextAttribs, sizeof(contextAttribs));
 
     wglMakeCurrent(0, 0);
     wglDeleteContext(rc);
     destroyWindow(dummyWindow);
 
+    //TODO(marcio): Remove this from the platform layer! This must be done by the renderer
     // Get OpenGL function Pointers here
     getOpenGLFunctionPointers();
-
     return true;
   }
 
   Window* Platform::createWindow(int width, int height, const char* title)
   {
     const char* smolWindowClass = "SMOL_WINDOW_CLASS";
-
     HINSTANCE hInstance = GetModuleHandleA(NULL);
     WNDCLASSEXA wc = {};
 
@@ -178,29 +178,25 @@ namespace smol
       // Do not try registering the class multiple times
       if (! RegisterClassExA(&wc))
       {
-        LOGERROR("Could not register window class");
+        LogError("Could not register window class");
         return nullptr;
       }
     }
-
 
     HWND windowHandle = CreateWindowExA(
         0,
         smolWindowClass,
         title, 
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        width,
-        height,
-        NULL,
-        NULL,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        width, height,
+        NULL, NULL,
         hInstance,
         NULL);
 
     if (! windowHandle)
     {
-      LOGERROR("Could not create a window");
+      LogError("Could not create a window");
       return nullptr;
     }
 
@@ -209,43 +205,58 @@ namespace smol
     window->handle = windowHandle;
     window->dc = GetDC(windowHandle);
 
-    if(renderApiInfo.name == RenderAPIName::OPENGL)
+    if(globalRenderApiInfo.name == RenderAPIInfo::APIName::OPENGL)
     {
       int pixelFormat;
       int numPixelFormats = 0;
       PIXELFORMATDESCRIPTOR pfd;
 
-      const int* pixelFormatAttribList = (const int*)renderApiInfo.gl.pixelFormatAttribs;
-      const int* contextAttribList = (const int*)renderApiInfo.gl.contextAttribs;
+      const int* pixelFormatAttribList = (const int*)globalRenderApiInfo.gl.pixelFormatAttribs;
+      const int* contextAttribList = (const int*)globalRenderApiInfo.gl.contextAttribs;
       
-      renderApiInfo.gl.wglChoosePixelFormatARB(window->dc, pixelFormatAttribList, nullptr, 1, &pixelFormat, (UINT*) &numPixelFormats);
+      globalRenderApiInfo.gl.wglChoosePixelFormatARB(window->dc,
+          pixelFormatAttribList,
+          nullptr,
+          1,
+          &pixelFormat,
+          (UINT*) &numPixelFormats);
+
       if (numPixelFormats <= 0)
       {
-        LOGERROR("Unable to get a valid pixel format");
+        LogError("Unable to get a valid pixel format");
         return nullptr;
       }
 
       if (! SetPixelFormat(window->dc, pixelFormat, &pfd))
       {
-        LOGERROR("Unable to set a pixel format");
+        LogError("Unable to set a pixel format");
         return nullptr;
       }
 
 
-      HGLRC rc = renderApiInfo.gl.wglCreateContextAttribsARB(window->dc, 0, contextAttribList);
+      HGLRC sharedContext = globalRenderApiInfo.gl.sharedContext;
+      HGLRC rc = globalRenderApiInfo.gl.wglCreateContextAttribsARB(window->dc, sharedContext, contextAttribList);
+
+      // The first context created will be used as a shared context for the rest
+      // of the program execution
+      if (!sharedContext) 
+        globalRenderApiInfo.gl.sharedContext = rc;
+
       if (! rc)
       {
-        LOGERROR("Unable to create a valid OpenGL context");
+        LogError("Unable to create a valid OpenGL context");
         return nullptr;
       }
 
-      renderApiInfo.gl.rc = rc;
-      if (! wglMakeCurrent(window->dc, rc))
+      window->rc = rc;
+      if (! wglMakeCurrent(window->dc, window->rc))
       {
-        LOGERROR("Unable to set OpenGL context current");
+        LogError("Unable to set OpenGL context current");
         return nullptr;
       }
-      glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+
+      //TODO(marcio): Remove GL calls from the platform layer
+      glClearColor(1.0f, 0.0f, (width == height ? 1.0f : 0.0f), 1.0f);
     }
 
     return window;
@@ -256,8 +267,10 @@ namespace smol
     MSG msg;
     HWND hwnd = window->handle;
 
-    if (renderApiInfo.name == RenderAPIName::OPENGL)
-      wglMakeCurrent(window->dc, renderApiInfo.gl.rc);
+    if (globalRenderApiInfo.name == RenderAPIInfo::APIName::OPENGL)
+    {
+      wglMakeCurrent(window->dc, window->rc);
+    }
 
     while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
     {
@@ -269,7 +282,7 @@ namespace smol
 
       TranslateMessage(&msg);
       DispatchMessage(&msg);
-
+      //TODO(marcio): Remove GL calls from the platform layer
       glClear(GL_COLOR_BUFFER_BIT);
       SwapBuffers(window->dc);
     }
@@ -288,6 +301,8 @@ namespace smol
   void Platform::destroyWindow(Window* window)
   {
     //TODO(marcio): Use our own memory allocator/manager here
+    wglDeleteContext(window->rc);
+    DeleteDC(window->dc);
     DestroyWindow(window->handle);
     delete window;
   }

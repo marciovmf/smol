@@ -14,15 +14,17 @@ namespace smol
       if (!platform.initOpenGL(3, 1))
         return 1;
 
-      smol::Window* window = platform.createWindow(800, 600, (const char*)"Smol Engine");
+      smol::Window* window1 = platform.createWindow(800, 600, (const char*)"Smol Engine");
+      smol::Window* window2 = platform.createWindow(400, 400, (const char*)"Smol Engine");
 
-      while(! platform.getWindowCloseFlag(window))
+      while(! (platform.getWindowCloseFlag(window1) || platform.getWindowCloseFlag(window2)))
       {
-        LOGINFO("Updating...");
-        platform.updateWindowEvents(window);
+        platform.updateWindowEvents(window1);
+        platform.updateWindowEvents(window2);
       }
 
-      platform.destroyWindow(window);
+      platform.destroyWindow(window1);
+      platform.destroyWindow(window2);
       return 0;
     }
   }

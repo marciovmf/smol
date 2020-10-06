@@ -10,14 +10,19 @@
 
 #ifdef SMOL_DEBUG
 #include <stdio.h>
-#define LOG(prefix, msg) printf("[%s] %s\n%s:%d\n", (prefix), (msg), __FILE__, __LINE__)
-#define LOGINFO(msg) LOG("INFO", (msg))
-#define LOGWARNING(msg) LOG("WARNING", (msg))
-#define LOGERROR(msg) LOG("ERROR", (msg))
+	#define LogMsg(prefix, msg, ...) do {printf("\n%s - ", prefix); printf(msg, __VA_ARGS__);} while(0)
+	#define LogMsgAndFileLine(prefix, msg, ...) do {printf("\n%s - ", prefix); printf(msg, __VA_ARGS__); printf("@ %s:%d", __FILE__, __LINE__); } while(0)
+	#define LogInfo(msg, ...) LogMsg("[INFO]", msg, __VA_ARGS__)
+	#define LogWarning(msg, ...) LogMsgAndFileLine("[WARNING]", msg, __VA_ARGS__)
+	#define LogError(msg, ...) LogMsgAndFileLine("[ERROR]", msg, __VA_ARGS__)
+	#define LDK_ASSERT(condition, msg, ...) do{if (!(condition)) { LogMsgAndFileLine("[Assertion Failed]", msg, __VA_ARGS__); *((int*)0) = 0;} } while(0)
 #else
-#define LOGINFO(msg)
-#define LOGWARNING(msg)
-#define LOGERROR(msg)
+	#define LogMsg(prefix, msg, ...)
+	#define LogMsgAndFileLine(prefix, msg, ...)
+	#define LogInfo(msg, ...) 
+	#define LogWarning(msg, ...) 
+	#define LogError(msg, ...) 
+	#define LDK_ASSERT(condition, msg, ...)
 #endif//SMOL_DEBUG
 
 
