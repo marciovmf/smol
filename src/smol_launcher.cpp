@@ -10,13 +10,15 @@ namespace smol
     {
       smol::Engine engine;
       smol::Platform& platform = engine.platform;
-      smol::Window* window = platform.createWindow(800, 600, (const char*)"Small Engine");
       
-      if (!platform.initOpenGL(window, 3, 1))
+      if (!platform.initOpenGL(3, 1))
         return 1;
+
+      smol::Window* window = platform.createWindow(800, 600, (const char*)"Smol Engine");
 
       while(! platform.getWindowCloseFlag(window))
       {
+        LOGINFO("Updating...");
         platform.updateWindowEvents(window);
       }
 
