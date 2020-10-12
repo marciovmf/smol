@@ -152,10 +152,6 @@ namespace smol
     wglMakeCurrent(0, 0);
     wglDeleteContext(rc);
     destroyWindow(dummyWindow);
-
-    //TODO(marcio): Remove this from the platform layer! This must be done by the renderer
-    // Get OpenGL function Pointers here
-    getOpenGLFunctionPointers();
     return true;
   }
 
@@ -239,8 +235,12 @@ namespace smol
 
       // The first context created will be used as a shared context for the rest
       // of the program execution
-      if (!sharedContext) 
+      bool mustGetGLFunctions = false;
+      if (! sharedContext)
+      {
         globalRenderApiInfo.gl.sharedContext = rc;
+        mustGetGLFunctions = true;
+      }
 
       if (! rc)
       {
@@ -255,8 +255,10 @@ namespace smol
         return nullptr;
       }
 
-      //TODO(marcio): Remove GL calls from the platform layer
-      glClearColor(1.0f, 0.0f, (width == height ? 1.0f : 0.0f), 1.0f);
+      if(mustGetGLFunctions)
+      {
+        getOpenGLFunctionPointers();
+      }
     }
 
     return window;
@@ -282,10 +284,8 @@ namespace smol
 
       TranslateMessage(&msg);
       DispatchMessage(&msg);
-      //TODO(marcio): Remove GL calls from the platform layer
-      glClear(GL_COLOR_BUFFER_BIT);
-      SwapBuffers(window->dc);
     }
+    SwapBuffers(window->dc);
   }
 
   bool Platform::getWindowCloseFlag(Window* window)

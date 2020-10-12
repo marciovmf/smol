@@ -51,7 +51,9 @@ configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/incl
 #
 add_library(smol_platform SHARED
   "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
-  ${SOURCE_PATH}/include/smol/smol_platform.h)
+  ${SOURCE_PATH}/include/smol/smol_platform.h
+  ${SOURCE_PATH}/include/smol/smol_gl.h)
+
 target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include")
 target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include/smol")
 target_compile_options(smol_platform PRIVATE -DSMOL_PLATFORM_IMPLEMENTATION)
@@ -71,11 +73,12 @@ add_library(smol SHARED ${SOURCE_PATH}/smol_engine.cpp
   ${SOURCE_PATH}/include/smol/smol_engine.h
   ${SOURCE_PATH}/include/smol/smol_version.h
   ${SOURCE_PATH}/include/smol/smol.h
+  ${SOURCE_PATH}/include/smol/smol_gl.h
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_include_directories(smol PUBLIC "${SOURCE_PATH}/include")
 target_compile_options(smol PRIVATE -DSMOL_ENGINE_IMPLEMENTATION)
-target_link_libraries(smol PRIVATE smol_platform)
+target_link_libraries(smol PRIVATE smol_platform )
 add_custom_command(TARGET smol POST_BUILD 
   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/smolSDK/include
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${CMAKE_BINARY_DIR}/smolSDK/include)
@@ -84,7 +87,9 @@ add_custom_command(TARGET smol POST_BUILD
 # slauncher.exe: Editor / Game launcher
 #
 add_executable(slauncher ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
-target_link_libraries(slauncher PRIVATE smol smol_platform)
+target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include")
+target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include/smol")
+target_link_libraries(slauncher PRIVATE smol smol_platform ${OPENGL_LIBRARY})
 
 # Make windows Debug builds to have a console subsystem
 if(CMAKE_CONFIGURATION_TYPES)
