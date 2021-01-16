@@ -19,7 +19,6 @@ set(PLATFORM win64 CACHE STRING "Target platform" FORCE)
 set_property(CACHE PLATFORM PROPERTY STRINGS win64)
 
 if (MSVC)
-  #set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   add_compile_options(/W3 /WX)
 endif()
 
@@ -49,8 +48,6 @@ else()
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK/bin" CACHE PATH "" FORCE)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
-  message(${CMAKE_BUILD_TYPE})
-  message(${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
 # Genereate correct smol_version.h
