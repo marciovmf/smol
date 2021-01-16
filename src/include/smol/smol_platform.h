@@ -10,11 +10,11 @@
 #endif
 
 #ifdef SMOL_PLATFORM_WINDOWS
-#ifdef SMOL_PLATFORM_IMPLEMENTATION
+#ifdef SMOL_ENGINE_IMPLEMENTATION
 #define SMOL_PLATFORM_API __declspec(dllexport)
 #else
 #define SMOL_PLATFORM_API __declspec(dllimport)
-#endif //SMOL_PLATFORM_IMPLEMENTATION
+#endif //SMOL_ENGINE_IMPLEMENTATION
 #else
 #define SMOL_PLATFORM_API
 #endif // SMOL_PLATFORM_WINDOWS
@@ -25,6 +25,7 @@ namespace smol
 
   struct SMOL_PLATFORM_API Platform final
   {
+    void foo(Window* window);
     void showMessage(char* message);
     Window* createWindow(int width, int height, const char* title);
     void updateWindowEvents(Window* window);

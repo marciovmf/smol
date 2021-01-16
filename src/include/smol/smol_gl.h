@@ -5,11 +5,11 @@
 #include <smol/gl/wglext.h>
 
 #ifdef SMOL_PLATFORM_WINDOWS
-#ifdef SMOL_PLATFORM_IMPLEMENTATION
+#ifdef SMOL_ENGINE_IMPLEMENTATION
 #define SMOL_GL_API __declspec(dllexport)
 #else
 #define SMOL_GL_API __declspec(dllimport)
-#endif  // SMOL_PLATFORM_IMPLEMENTATION
+#endif  // SMOL_ENGINE_IMPLEMENTATION
 #else
 #define SMOL_GL_API
 #endif // SMOL_PLATFORM_WINDOWS
@@ -1292,7 +1292,7 @@ SMOL_GL_API PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultivie
 
 namespace smol
 {
-#ifdef SMOL_PLATFORM_IMPLEMENTATION
+#ifdef SMOL_ENGINE_IMPLEMENTATION
 #ifdef SMOL_PLATFORM_WINDOWS
 
   static HMODULE opengl32Dll = GetModuleHandleA("OpenGL32.dll");
@@ -2587,7 +2587,7 @@ namespace smol
     glViewportSwizzleNV = (PFNGLVIEWPORTSWIZZLENVPROC) SMOL_GETGLPROC(glViewportSwizzleNV); 
     glFramebufferTextureMultiviewOVR = (PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC) SMOL_GETGLPROC(glFramebufferTextureMultiviewOVR); 
   }
-#endif // SMOL_PLATFORM_IMPLEMENTATION
+#endif // SMOL_ENGINE_IMPLEMENTATION
 }
 
 #endif  //SMOL_GL

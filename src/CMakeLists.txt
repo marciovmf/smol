@@ -19,7 +19,7 @@ set(PLATFORM win64 CACHE STRING "Target platform" FORCE)
 set_property(CACHE PLATFORM PROPERTY STRINGS win64)
 
 if (MSVC)
-  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  #set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   add_compile_options(/W3 /WX)
 endif()
 
@@ -57,19 +57,6 @@ endif()
 configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/include/smol/smol_version.h)
 
 #
-# smol_platform.dll: OS dependent code implementation of the platform layer
-#
-add_library(smol_platform SHARED
-  "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
-  ${SOURCE_PATH}/include/smol/smol_platform.h
-  ${SOURCE_PATH}/include/smol/smol_gl.h)
-
-target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include")
-target_include_directories(smol_platform PUBLIC "${SOURCE_PATH}/include/smol")
-target_compile_options(smol_platform PRIVATE -DSMOL_PLATFORM_IMPLEMENTATION)
-target_link_libraries(smol_platform PRIVATE ${OPENGL_LIBRARY})
-
-#
 # Add windows resource files only if we are building for windows
 #
 if("${PLATFORM}" STREQUAL win64)
@@ -79,16 +66,26 @@ endif()
 #
 # smol.dll: Smol engine itself
 #
-add_library(smol SHARED ${SOURCE_PATH}/smol_engine.cpp 
+add_library(smol SHARED 
+  # Platform
+  "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
+  ${SOURCE_PATH}/include/smol/smol_platform.h
+  ${SOURCE_PATH}/include/smol/smol_gl.h
+  # Core Engine
+  ${SOURCE_PATH}/smol_engine.cpp 
   ${SOURCE_PATH}/include/smol/smol_engine.h
   ${SOURCE_PATH}/include/smol/smol_version.h
   ${SOURCE_PATH}/include/smol/smol.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
   "${SMOL_WINDOWS_RESOURCE_FILE}")
+
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
-target_include_directories(smol PUBLIC "${SOURCE_PATH}/include")
 target_compile_options(smol PRIVATE -DSMOL_ENGINE_IMPLEMENTATION)
-target_link_libraries(smol PRIVATE smol_platform )
+target_include_directories(smol PUBLIC 
+  "${SOURCE_PATH}/include" 
+  "${SOURCE_PATH}/include/smol")
+
+target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY})
 add_custom_command(TARGET smol POST_BUILD 
   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/smolSDK/include
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${CMAKE_BINARY_DIR}/smolSDK/include)
@@ -99,15 +96,17 @@ add_custom_command(TARGET smol POST_BUILD
 add_executable(slauncher ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
 target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include")
 target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include/smol")
-target_link_libraries(slauncher PRIVATE smol smol_platform ${OPENGL_LIBRARY})
+target_link_libraries(slauncher PRIVATE smol ${OPENGL_LIBRARY})
 
 # Make windows Debug builds to have a console subsystem
 if(CMAKE_CONFIGURATION_TYPES)
-  set_property(TARGET slauncher PROPERTY
-    LINK_OPTIONS
+  set_property(TARGET slauncher PROPERTY LINK_OPTIONS
     $<$<CXX_COMPILER_ID:MSVC>:$<IF:$<CONFIG:Release>,/SUBSYSTEM:WINDOWS,/SUBSYSTEM:CONSOLE>>)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release" )
   if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set_property(TARGET slauncher PROPERTY LINK_OPTIONS /SUBSYSTEM:WINDOWS)
   endif()
 endif()
+
+install(DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK" DESTINATION .)
+
