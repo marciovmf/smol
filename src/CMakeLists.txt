@@ -88,6 +88,15 @@ add_custom_command(TARGET smol POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${CMAKE_BINARY_DIR}/smolSDK/include)
 
 #
+# build demo game
+#
+add_library(game SHARED "${SOURCE_PATH}/demo/game.cpp")
+target_include_directories(game PUBLIC 
+  "${SOURCE_PATH}/include" 
+  "${SOURCE_PATH}/include/smol")
+target_link_libraries(game PRIVATE smol)
+
+#
 # slauncher.exe: Editor / Game launcher
 #
 add_executable(slauncher ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")

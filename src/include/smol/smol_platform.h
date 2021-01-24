@@ -22,6 +22,7 @@
 namespace smol
 {
   struct Window;
+  struct Module;
 
   struct SMOL_PLATFORM_API Platform final
   {
@@ -33,6 +34,9 @@ namespace smol
     void clearWindowCloseFlag(Window* window);
     void destroyWindow(Window* window);
     bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
+    Module* loadModule(const char* path);
+    bool unloadModule(Module* module);
+    void* getFunctionFromModule(Module* module,  const char* function);
   };
 } 
 

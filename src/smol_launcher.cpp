@@ -1,4 +1,5 @@
 #include <smol/smol.h>
+#include <smol/smol_game.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_engine.h>
 #include <smol/smol_gl.h>
@@ -136,12 +137,29 @@ namespace smol
       Shader shader = loadShader(vertexSource, fragmentSource);
       glUseProgram(shader);
 
+      smol::Module* game = platform.loadModule("game.dll");
+      SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
+        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
+
+      SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
+        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTOP);
+
+      SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
+        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
+
+
+      onGameStartCallback();
+
       while(! platform.getWindowCloseFlag(window))
       {
+        onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         platform.updateWindowEvents(window);
       }
+
+      onGameStopCallback();
+      platform.unloadModule(game);
 
       platform.destroyWindow(window);
       return 0;
