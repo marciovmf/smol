@@ -21,6 +21,11 @@ namespace smol
     bool shouldClose = false;
   };
 
+  struct Module
+  {
+    HMODULE handle;
+  };
+
   //
   // A Global structure for storing information about the currently used rendering API
   //
@@ -306,4 +311,41 @@ namespace smol
     DestroyWindow(window->handle);
     delete window;
   }
+
+  Module* Platform::loadModule(const char* path)
+  {
+    HMODULE hmodule = LoadLibrary(path);
+    if (hmodule)
+    {
+      Module* module = new Module; //TODO(marcio): Use custom memmory allocation here
+      module->handle = hmodule;
+      return module;
+    }
+
+    LogError("Failed loading module '%s'", path);
+    return nullptr;
+  }
+
+  bool Platform::unloadModule(Module* module)
+  {
+    if (! FreeLibrary(module->handle)) 
+    {
+      LogError("Error unloading module");
+      return false;
+    }
+    delete module;
+    return true;
+  }
+
+  void* Platform::getFunctionFromModule(Module* module,  const char* function)
+  {
+    void* addr = GetProcAddress(module->handle, function);
+    if (! addr)
+    {
+      LogError("Faild to fetch '%s' function pointer from module", function);
+      return nullptr;
+    }
+    return addr;
+  }
+
 } 
