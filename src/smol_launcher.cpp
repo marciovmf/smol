@@ -95,6 +95,24 @@ namespace smol
       if (!platform.initOpenGL(3, 1))
         return 1;
 
+      smol::Module* game = platform.loadModule("game.dll");
+      SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
+        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
+
+      SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
+        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTOP);
+
+      SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
+        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
+
+      if (! (game && onGameStartCallback && onGameStopCallback && onGameUpdateCallback))
+      {
+        LogError("Failed to load a valid game module.");
+        return 1;
+      }
+
+      onGameStartCallback();
+
       smol::Window* window = platform.createWindow(800, 600, (const char*)"Smol Engine");
 
       glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
@@ -137,18 +155,6 @@ namespace smol
       Shader shader = loadShader(vertexSource, fragmentSource);
       glUseProgram(shader);
 
-      smol::Module* game = platform.loadModule("game.dll");
-      SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
-        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
-
-      SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
-        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTOP);
-
-      SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
-        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
-
-
-      onGameStartCallback();
 
       while(! platform.getWindowCloseFlag(window))
       {
