@@ -26,17 +26,17 @@ namespace smol
 
   struct SMOL_PLATFORM_API Platform final
   {
-    void foo(Window* window);
-    void showMessage(char* message);
-    Window* createWindow(int width, int height, const char* title);
-    void updateWindowEvents(Window* window);
-    bool getWindowCloseFlag(Window* window);
-    void clearWindowCloseFlag(Window* window);
-    void destroyWindow(Window* window);
-    bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
-    Module* loadModule(const char* path);
-    bool unloadModule(Module* module);
-    void* getFunctionFromModule(Module* module,  const char* function);
+    static void foo(Window* window);
+    static void showMessage(char* message);
+    static Window* createWindow(int width, int height, const char* title);
+    static void updateWindowEvents(Window* window);
+    static bool getWindowCloseFlag(Window* window);
+    static void clearWindowCloseFlag(Window* window);
+    static void destroyWindow(Window* window);
+    static bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
+    static Module* loadModule(const char* path);
+    static bool unloadModule(Module* module);
+    static void* getFunctionFromModule(Module* module,  const char* function);
   };
 } 
 

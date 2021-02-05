@@ -69,7 +69,6 @@ add_library(smol SHARED
   ${SOURCE_PATH}/include/smol/smol_platform.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
   # Core Engine
-  ${SOURCE_PATH}/smol_engine.cpp 
   ${SOURCE_PATH}/include/smol/smol_engine.h
   ${SOURCE_PATH}/include/smol/smol_version.h
   ${SOURCE_PATH}/include/smol/smol.h

@@ -13,15 +13,5 @@
 #define SMOL_ENGINE_API
 #endif // SMOL_PLATFORM_WINDOWS
 
-namespace smol
-{
-  struct SMOL_ENGINE_API Engine final
-  {
-    Platform platform;
-
-    Engine();
-    ~Engine();
-  };
-}
 
 #endif  //SMOL_ENGINE

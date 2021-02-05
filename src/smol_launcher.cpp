@@ -89,21 +89,18 @@ namespace smol
   {
     int smolMain(int argc, char** argv)
     {
-      smol::Engine engine;
-      smol::Platform& platform = engine.platform;
-      
-      if (!platform.initOpenGL(3, 1))
+      if (!Platform::initOpenGL(3, 1))
         return 1;
 
-      smol::Module* game = platform.loadModule("game.dll");
+      smol::Module* game = Platform::loadModule("game.dll");
       SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
-        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
+        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
 
       SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
-        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTOP);
+        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTOP);
 
       SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
-        platform.getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
+        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
 
       if (! (game && onGameStartCallback && onGameStopCallback && onGameUpdateCallback))
       {
@@ -113,7 +110,7 @@ namespace smol
 
       onGameStartCallback();
 
-      smol::Window* window = platform.createWindow(800, 600, (const char*)"Smol Engine");
+      smol::Window* window = Platform::createWindow(800, 600, (const char*)"Smol Engine");
 
       glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
       unsigned int vao, vbo, ibo;
@@ -155,19 +152,17 @@ namespace smol
       Shader shader = loadShader(vertexSource, fragmentSource);
       glUseProgram(shader);
 
-
-      while(! platform.getWindowCloseFlag(window))
+      while(! Platform::getWindowCloseFlag(window))
       {
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-        platform.updateWindowEvents(window);
+        Platform::updateWindowEvents(window);
       }
 
       onGameStopCallback();
-      platform.unloadModule(game);
-
-      platform.destroyWindow(window);
+      Platform::unloadModule(game);
+      Platform::destroyWindow(window);
       return 0;
     }
   }
