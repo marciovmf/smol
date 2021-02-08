@@ -19,7 +19,10 @@ namespace smol
     HDC dc;
     HGLRC rc;
     bool shouldClose = false;
+    static KeyboardState keyboardState;
   };
+
+  KeyboardState Window::keyboardState = {};
 
   struct Module
   {
@@ -58,6 +61,17 @@ namespace smol
     {
       case WM_CLOSE:
         PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
+        break;
+
+      case WM_KEYDOWN:
+      case WM_KEYUP:
+        {
+          int isDown = !(lParam & (1 << 31)); // 0 = pressed, 1 = released
+          int wasDown = (lParam & (1 << 30)) !=0;
+          int state = (((isDown ^ wasDown) << 1) | isDown);
+          short vkCode = (short) wParam;
+          Window::keyboardState.key[vkCode] = (unsigned char) state;
+        }
         break;
 
       default:
@@ -279,6 +293,13 @@ namespace smol
       wglMakeCurrent(window->dc, window->rc);
     }
 
+
+    // clean up changed bit for keyboard state
+    for(int keyCode = 0; keyCode < smol::KeyboardState::MAX_KEYS; keyCode++)
+    {
+      Window::keyboardState.key[keyCode] &= ~smol::KeyboardState::CHANGED_THIS_FRAME_BIT;
+    }
+
     while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
     {
       if (msg.message == SMOL_CLOSE_WINDOW)
@@ -346,6 +367,11 @@ namespace smol
       return nullptr;
     }
     return addr;
+  }
+
+  const unsigned char* Platform::getKeyboardState()
+  {
+    return (const unsigned char*)&Window::keyboardState;
   }
 
 } 

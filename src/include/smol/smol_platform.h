@@ -24,9 +24,20 @@ namespace smol
   struct Window;
   struct Module;
 
+  struct KeyboardState
+  {
+    enum
+    {
+      PRESSED_BIT = 1,
+      CHANGED_THIS_FRAME_BIT = 1 << 1,
+      MAX_KEYS = 256
+    };
+
+    unsigned char key[MAX_KEYS];
+  };
+
   struct SMOL_PLATFORM_API Platform final
   {
-    static void foo(Window* window);
     static void showMessage(char* message);
     static Window* createWindow(int width, int height, const char* title);
     static void updateWindowEvents(Window* window);
@@ -37,6 +48,7 @@ namespace smol
     static Module* loadModule(const char* path);
     static bool unloadModule(Module* module);
     static void* getFunctionFromModule(Module* module,  const char* function);
+    static const unsigned char* getKeyboardState();
   };
 } 
 
