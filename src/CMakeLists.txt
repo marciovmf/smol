@@ -75,6 +75,10 @@ add_library(smol SHARED
   ${SOURCE_PATH}/include/smol/smol_version.h
   ${SOURCE_PATH}/include/smol/smol.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
+  ${SOURCE_PATH}/include/smol/smol_vector2.h
+  ${SOURCE_PATH}/smol_vector2.cpp
+  ${SOURCE_PATH}/include/smol/smol_vector3.h
+  ${SOURCE_PATH}/smol_vector3.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
