@@ -3,6 +3,9 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_engine.h>
 #include <smol/smol_gl.h>
+#include <smol/smol_gl.h>
+#include <smol/smol_mat4.h>
+#include <smol/smol_keyboard.h>
 
 namespace smol
 {
@@ -10,9 +13,10 @@ namespace smol
     "#version 330 core\n"
     "layout (location = 0) in vec3 vertPos;\n"
     "layout (location = 1) in vec3 vertColorIn;\n"
+    "uniform mat4 proj;\n"
     "out vec4 vertColor;\n"
     "void main() {\n"
-    " gl_Position = vec4(vertPos, 1.0);\n"
+    " gl_Position = proj * vec4(vertPos, 1.0);\n"
     " vertColor = vec4(vertColorIn, 1.0);\n"
     "}";
 
@@ -110,7 +114,9 @@ namespace smol
 
       onGameStartCallback();
 
-      smol::Window* window = Platform::createWindow(800, 600, (const char*)"Smol Engine");
+      const int WIDTH = 1024;
+      const int HEIGHT = 576;
+      smol::Window* window = Platform::createWindow(WIDTH, HEIGHT, (const char*)"Smol Engine");
 
       glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
       unsigned int vao, vbo, ibo;
@@ -128,10 +134,10 @@ namespace smol
 
       float vertices[] =
       {
-        -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5, -0.5, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.5, 0.5, 0.0, 0.0f, 0.0f, 1.0f, 
-        -0.5, 0.5, 0.0, 1.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -1.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
       };
 
       unsigned int indices[] = {0, 1, 2, 2, 3, 0};
@@ -152,10 +158,33 @@ namespace smol
       Shader shader = loadShader(vertexSource, fragmentSource);
       glUseProgram(shader);
 
+      Mat4 perspective = Mat4::perspective(1.0f, WIDTH/HEIGHT, 0.0f, 2.0f);
+      Mat4 orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, 0.0f, 10.0f);
+
+      GLuint uniform = glGetUniformLocation(shader, "proj");
+      glUniformMatrix4fv(uniform, 1, 0, (const float*) perspective.e);
+
+      bool isOrtho = false;
       while(! Platform::getWindowCloseFlag(window))
       {
+        bool update = false;
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         glClear(GL_COLOR_BUFFER_BIT);
+
+        if (smol::Keyboard::getKeyDown(smol::KEYCODE_J))
+        {
+          isOrtho = !isOrtho;
+          update = true;
+        }
+
+        if (update)
+        {
+          float* m = (float*) perspective.e;
+          if (isOrtho)
+            m = (float*)orthographic.e;
+          glUniformMatrix4fv(uniform, 1, 0, (const float*)m);
+        }
+
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         Platform::updateWindowEvents(window);
       }
