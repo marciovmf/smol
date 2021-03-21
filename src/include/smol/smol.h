@@ -15,14 +15,14 @@
 	#define LogInfo(msg, ...) LogMsg("[INFO]", msg, __VA_ARGS__)
 	#define LogWarning(msg, ...) LogMsgAndFileLine("[WARNING]", msg, __VA_ARGS__)
 	#define LogError(msg, ...) LogMsgAndFileLine("[ERROR]", msg, __VA_ARGS__)
-	#define LDK_ASSERT(condition, msg, ...) do{if (!(condition)) { LogMsgAndFileLine("[Assertion Failed]", msg, __VA_ARGS__); *((int*)0) = 0;} } while(0)
+	#define SMOL_ASSERT(condition, msg, ...) do{if (!(condition)) { LogMsgAndFileLine("[Assertion Failed]", msg, __VA_ARGS__); *((int*)0) = 0;} } while(0)
 #else
 	#define LogMsg(prefix, msg, ...)
 	#define LogMsgAndFileLine(prefix, msg, ...)
 	#define LogInfo(msg, ...) 
 	#define LogWarning(msg, ...) 
 	#define LogError(msg, ...) 
-	#define LDK_ASSERT(condition, msg, ...)
+	#define SMO_ASSERT(condition, msg, ...)
 #endif//SMOL_DEBUG
 
 
