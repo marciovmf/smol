@@ -21,4 +21,4 @@
 
 ## License
 
-[APACHE](LICENSE) © [Márcio Freitas](https://handmadegame.dev/about/).](https://rodrigobdz.github.io/).
+[APACHE](LICENSE) © [Márcio Freitas](https://handmadegame.dev/about/)](https://rodrigobdz.github.io/) .
