@@ -1,0 +1,9 @@
+version: 0.0.0.{build}
+image: Visual Studio 2019
+configuration: Release
+platform: x64
+clone_folder: c:\projects\smol
+init:
+- cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+build_script:
+- cmd: cmake -Ssrc -B..\build -GNinja -DCMAKE_BUILD_TYPE=Release && cmake --build ..\build
