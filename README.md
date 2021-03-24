@@ -1,6 +1,6 @@
 
-[![Build status](https://ci.appveyor.com/api/projects/status/7afjsv2d9w65cbja/branch/development?svg=true)](https://ci.appveyor.com/project/marciovmf/smol/branch/development)
-
+[![Build status](https://ci.appveyor.com/api/projects/status/7afjsv2d9w65cbja/branch/master?svg=true&passingText=master%20-%20OK&failingText=master%20-%20Fails)](https://ci.appveyor.com/project/marciovmf/smol/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/7afjsv2d9w65cbja/branch/development?svg=true&passingText=development%20-%20OK&failingText=development%20-%20Fails)](https://ci.appveyor.com/project/marciovmf/smol/branch/development)
 
 <p align="center">
   <img src="https://github.com/marciovmf/smol/raw/development/logo.png" width=128>
