@@ -1,10 +1,12 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/7afjsv2d9w65cbja/branch/development?svg=true)](https://ci.appveyor.com/project/marciovmf/smol/branch/development)
-[![Build status](https://ci.appveyor.com/api/projects/status/7afjsv2d9w65cbja/master/development?svg=true)](https://ci.appveyor.com/project/marciovmf/smol/branch/master)
 
-# smol
+# SMOL Game Engine
+<p align="center">
+  <img src="https://github.com/marciovmf/smol/raw/development/logo.png" width=128>
+</p>
 
-# ![](logo.png =32x32) SMOL Game Engine
+
  Uma game engine desenvolvida ao longo de uma série de vídeos do canal https://www.youtube.com/gamedevlog.
  
  Por motivos educacionais, todas as funcionalidades desta engine são feitas do
