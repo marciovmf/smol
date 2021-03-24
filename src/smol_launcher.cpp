@@ -135,9 +135,9 @@ namespace smol
       float vertices[] =
       {
         -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, -1.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
+        0.5f, -0.5f, -0.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.0f, 0.0f, 0.0f, 1.0f, 
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f
       };
 
       unsigned int indices[] = {0, 1, 2, 2, 3, 0};
@@ -158,31 +158,80 @@ namespace smol
       Shader shader = loadShader(vertexSource, fragmentSource);
       glUseProgram(shader);
 
-      Mat4 perspective = Mat4::perspective(1.0f, WIDTH/HEIGHT, 0.0f, 2.0f);
-      Mat4 orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, 0.0f, 10.0f);
+      glDisable(GL_CULL_FACE);
+
+      Mat4 perspective = Mat4::perspective(1.0f, WIDTH/HEIGHT, 0.0f, 5.0f);
+      Mat4 orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, -10.0f, 10.0f);
 
       GLuint uniform = glGetUniformLocation(shader, "proj");
       glUniformMatrix4fv(uniform, 1, 0, (const float*) perspective.e);
 
       bool isOrtho = false;
+      float scale = 1.0f;
+      float rotation = 0.0f;
+      float x = 0.0f;
+
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         glClear(GL_COLOR_BUFFER_BIT);
 
-        if (smol::Keyboard::getKeyDown(smol::KEYCODE_J))
+        if (smol::Keyboard::getKeyDown(smol::KEYCODE_P))
         {
           isOrtho = !isOrtho;
           update = true;
         }
 
+        if (smol::Keyboard::getKey(smol::KEYCODE_S))
+        {
+          if (smol::Keyboard::getKey(smol::KEYCODE_SHIFT))
+            scale -= 0.02f;
+          else
+            scale += 0.02f;
+
+          update = true;
+        }
+
+        if (smol::Keyboard::getKey(smol::KEYCODE_R))
+        {
+          if (smol::Keyboard::getKey(smol::KEYCODE_SHIFT))
+            rotation -= 0.02f;
+          else
+            rotation += 0.02f;
+
+          update = true;
+        }
+
+        if (smol::Keyboard::getKey(smol::KEYCODE_T))
+        {
+          if (smol::Keyboard::getKey(smol::KEYCODE_SHIFT))
+            x -= 0.02f;
+          else
+            x += 0.02f;
+
+          update = true;
+        }
+
         if (update)
         {
-          float* m = (float*) perspective.e;
-          if (isOrtho)
-            m = (float*)orthographic.e;
-          glUniformMatrix4fv(uniform, 1, 0, (const float*)m);
+          // choose projection
+          Mat4* m = isOrtho ? &orthographic : &perspective;
+
+          // position
+          Mat4 translationMatrix = Mat4::initTranslation(x, 0.0f, 0.0f);
+          Mat4 transformed = Mat4::mul(*m, translationMatrix);
+
+          // scale
+          Mat4 scaleMatrix = Mat4::initScale(scale);
+          transformed = Mat4::mul(transformed, scaleMatrix);
+
+          // rotation
+          Mat4 rotationMatrix = Mat4::initRotation(0.0f, 1.0f, 0.0f, rotation);
+          transformed = Mat4::mul(transformed, rotationMatrix);
+
+          // update shader
+          glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
         }
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);

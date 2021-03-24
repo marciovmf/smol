@@ -2,15 +2,26 @@
 #define SMOL_MAT4
 
 #include <smol/smol_engine.h>
+#include <smol/smol_vector3.h>
 
 namespace smol
 {
   struct SMOL_ENGINE_API Mat4
   {
-    float e[4][4];
-    Mat4& identity();
+    static Mat4 initIdentity();
+    static Mat4 initScale(float amount);
+    static Mat4 initScale(float x, float y, float z);
+    static Mat4 initTranslation(float x, float y, float z);
+    static Mat4 initRotation(float x, float y, float z, float angle);
     static Mat4 perspective(float fov, float aspect, float zNear, float zFar);
     static Mat4 ortho(float left, float right, float top, float bottom, float zNear, float zFar);
+    static Mat4 transpose(Mat4& m);
+    static Mat4 mul(Mat4& a, Mat4& b);
+    static Vector3 mul(Mat4& a, Vector3& b);
+
+    float e[4][4];
+    Mat4& mul(Mat4& other);
+    Mat4& transposed();
   };
 }
 
