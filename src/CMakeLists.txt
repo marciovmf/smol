@@ -121,5 +121,13 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release" )
   endif()
 endif()
 
+# build tests
+
+include(CTest)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
+
 install(DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK" DESTINATION .)
 
