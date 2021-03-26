@@ -37,8 +37,10 @@ namespace smol
     int failCount = 0;
     int runAllTests();
     static TestSuite& get();
+    void printPassedStatus(std::string& msg);
+    void printFailStatus(std::string& msg);
+    void printWaitStatus(std::string& msg);
     float epsilon = std::numeric_limits<float>::epsilon();
-
     private:
     static TestSuite* self;
     TestSuite();
