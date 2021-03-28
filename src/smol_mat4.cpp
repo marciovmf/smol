@@ -1,4 +1,5 @@
 #include <smol/smol.h>
+#include <smol/smol_log.h>
 #include <smol/smol_mat4.h>
 #include <math.h>
 
@@ -75,9 +76,9 @@ namespace smol
 
   Mat4 Mat4::perspective(float fov, float aspect, float zNear, float zFar)
   {
-    SMOL_ASSERT(zNear >= 0.0f, "zNear must be positive.");
-    SMOL_ASSERT(zFar > 0.0f, "zFar must be positive.");
-    SMOL_ASSERT(zFar > zNear, "zFar must be larger than zNear.");
+    SMOL_ASSERT(zNear >= 0.0f, "zNear must be positive.",0);
+    SMOL_ASSERT(zFar > 0.0f, "zFar must be positive.",0);
+    SMOL_ASSERT(zFar > zNear, "zFar must be larger than zNear.",0);
 
     const float tanHalfFov = (float) tan(fov/2);
     Mat4 m = Mat4::initIdentity();

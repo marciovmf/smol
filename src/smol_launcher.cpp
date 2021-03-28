@@ -6,6 +6,15 @@
 #include <smol/smol_gl.h>
 #include <smol/smol_mat4.h>
 #include <smol/smol_keyboard.h>
+#include <smol/smol_log.h>
+
+#if defined(SMOL_DEBUG)
+#define SMOL_LOGFILE nullptr
+#define SMOL_LOGLEVEL smol::Log::LogType::LOG_FATAL
+#else
+#define SMOL_LOGFILE "smol_engine_log.txt"
+#define SMOL_LOGLEVEL smol::Log::LogType::LOG_FATAL
+#endif
 
 namespace smol
 {
@@ -45,7 +54,7 @@ namespace smol
     if (! status)
     {
       glGetShaderInfoLog(vShader, errorLogSize, &errorBufferLen, errorBuffer);
-      LogInfo("Compiling VERTEX SHADER: %s\n", errorBuffer);
+      smol::Log::info("Compiling VERTEX SHADER: %s\n", errorBuffer);
       glDeleteShader(vShader);
       return 0;
     }
@@ -59,7 +68,7 @@ namespace smol
     if (! status)
     {
       glGetShaderInfoLog(fShader, errorLogSize, &errorBufferLen, errorBuffer);
-      LogInfo("Compiling FRAGMENT SHADER: %s\n", errorBuffer);
+      smol::Log::info("Compiling FRAGMENT SHADER: %s\n", errorBuffer);
       glDeleteShader(vShader);
       glDeleteShader(fShader);
       return 0;
@@ -76,7 +85,7 @@ namespace smol
     if (! status)
     {
       glGetProgramInfoLog(program, errorLogSize, &errorBufferLen, errorBuffer);
-      LogInfo("linking SHADER: %s\n", errorBuffer);
+      smol::Log::info("linking SHADER: %s\n", errorBuffer);
       glDeleteShader(vShader);
       glDeleteShader(fShader);
       glDeleteProgram(program);
@@ -86,13 +95,20 @@ namespace smol
     glDeleteShader(vShader);
     glDeleteShader(fShader);
     return program;
-
   }
 
   namespace launcher
   {
     int smolMain(int argc, char** argv)
     {
+      debugLogInfo("Hello %s", "Sailor");
+      // TESTING LOG FEATURES --------------------------------
+      Log::info("file %d", 1);
+      Log::warning("file %d", 2);
+      Log::error("Cuidado %s", "Llamas!");
+     
+      //------------------------------------------------------
+
       if (!Platform::initOpenGL(3, 1))
         return 1;
 
@@ -108,7 +124,7 @@ namespace smol
 
       if (! (game && onGameStartCallback && onGameStopCallback && onGameUpdateCallback))
       {
-        LogError("Failed to load a valid game module.");
+        smol::Log::error("Failed to load a valid game module.");
         return 1;
       }
 
@@ -122,7 +138,6 @@ namespace smol
       unsigned int vao, vbo, ibo;
       glGenVertexArrays(1, &vao);
       glBindVertexArray(vao);
-
 
       // VAO
       glGenVertexArrays(1, &vao);
@@ -241,6 +256,7 @@ namespace smol
       onGameStopCallback();
       Platform::unloadModule(game);
       Platform::destroyWindow(window);
+      Log::toStdout();
       return 0;
     }
   }

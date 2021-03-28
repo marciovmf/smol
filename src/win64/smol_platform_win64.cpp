@@ -1,4 +1,5 @@
 #include <smol/smol.h>
+#include <smol/smol_log.h>
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
 #include "smol_resource_win64.h"
@@ -107,14 +108,14 @@ namespace smol
     int pixelFormat = ChoosePixelFormat(dummyWindow->dc, &pfd);
     if (! pixelFormat)
     {
-      LogError("Unable to allocate a pixel format");
+      smol::Log::error("Unable to allocate a pixel format");
       destroyWindow(dummyWindow);
       return false;
     }
 
     if (! SetPixelFormat(dummyWindow->dc, pixelFormat, &pfd))
     {
-      LogError("Unable to set a pixel format");
+      smol::Log::error("Unable to set a pixel format");
       destroyWindow(dummyWindow);
       return false;
     }
@@ -122,14 +123,14 @@ namespace smol
     HGLRC rc = wglCreateContext(dummyWindow->dc);
     if (! rc)
     {
-      LogError("Unable to create a valid OpenGL context");
+      smol::Log::error("Unable to create a valid OpenGL context");
       destroyWindow(dummyWindow);
       return false;
     }
 
     if (! wglMakeCurrent(dummyWindow->dc, rc))
     {
-      LogError("Unable to set OpenGL context current");
+      smol::Log::error("Unable to set OpenGL context current");
       destroyWindow(dummyWindow);
       return false;
     }
@@ -193,7 +194,7 @@ namespace smol
       // Do not try registering the class multiple times
       if (! RegisterClassExA(&wc))
       {
-        LogError("Could not register window class");
+        smol::Log::error("Could not register window class");
         return nullptr;
       }
     }
@@ -211,7 +212,7 @@ namespace smol
 
     if (! windowHandle)
     {
-      LogError("Could not create a window");
+      smol::Log::error("Could not create a window");
       return nullptr;
     }
 
@@ -238,13 +239,13 @@ namespace smol
 
       if (numPixelFormats <= 0)
       {
-        LogError("Unable to get a valid pixel format");
+        smol::Log::error("Unable to get a valid pixel format");
         return nullptr;
       }
 
       if (! SetPixelFormat(window->dc, pixelFormat, &pfd))
       {
-        LogError("Unable to set a pixel format");
+        smol::Log::error("Unable to set a pixel format");
         return nullptr;
       }
 
@@ -263,14 +264,14 @@ namespace smol
 
       if (! rc)
       {
-        LogError("Unable to create a valid OpenGL context");
+        smol::Log::error("Unable to create a valid OpenGL context");
         return nullptr;
       }
 
       window->rc = rc;
       if (! wglMakeCurrent(window->dc, window->rc))
       {
-        LogError("Unable to set OpenGL context current");
+        smol::Log::error("Unable to set OpenGL context current");
         return nullptr;
       }
 
@@ -343,7 +344,7 @@ namespace smol
       return module;
     }
 
-    LogError("Failed loading module '%s'", path);
+    smol::Log::error("Failed loading module '%s'", path);
     return nullptr;
   }
 
@@ -351,7 +352,7 @@ namespace smol
   {
     if (! FreeLibrary(module->handle)) 
     {
-      LogError("Error unloading module");
+      smol::Log::error("Error unloading module");
       return false;
     }
     delete module;
@@ -363,7 +364,7 @@ namespace smol
     void* addr = GetProcAddress(module->handle, function);
     if (! addr)
     {
-      LogError("Faild to fetch '%s' function pointer from module", function);
+      smol::Log::error("Faild to fetch '%s' function pointer from module", function);
       return nullptr;
     }
     return addr;
