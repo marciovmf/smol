@@ -54,13 +54,6 @@ endif()
 configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/include/smol/smol_version.h)
 
 #
-# Add windows resource files only if we are building for windows
-#
-if("${PLATFORM}" STREQUAL win64)
-  set(SMOL_WINDOWS_RESOURCE_FILE "${SOURCE_PATH}/win64/smol_resource_win64.rc")
-endif()
-
-#
 # smol.dll: Smol engine itself
 #
 add_library(smol SHARED 
@@ -84,15 +77,18 @@ add_library(smol SHARED
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
-target_compile_options(smol PRIVATE -DSMOL_ENGINE_IMPLEMENTATION)
+target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)
 target_include_directories(smol PUBLIC 
   "${SOURCE_PATH}/include" 
   "${SOURCE_PATH}/include/smol")
 
 target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY})
+
+if(SMOL_EXPORT_SDK)
 add_custom_command(TARGET smol POST_BUILD 
   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/smolSDK/include
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${CMAKE_BINARY_DIR}/smolSDK/include)
+endif()
 
 #
 # build demo game
@@ -106,20 +102,4 @@ target_link_libraries(game PRIVATE smol)
 #
 # slauncher.exe: Editor / Game launcher
 #
-add_executable(slauncher ${SOURCE_PATH}/smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
-target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include")
-target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include/smol")
-target_link_libraries(slauncher PRIVATE smol ${OPENGL_LIBRARY})
-
-# Make windows Debug builds to have a console subsystem
-if(CMAKE_CONFIGURATION_TYPES)
-  set_property(TARGET slauncher PROPERTY LINK_OPTIONS
-    $<$<CXX_COMPILER_ID:MSVC>:$<IF:$<CONFIG:Release>,/SUBSYSTEM:WINDOWS,/SUBSYSTEM:CONSOLE>>)
-elseif (CMAKE_BUILD_TYPE STREQUAL "Release" )
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set_property(TARGET slauncher PROPERTY LINK_OPTIONS /SUBSYSTEM:WINDOWS)
-  endif()
-endif()
-
-install(DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK" DESTINATION .)
-
+add_subdirectory("Launcher")

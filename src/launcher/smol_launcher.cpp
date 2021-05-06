@@ -7,25 +7,38 @@
 #include <smol/smol_mat4.h>
 #include <smol/smol_keyboard.h>
 
+#ifndef SMOL_GAME_MODULE_NAME
+#ifdef SMOL_PLATFORM_WINDOWS
+#define SMOL_GAME_MODULE_NAME "game.dll"
+#else
+#define SMOL_GAME_MODULE_NAME "game.so"
+#endif
+#endif
+
 namespace smol
 {
   const char* vertexSource = 
     "#version 330 core\n"
     "layout (location = 0) in vec3 vertPos;\n"
     "layout (location = 1) in vec3 vertColorIn;\n"
+    "layout (location = 2) in vec2 vertUVIn;\n"
     "uniform mat4 proj;\n"
     "out vec4 vertColor;\n"
+    "out vec2 uv;\n"
     "void main() {\n"
     " gl_Position = proj * vec4(vertPos, 1.0);\n"
     " vertColor = vec4(vertColorIn, 1.0);\n"
+    " uv = vertUVIn;\n"
     "}";
 
   const char* fragmentSource = 
     "#version 330 core\n"
     "out vec4 fragColor;\n"
+    "uniform sampler2D mainTex;\n"
     "in vec4 vertColor;\n"
+    "in vec2 uv;\n"
     "void main(){\n"
-    " fragColor = vertColor;\n"
+    " fragColor = texture(mainTex, uv);\n"
     "\n}";
 
   typedef GLuint Shader;
@@ -96,7 +109,7 @@ namespace smol
       if (!Platform::initOpenGL(3, 1))
         return 1;
 
-      smol::Module* game = Platform::loadModule("game.dll");
+      smol::Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
       SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
         Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
 
@@ -134,10 +147,10 @@ namespace smol
 
       float vertices[] =
       {
-        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, -0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.0f, 0.0f, 0.0f, 1.0f, 
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f
+        0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top right
+        0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom left
+        -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left 
       };
 
       unsigned int indices[] = {0, 1, 2, 2, 3, 0};
@@ -145,9 +158,11 @@ namespace smol
       // vertex buffer
       glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
       glEnableVertexAttribArray(0);  
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
       glEnableVertexAttribArray(1);
-      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+      glEnableVertexAttribArray(2);
+      glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 
       // index buffer
       glGenBuffers(1, &ibo);
@@ -166,16 +181,71 @@ namespace smol
       GLuint uniform = glGetUniformLocation(shader, "proj");
       glUniformMatrix4fv(uniform, 1, 0, (const float*) perspective.e);
 
+
+      //Texturing
+
+      // Create a procedural checker texture
+      const int texWidth = 1024;
+      const int texHeight = texWidth;
+      const int squareCount = 64;
+      const int squareSize = texWidth / squareCount;
+      unsigned char *texData = new unsigned char[texWidth * texHeight * 3];
+      unsigned char *pixel = texData;
+
+      for (int i = 0; i < texWidth; i++)
+      {
+        for (int j = 0; j < texWidth; j++)
+        {
+          int x = i / squareSize;
+          int y = j / squareSize;
+          int squareNumber = x * squareCount + y;
+
+          unsigned char color;
+          bool isOdd = (squareNumber & 1);
+          if (x & 1)
+          {
+            color = (isOdd) ? 0xAA : 0x55;
+          }
+          else
+          {
+            color = (isOdd) ? 0x55 : 0xAA;
+          }
+
+          *pixel++ = color;
+          *pixel++ = color;
+          *pixel++ = color;
+        }
+      }
+
+
+      GLuint texId;
+      glGenTextures(1, &texId);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, texId);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texData);
+      glGenerateMipmap(GL_TEXTURE_2D);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      delete[] texData;
+
       bool isOrtho = false;
       float scale = 1.0f;
       float rotation = 0.0f;
       float x = 0.0f;
+      bool mipmap = false;
 
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         glClear(GL_COLOR_BUFFER_BIT);
+
+
+        if (smol::Keyboard::getKeyDown(smol::KEYCODE_SPACE))
+        {
+          LogInfo(mipmap ? "Mipmap-Linear":"Linear");
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mipmap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+          mipmap = !mipmap;
+        }
 
         if (smol::Keyboard::getKeyDown(smol::KEYCODE_P))
         {
@@ -248,7 +318,7 @@ namespace smol
 
 // Windows program entrypoint
 #ifdef SMOL_PLATFORM_WINDOWS
-#include "win64\smol_resource_win64.h"
+//#include "win64\smol_resource_win64.h"
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {

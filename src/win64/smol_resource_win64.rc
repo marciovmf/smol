@@ -1,3 +1,0 @@
-#include "smol_resource_win64.h"
-LANGUAGE 0,0
-SMOL_ICON_ID ICON "..\\smol.ico"

@@ -1,7 +1,6 @@
 #include <smol/smol.h>
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
-#include "smol_resource_win64.h"
 #include <smol/gl/glcorearb.h>
 #include <smol/gl/wglext.h>
 #include <smol/smol_gl.h>
@@ -9,6 +8,7 @@
 namespace smol
 {
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
+  constexpr INT SMOL_DEFAULT_ICON_ID = 101;
 
   //
   // A Windows specific implementation of a SMOL engine window
@@ -186,7 +186,7 @@ namespace smol
       wc.style = CS_OWNDC;
       wc.lpfnWndProc = smolWindowProc;
       wc.hInstance = hInstance;
-      wc.hIcon = LoadIconA(hInstance, MAKEINTRESOURCE(SMOL_ICON_ID));
+      wc.hIcon = LoadIconA(hInstance, MAKEINTRESOURCE(SMOL_DEFAULT_ICON_ID));
       wc.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
       wc.lpszClassName = smolWindowClass;
 
