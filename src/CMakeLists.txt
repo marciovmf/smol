@@ -5,7 +5,6 @@ set(SMOL_VERSION_MINOR 0)
 set(SMOL_VERSION_PATCH 1)
 set(SMOL_VERSION_TWEAK 0)
 set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATCH}.${SMOL_VERSION_TWEAK})
-cmake_policy(SET CMP0048 NEW)
 project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
 find_package(OpenGL REQUIRED)
 
@@ -13,10 +12,6 @@ find_package(OpenGL REQUIRED)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Valid platforms
-set(PLATFORM win64 CACHE STRING "Target platform" FORCE)
-set_property(CACHE PLATFORM PROPERTY STRINGS win64)
 
 if (MSVC)
   add_compile_options(/W3 /WX)
@@ -56,6 +51,11 @@ configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/incl
 #
 # smol.dll: Smol engine itself
 #
+string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM)
+if(PLATFORM STREQUAL "windows")
+  set(PLATFORM "win64")
+endif()
+
 add_library(smol SHARED 
   # Platform
   "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
@@ -74,8 +74,7 @@ add_library(smol SHARED
   ${SOURCE_PATH}/smol_vector3.cpp
   ${SOURCE_PATH}/include/smol/smol_mat4.h
   ${SOURCE_PATH}/smol_mat4.cpp
-  "${SMOL_WINDOWS_RESOURCE_FILE}")
-
+  )
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)
 target_include_directories(smol PUBLIC 

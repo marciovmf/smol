@@ -1,6 +1,6 @@
 project("Launcher")
 
-if("${PLATFORM}" STREQUAL win64)
+if(WIN32)
   set(SMOL_WINDOWS_RESOURCE_FILE "smol_launcher_resource_win64.rc")
 endif()
 
