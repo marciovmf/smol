@@ -74,6 +74,9 @@ add_library(smol SHARED
   ${SOURCE_PATH}/smol_vector3.cpp
   ${SOURCE_PATH}/include/smol/smol_mat4.h
   ${SOURCE_PATH}/smol_mat4.cpp
+
+  ${SOURCE_PATH}/include/smol/smol_assetmanager.h
+  ${SOURCE_PATH}/smol_assetmanager.cpp
   )
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)

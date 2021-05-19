@@ -49,6 +49,8 @@ namespace smol
     static bool unloadModule(Module* module);
     static void* getFunctionFromModule(Module* module,  const char* function);
     static const unsigned char* getKeyboardState();
+    static char* loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset);
+    static void unloadFileBuffer(const char* fileBuffer);
   };
 } 
 

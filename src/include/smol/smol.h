@@ -7,7 +7,6 @@
   #define SMOL_DEBUG
 #endif
 
-
 #ifndef SMOL_RELEASE
 #include <stdio.h>
 	#define LogMsg(prefix, msg, ...) do {printf("\n%s - ", prefix); printf(msg, __VA_ARGS__);} while(0)

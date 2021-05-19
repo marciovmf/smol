@@ -6,6 +6,7 @@
 #include <smol/smol_gl.h>
 #include <smol/smol_mat4.h>
 #include <smol/smol_keyboard.h>
+#include <smol/smol_assetmanager.h>
 
 #ifndef SMOL_GAME_MODULE_NAME
 #ifdef SMOL_PLATFORM_WINDOWS
@@ -217,12 +218,30 @@ namespace smol
         }
       }
 
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      //TODO(marcio): Make possible to get current running directory. 
+      Image* image = AssetManager::loadImageBitmap("smol24.bmp"); 
+
+      GLenum textureFormat = GL_RGBA;
+      GLenum textureType = GL_UNSIGNED_SHORT;
+
+      if (image->bitsPerPixel == 24)
+      {
+        textureFormat = GL_RGB;
+        textureType = GL_UNSIGNED_BYTE;
+      }
+      else if (image->bitsPerPixel == 16)
+      {
+        textureFormat = GL_RGB;
+        textureType = GL_UNSIGNED_SHORT_5_6_5;
+      }
 
       GLuint texId;
       glGenTextures(1, &texId);
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, texId);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texData);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->width, image->height, 0, textureFormat, textureType, image->data);
       glGenerateMipmap(GL_TEXTURE_2D);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       delete[] texData;
@@ -238,7 +257,6 @@ namespace smol
         bool update = false;
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         glClear(GL_COLOR_BUFFER_BIT);
-
 
         if (smol::Keyboard::getKeyDown(smol::KEYCODE_SPACE))
         {

@@ -1,3 +1,6 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <smol/smol.h>
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
@@ -5,6 +8,7 @@
 #include <smol/gl/wglext.h>
 #include <smol/smol_gl.h>
 #include <cstdio>
+
 namespace smol
 {
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
@@ -373,5 +377,33 @@ namespace smol
   {
     return (const unsigned char*)&Window::keyboardState;
   }
+
+    char* Platform::loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset)
+    {
+      FILE* fd = fopen(fileName, "rb");
+      fseek(fd, 0, SEEK_END);
+      size_t fileSize = ftell(fd);
+      fseek(fd, 0, SEEK_SET);
+
+      const size_t totalBufferSize = fileSize + extraBytes;
+      //TODO(marcio): Use our custom memory manager here
+      char* buffer = new char[totalBufferSize];
+      if(! fread(buffer + offset, fileSize, 1, fd))
+      {
+        LogError("Failed to read from file '%s'", fileName);
+        //TODO(marcio): Use our custom memory manager here
+        delete[] buffer;
+        buffer = nullptr;
+      }
+    
+      fclose(fd);
+      return buffer;
+    }
+
+    void Platform::unloadFileBuffer(const char* fileBuffer)
+    {
+      //TODO(marcio): Use our custom memory manager here
+      delete[] fileBuffer;
+    }
 
 } 
