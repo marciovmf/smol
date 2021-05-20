@@ -1,7 +1,7 @@
 #ifndef SMOL_ENGINE
 #define SMOL_ENGINE
 
-#include <smol/smol_platform.h>
+#include <smol/smol.h>
 
 #ifdef SMOL_PLATFORM_WINDOWS
 #ifdef SMOL_ENGINE_IMPLEMENTATION

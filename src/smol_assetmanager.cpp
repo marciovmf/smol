@@ -1,4 +1,5 @@
 #include <smol/smol.h>
+#include <smol/smol_log.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_assetmanager.h>
 
@@ -37,14 +38,14 @@ namespace smol
 
     if (bitmap->type != BITMAP_SIGNATURE)
     {
-      LogError("Invalid bitmap file");
+      debugLogError("Invalid bitmap file");
       Platform::unloadFileBuffer(buffer);
       return nullptr;
     }
 
     if (bitmap->compression != BITMAP_COMPRESSION_BI_BITFIELDS)
     {
-      LogError("Unsuported bitmap compression");
+      debugLogError("Unsuported bitmap compression");
       Platform::unloadFileBuffer(buffer);
       return nullptr;
     }
@@ -85,7 +86,7 @@ namespace smol
     }
     else if (bitmap->bitCount != 16)
     {
-      LogError("Unsuported bitmap bit count");
+      debugLogError("Unsuported bitmap bit count");
       unloadImage(image);
       return nullptr;
     }

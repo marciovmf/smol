@@ -1,12 +1,8 @@
 #ifndef SMOL_PLATFORM_H
 #define SMOL_PLATFORM_H
 
-#ifdef _WIN32
-  #include <windows.h>
-  #define SMOL_PLATFORM_WINDOWS
- #else
-  #define SMOL_PLATFORM_UNKNOWN
-  #error "Unsuported platform"
+#ifdef SMOL_PLATFORM_WINDOWS
+#include <windows.h>
 #endif
 
 #ifdef SMOL_PLATFORM_WINDOWS
