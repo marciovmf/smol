@@ -1,4 +1,3 @@
-
 #include <smol/smol_log.h>
 #include <smol/smol_engine.h>
 #include <stdio.h>
@@ -39,15 +38,10 @@
   };
   static Win32ConsoleHelper win32ConsoleHelper;
 
-#define DUP(a) _dup( (a) )
-#define DUP2(a, b) _dup2( (a), (b) )
-#define FILENO(a) _fileno((a))
-#define CLOSE(a) _close((a))
-#else
-#define DUP(a) dup( (a) )
-#define DUP2(a, b) dup2( (a), (b) )
-#define FILENO(a) fileno((a))
-#define CLOSE(a) close((a))
+#define dup(a) _dup((a))
+#define dup2(a, b) _dup2((a),(b))
+#define fileno(a) _fileno((a))
+#define close(a) _close((a))
 #endif
 
 namespace smol
@@ -94,6 +88,7 @@ namespace smol
         shouldFlush = false;
         break;
     }
+
 #ifdef SMOL_PLATFORM_WINDOWS
     bool loggingToStdout = globalStream == 0;
     if (loggingToStdout)
@@ -131,7 +126,7 @@ namespace smol
 
   Log::LogType Log::verbosity(int maxLogLevel)
   {
-    static int logLevel = Log::LogType::LOG_FATAL;
+    static int logLevel = Log::LogType::LOG_ALL;
 
     if (maxLogLevel != -1)
       logLevel = maxLogLevel;
@@ -144,8 +139,8 @@ namespace smol
     if (globalStream)
     {
       fflush(stdout);
-      DUP2(globalStdoutCopy, FILENO(stdout));
-      CLOSE(globalStdoutCopy);
+      dup2(globalStdoutCopy, fileno(stdout));
+      close(globalStdoutCopy);
       globalStream = 0;
     }
   }
@@ -159,7 +154,7 @@ namespace smol
 
     fflush(stdout);
     bool error = false;
-    globalStdoutCopy = DUP(1);
+    globalStdoutCopy = dup(1);
 
     #ifdef SMOL_PLATFORM_WINDOWS
         error = freopen_s(&globalStream, fileName, "a+", stdout) != 0;

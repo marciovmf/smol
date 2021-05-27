@@ -10,9 +10,10 @@
 
 #ifdef _WIN32
   #define SMOL_PLATFORM_WINDOWS
- #else
+  #define _CRT_SECURE_NO_WARNINGS
+#else
   #define SMOL_PLATFORM_UNKNOWN
   #error "Unsuported platform"
-#endif
+#endif // _WIN32
 
 #endif //SMOL_H
