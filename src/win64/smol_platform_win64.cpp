@@ -450,4 +450,23 @@ namespace smol
       *p = 0;
       return internal.binaryPath;
     }
+
+    void* Platform::getMemory(size_t size)
+    {
+      //TODO(marcio): Add metadata on allocated blocks in debug mode
+      //TODO(marcio): Make possible to allocate aligned memory
+      return malloc(size);
+    }
+
+    void Platform::freeMemory(void* memory, size_t size)
+    {
+      //TODO(marceio): Confirm the memory block is the correct size when we are doing memory management.
+      //TODO(marcio): Make sure passed address is not affected by alignment
+      free(memory);
+    }
+
+    void* Platform::resizeMemory(void* memory, size_t size)
+    {
+      return realloc(memory, size);
+    }
 } 

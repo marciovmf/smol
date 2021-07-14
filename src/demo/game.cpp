@@ -4,19 +4,21 @@
 #include <smol/smol_log.h>
 #include <smol/smol_renderer.h>
 
+
 void onStart()
 {
   smol::Log::info("Game started!");
+
 }
 
 void onUpdate(float deltaTime)
 {
   if (smol::Keyboard::getKeyDown(smol::KEYCODE_J))
-    smol::Log::info("Pressed this frame\n");
+    smol::Log::info("Pressed this frame");
   else if (smol::Keyboard::getKeyUp(smol::KEYCODE_J))
-    smol::Log::info("Released this frame\n");
+    smol::Log::info("Released this frame");
   else if (smol::Keyboard::getKey(smol::KEYCODE_J))
-    smol::Log::info("Holding...\n");
+    smol::Log::info("Holding...");
 }
 
 void onStop()

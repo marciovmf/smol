@@ -38,6 +38,9 @@ if(CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
   endforeach()
 else()
+  if (NOT DEFINED CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "")
+  endif()
   # Directory output files for single config generators
   string(TOUPPER ${CMAKE_BUILD_TYPE} OUTPUTCONFIG)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/smolSDK/bin" CACHE PATH "" FORCE)
@@ -56,7 +59,7 @@ if(PLATFORM STREQUAL "windows")
   set(PLATFORM "win64")
 endif()
 
-add_library(smol SHARED 
+list(APPEND srcs
   # Platform
   "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
   ${SOURCE_PATH}/include/smol/smol_platform.h
@@ -77,11 +80,19 @@ add_library(smol SHARED
   ${SOURCE_PATH}/smol_mat4.cpp
   ${SOURCE_PATH}/include/smol/smol_assetmanager.h
   ${SOURCE_PATH}/smol_assetmanager.cpp
+  ${SOURCE_PATH}/include/smol/smol_arena.h
+  ${SOURCE_PATH}/smol_arena.cpp
+  ${SOURCE_PATH}/include/smol/smol_resource_list.h
   ${SOURCE_PATH}/include/smol/smol_log.h
   ${SOURCE_PATH}/smol_log.cpp
   ${SOURCE_PATH}/include/smol/smol_renderer.h
   ${SOURCE_PATH}/smol_renderer_gl.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
+
+add_library(smol SHARED ${srcs})
+#set(UNITY_BUILD ON)
+#set_target_properties(smol PROPERTIES UNITY_BUILD_MODE GROUP)
+#set_source_files_properties(${srcs} PROPERTIES UNITY_BUILD_MODE "smol_group_1")
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)

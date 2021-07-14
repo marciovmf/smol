@@ -29,6 +29,10 @@ namespace smol
   {
     int smolMain(int argc, char** argv)
     {
+
+      smol::Log::toFile(SMOL_LOGFILE);
+      smol::Log::verbosity(SMOL_LOGLEVEL);
+
       if (!Platform::initOpenGL(3, 1))
         return 1;
 
@@ -54,86 +58,14 @@ namespace smol
       const int HEIGHT = 576;
       smol::Window* window = Platform::createWindow(WIDTH, HEIGHT, (const char*)"Smol Engine");
 
-
-      bool isOrtho = false;
-      float scale = 1.0f;
-      float rotation = 0.0f;
-      float x = 0.0f;
-      bool mipmap = false;
-
-      smol::Renderer::init(WIDTH, HEIGHT);
+      smol::Scene scene;
+      smol::Renderer renderer(scene, WIDTH, HEIGHT);
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
-
-        //if (smol::Keyboard::getKeyDown(smol::KEYCODE_SPACE))
-        //{
-        //  smol::Log::info(mipmap ? "Mipmap-Linear":"Linear");
-        //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mipmap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-        //  mipmap = !mipmap;
-        //}
-
-        //if (smol::Keyboard::getKeyDown(smol::KEYCODE_P))
-        //{
-        //  isOrtho = !isOrtho;
-        //  update = true;
-        //}
-
-        //if (smol::Keyboard::getKey(smol::KEYCODE_S))
-        //{
-        //  if (smol::Keyboard::getKey(smol::KEYCODE_SHIFT))
-        //    scale -= 0.02f;
-        //  else
-        //    scale += 0.02f;
-
-        //  update = true;
-        //}
-
-        //if (smol::Keyboard::getKey(smol::KEYCODE_R))
-        //{
-        //  if (smol::Keyboard::getKey(smol::KEYCODE_SHIFT))
-        //    rotation -= 0.02f;
-        //  else
-        //    rotation += 0.02f;
-
-        //  update = true;
-        //}
-
-        //if (smol::Keyboard::getKey(smol::KEYCODE_T))
-        //{
-        //  SMOL_ASSERT(1 == 2, "Testing assertion! x = %f" ,x);
-        //  if (smol::Keyboard::getKey(smol::KEYCODE_SHIFT))
-        //    x -= 0.02f;
-        //  else
-        //    x += 0.02f;
-
-        //  update = true;
-        //}
-
-        //if (update)
-        //{
-        //  // choose projection
-        //  Mat4* m = isOrtho ? &orthographic : &perspective;
-
-        //  // position
-        //  Mat4 translationMatrix = Mat4::initTranslation(x, 0.0f, 0.0f);
-        //  Mat4 transformed = Mat4::mul(*m, translationMatrix);
-
-        //  // scale
-        //  Mat4 scaleMatrix = Mat4::initScale(scale);
-        //  transformed = Mat4::mul(transformed, scaleMatrix);
-
-        //  // rotation
-        //  Mat4 rotationMatrix = Mat4::initRotation(0.0f, 1.0f, 0.0f, rotation);
-        //  transformed = Mat4::mul(transformed, rotationMatrix);
-
-        //  // update shader
-        //  glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
-        //}
-
         Platform::updateWindowEvents(window);
-        Renderer::render();
+        renderer.render();
       }
 
       onGameStopCallback();
