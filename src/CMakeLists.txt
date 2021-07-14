@@ -61,6 +61,7 @@ add_library(smol SHARED
   "${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp"
   ${SOURCE_PATH}/include/smol/smol_platform.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
+  ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
   ${SOURCE_PATH}/smol_keyboard.cpp
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
@@ -78,6 +79,8 @@ add_library(smol SHARED
   ${SOURCE_PATH}/smol_assetmanager.cpp
   ${SOURCE_PATH}/include/smol/smol_log.h
   ${SOURCE_PATH}/smol_log.cpp
+  ${SOURCE_PATH}/include/smol/smol_renderer.h
+  ${SOURCE_PATH}/smol_renderer_gl.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})

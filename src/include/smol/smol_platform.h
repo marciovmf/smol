@@ -34,19 +34,27 @@ namespace smol
 
   struct SMOL_PLATFORM_API Platform final
   {
-    static void showMessage(char* message);
+    // Basic windowing functions
     static Window* createWindow(int width, int height, const char* title);
     static void updateWindowEvents(Window* window);
     static bool getWindowCloseFlag(Window* window);
     static void clearWindowCloseFlag(Window* window);
     static void destroyWindow(Window* window);
     static bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
+   
+    // Dynamic module handling
     static Module* loadModule(const char* path);
     static bool unloadModule(Module* module);
     static void* getFunctionFromModule(Module* module,  const char* function);
+
+    // Keyboard handling
     static const unsigned char* getKeyboardState();
-    static char* loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset);
+   
+    // Basic file handling
+    static char* loadFileToBuffer(const char* fileName, size_t* loadedFileSize=nullptr, size_t extraBytes=0, size_t offset=0);
+    static char* loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize = nullptr);
     static void unloadFileBuffer(const char* fileBuffer);
+    static const char* getBinaryPath();
   };
 } 
 

@@ -2,6 +2,7 @@
 #include <smol/smol_game.h>
 #include <smol/smol_keyboard.h>
 #include <smol/smol_log.h>
+#include <smol/smol_renderer.h>
 
 void onStart()
 {

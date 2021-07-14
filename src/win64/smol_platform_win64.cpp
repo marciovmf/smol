@@ -1,14 +1,11 @@
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 #include <smol/smol.h>
+#define SMOL_GL_DEFINE_EXTERN
+#include <smol/smol_gl.h>
 #include <smol/smol_log.h>
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
-#include <smol/gl/glcorearb.h>
-#include <smol/gl/wglext.h>
-#include <smol/smol_gl.h>
 #include <cstdio>
+#include <stdlib.h>
 
 namespace smol
 {
@@ -18,6 +15,13 @@ namespace smol
   //
   // A Windows specific implementation of a SMOL engine window
   //
+  struct PlatformInternal
+  {
+    bool initialized;
+    char binaryPath[MAX_PATH];
+  }; 
+  static PlatformInternal internal = {0};
+
   struct Window
   {
     HWND handle;
@@ -382,6 +386,13 @@ namespace smol
     char* Platform::loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset)
     {
       FILE* fd = fopen(fileName, "rb");
+    
+      if (! fd)
+      {
+        smol::Log::error("Could not open file '%s'", fileName);
+        return nullptr;
+      }
+
       fseek(fd, 0, SEEK_END);
       size_t fileSize = ftell(fd);
       fseek(fd, 0, SEEK_SET);
@@ -396,8 +407,22 @@ namespace smol
         delete[] buffer;
         buffer = nullptr;
       }
+
+      if (loadedFileSize)
+        *loadedFileSize = fileSize;
     
       fclose(fd);
+      return buffer;
+    }
+
+    char* Platform::loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize)
+    {
+      size_t bufferSize;
+      char* buffer = Platform::loadFileToBuffer(fileName, &bufferSize, 1, 0);
+      
+      if (fileSize) *fileSize = bufferSize;
+      if (buffer)
+        buffer[bufferSize] = 0;
       return buffer;
     }
 
@@ -407,4 +432,22 @@ namespace smol
       delete[] fileBuffer;
     }
 
+    const char* Platform::getBinaryPath()
+    {
+      if (internal.initialized)
+        return internal.binaryPath;
+
+      int len = GetModuleFileNameA(
+          NULL,
+          internal.binaryPath,
+          MAX_PATH);
+
+      char* p = internal.binaryPath + len;
+      while (*p != '\\' && p > internal.binaryPath)
+        --p;
+
+      ++p;
+      *p = 0;
+      return internal.binaryPath;
+    }
 } 

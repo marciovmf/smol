@@ -29,10 +29,73 @@ namespace smol
   };
 #pragma pack(pop)
 
+  Image* createProceduralImage()
+  {
+    // Create a procedural checker texture
+    const int texWidth = 800;
+    const int texHeight = texWidth;
+    const int squareCount = 32;
+    const int squareSize = texWidth / squareCount;
+    const int sizeInBytes = texWidth * texHeight * 3;
+    unsigned char *buffer = new unsigned char[sizeInBytes + sizeof(Image)];//TODO(marcio): Use our own memory manager here
+    unsigned char *texData = buffer + sizeof(Image);
+    unsigned char *pixel = texData;
+
+    for (int i = 0; i < texWidth; i++)
+    {
+      for (int j = 0; j < texWidth; j++)
+      {
+        int x = i / squareSize;
+        int y = j / squareSize;
+        int squareNumber = x * squareCount + y;
+
+        unsigned char color;
+        bool isOdd = (squareNumber & 1);
+        if (x & 1)
+        {
+          color = (isOdd) ? 0xAA : 0x55;
+        }
+        else
+        {
+          color = (isOdd) ? 0x55 : 0xAA;
+        }
+
+        *pixel++ = color;
+        *pixel++ = color;
+        *pixel++ = color;
+      }
+    }
+
+    Image* image = (Image*)buffer;
+    image->width = texWidth;
+    image->height = texHeight;
+    image->bitsPerPixel = 24;
+    image->data = (char*) texData;
+    return image;
+  }
+
   Image* AssetManager::loadImageBitmap(const char* fileName)
   {
+    const char* enginePath = Platform::getBinaryPath();
+    size_t enginePathLen = strlen(enginePath);
+
+    size_t fileNameLen = strlen(fileName);
+    char* fullFileName = new char[enginePathLen + fileNameLen +1];
+    const size_t totalStringLen = fileNameLen + enginePathLen;
+    strncpy(fullFileName, enginePath, enginePathLen);
+    strncpy(fullFileName + enginePathLen, fileName, fileNameLen);
+    fullFileName[totalStringLen] = 0;
+    debugLogInfo("Loading image '%s'", fullFileName);
+
+
     const size_t imageHeaderSize = sizeof(Image);
-    char* buffer = Platform::loadFileToBuffer(fileName, nullptr, imageHeaderSize, imageHeaderSize);
+    char* buffer = Platform::loadFileToBuffer(fullFileName, nullptr, imageHeaderSize, imageHeaderSize);
+    delete fullFileName;
+    if (buffer == nullptr)
+    {
+      return createProceduralImage();
+    }
+
     BitmapHeader* bitmap = (BitmapHeader*) (buffer + imageHeaderSize);
     Image* image = (Image*) buffer;
 
