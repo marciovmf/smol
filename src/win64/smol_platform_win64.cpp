@@ -450,4 +450,22 @@ namespace smol
       *p = 0;
       return internal.binaryPath;
     }
+
+
+    void* Platform::getMemory(size_t size)
+    {
+      return malloc(size);
+    }
+
+    void Platform::freeMemory(void* memory, size_t size)
+    {
+      //TODO(marceio): Confirm the memory block is the correct size when we are doing memory management.
+      free(memory);
+    }
+
+    void* Platform::resizeMemory(void* memory, size_t size)
+    {
+      return realloc(memory, size);
+    }
+
 } 

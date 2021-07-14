@@ -55,6 +55,11 @@ namespace smol
     static char* loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize = nullptr);
     static void unloadFileBuffer(const char* fileBuffer);
     static const char* getBinaryPath();
+
+    // Memory management
+    static void* getMemory(size_t);
+    static void* resizeMemory(void* memory, size_t);
+    static void freeMemory(void* memory, size_t);
   };
 } 
 
