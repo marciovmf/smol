@@ -1,6 +1,5 @@
 #include <smol/smol_arena.h>
 #include <smol/smol_platform.h>
-#include <smol/smol_engine.h>
 
 namespace smol
 {
