@@ -87,6 +87,9 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_log.cpp
   ${SOURCE_PATH}/include/smol/smol_renderer.h
   ${SOURCE_PATH}/smol_renderer_gl.cpp
+  ${SOURCE_PATH}/include/smol/smol_arena.h
+  ${SOURCE_PATH}/smol_arena.cpp
+  ${SOURCE_PATH}/include/smol/smol_resource_list.h
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 add_library(smol SHARED ${srcs})
