@@ -345,10 +345,6 @@ namespace smol
     return handle;
   }
 
-  Renderable::Renderable(Handle<Material> material, Handle<Mesh> mesh)
-    : material(material), mesh(mesh) 
-    { }
-
   Renderer::Renderer(Scene& scene, int width, int height)
   {
     setScene(scene);

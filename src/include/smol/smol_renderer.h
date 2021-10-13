@@ -90,7 +90,6 @@ namespace smol
   {
     Handle<Material> material;
     Handle<Mesh> mesh;
-    Renderable(Handle<Material> material, Handle<Mesh> mesh);
   };
 
   struct Transform
