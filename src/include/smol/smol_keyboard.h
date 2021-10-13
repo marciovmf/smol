@@ -129,9 +129,12 @@ namespace smol
   
   struct SMOL_ENGINE_API Keyboard
   {
-    static bool getKey(unsigned char keyCode);
-    static bool getKeyUp(unsigned char keyCode);
-    static bool getKeyDown(unsigned char keyCode);
+    const unsigned char* mKeyboardState = nullptr;
+
+    bool getKey(unsigned char keyCode);
+    bool getKeyUp(unsigned char keyCode);
+    bool getKeyDown(unsigned char keyCode);
+    void update();
   };
 
 }

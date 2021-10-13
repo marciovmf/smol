@@ -21,9 +21,7 @@ namespace smol
   {
     if (used + size >= capacity)
     {
-      // Grow exponentially unill we get enough space
-      size_t newCapacity = (size_t) pow(2, ceil(log((double)(capacity + size)) / log(2)));
-
+      size_t newCapacity = (size_t) pow(2, ceil(log((double)capacity) / log(2)));
       data = (char*) Platform::resizeMemory(data, newCapacity);
       capacity = newCapacity;
     }

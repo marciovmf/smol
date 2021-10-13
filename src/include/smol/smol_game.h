@@ -13,13 +13,16 @@
 #define SMOL_GAME_API
 #endif // SMOL_PLATFORM_WINDOWS
 
+
 namespace smol
 {
+  struct SystemsRoot;
+
   const char* SMOL_CALLBACK_NAME_ONSTART = "onStart";
   const char* SMOL_CALLBACK_NAME_ONSTOP = "onStop";
   const char* SMOL_CALLBACK_NAME_ONUPDATE = "onUpdate";
 
-  typedef void (*SMOL_GAME_CALLBACK_ONSTART)();
+  typedef void (*SMOL_GAME_CALLBACK_ONSTART)(smol::SystemsRoot*);
   typedef void (*SMOL_GAME_CALLBACK_ONSTOP)();
   typedef void (*SMOL_GAME_CALLBACK_ONUPDATE)(float);
 
@@ -27,7 +30,7 @@ namespace smol
 
 extern "C"
 {
-  SMOL_GAME_API void onStart();
+  SMOL_GAME_API void onStart(smol::SystemsRoot* root);
   SMOL_GAME_API void onUpdate(float deltaTime);
   SMOL_GAME_API void onStop();
 }

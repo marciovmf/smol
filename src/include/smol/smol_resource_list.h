@@ -1,149 +1,156 @@
 #ifndef SMOL_PACKED_LIST
 #define SMOL_PACKED_LIST
 
+#include <smol/smol_log.h>
 #include <smol/smol_arena.h>
 #include <string.h>
 
-// Returns the address of the Resource<T> at index n
-#define getResourcePtrAt(n) (((Resource<T>*) resourceList.data) + (n))
-
-// Returns the address of the slot at index n
-#define getSlotPtrAt(n) (((ResourceSlot*) slotList.data) + (n))
-
-//TODO(marcio): Get this from the settings system
-#define SMOL_RESOURCE_LIST_ARENA_SIZE MEGABYTE(5)
+#define getSlotIndex(slotInfo) ((int)((char*) (slotInfo) - slots.data) / sizeof(SlotInfo))
 
 namespace smol
 {
-  // A handle is a loose reference to a resource
-  template <typename T> struct Handle
+  struct SlotInfo
   {
-    unsigned int slotIndex;
-    unsigned int version;
-  };
-
-  struct ResourceSlot
-  {
-    unsigned int resourceIndex;
-    unsigned int version;
-  };
-
-  // A resource is some data kept packed in memory and identified by an id
-  template <typename T>
-    struct Resource
+    union
     {
-      unsigned int id;
-      T resource; 
+      int resourceIndex;
+      int nextFreeSlotIndex;
+    };
+
+    int version;
+  };
+
+  template <typename T>
+    struct Handle
+    {
+      int slotIndex;
+      int version;
     };
 
   template <typename T>
-    struct ResourceList
+    class ResourceList
     {
-      unsigned int freeListHead;
-      unsigned int freeListCount;
-      unsigned int resourceCount;
-      Arena slotList;
-      Arena resourceList;
+      Arena slots;
+      Arena resources;
+      int resourceCount;
+      int freeSlotListCount;
+      int freeSlotListStart;
 
-      ResourceList();
-
-      // Adds a resource to the resource list and returns a handle
-      Handle<T> add(T& t);
-
-      // Removes a resource identified by a handle
-      void remove(Handle<T> handle);
-
-      // Gets a pointer to the resource identified by a handle
+      public:
+      ResourceList(int initialCapacity);
+      Handle<T> reserve();
+      Handle<T> add(T&);
       T* lookup(Handle<T> handle);
-
-      // returns true if the given handle is valid. Valid handles are handles pointing to live resources.
-      bool valid(Handle<T> handle);
+      void remove(Handle<T> handle);
+      int count();
+      const T* getArray();
     };
 
-  template <typename T>
-    ResourceList<T>::ResourceList() : 
-      freeListHead(0), freeListCount(0), resourceCount(0),
-      slotList(SMOL_RESOURCE_LIST_ARENA_SIZE),
-      resourceList(SMOL_RESOURCE_LIST_ARENA_SIZE) { }
+  template<typename T> 
+    ResourceList<T>::ResourceList(int initialCapacity):
+    resourceCount(0),
+    freeSlotListCount(0),
+    freeSlotListStart(-1),
+    slots(Arena(sizeof(SlotInfo) * initialCapacity)),
+    resources(Arena(sizeof(T) * initialCapacity)) { }
 
-  template <typename T>
-    Handle<T> ResourceList<T>::add(T& t)
+  template<typename T>
+    inline int ResourceList<T>::count()
     {
-      ResourceSlot* slot = nullptr;
-      Resource<T>* resource = nullptr;
+      return resourceCount;
+    }
 
-      if (freeListCount)
+
+  template<typename T>
+    const T* ResourceList<T>::getArray()
+    {
+      return (const T*) resources.data;
+    }
+
+  template<typename T>
+    Handle<T> ResourceList<T>::reserve()
+    {
+      SlotInfo* slotInfo;
+      T* resource;
+      ++resourceCount;
+
+      if(freeSlotListCount)
       {
-        freeListCount--;
-        slot = getSlotPtrAt(freeListHead);
-        resource = getResourcePtrAt(resourceCount);
+        // Reuse a Free slot.
+        --freeSlotListCount;
+        slotInfo = ((SlotInfo*) slots.data) + freeSlotListStart; 
+        freeSlotListStart = slotInfo->nextFreeSlotIndex;
       }
       else
       {
-        slot = (ResourceSlot*) slotList.pushSize(sizeof(ResourceSlot));
-        slot->version = 0;
-        resource = (Resource<T>*) resourceList.pushSize(sizeof(Resource<T>));
+        // Add a new slot and a new resource
+        slotInfo = (SlotInfo*) slots.pushSize(sizeof(SlotInfo));
+        slotInfo->version = 0;
+        resources.pushSize(sizeof(T));
       }
 
-      ++resourceCount;
-      unsigned int resourceIndex = (unsigned int) (resource - (Resource<T>*) resourceList.data);
-      unsigned int slotIndex = (unsigned int) (slot - (ResourceSlot*) slotList.data);
-      slot->resourceIndex = resourceIndex;
+      slotInfo->resourceIndex = resourceCount - 1;   // The newly added resource or the first empty space from a deleted resource
+      resource = ((T*) resources.data)+ slotInfo->resourceIndex; // gets the resource this slot points to
 
-      // Copy the resource data to it's correct location and set it's id
-      memcpy((void*) &resource->resource, (const void*)&t, sizeof(T));
-      resource->id = resourceIndex;
-
+      // Create a handle to the resource
       Handle<T> handle;
-      handle.slotIndex = slotIndex;
-      handle.version = slot->version;
+      handle.slotIndex = getSlotIndex(slotInfo);
+      handle.version = slotInfo->version;
       return handle;
     }
 
-  template <typename T>
-    void ResourceList<T>::remove(Handle<T> handle)
+  template<typename T>
+    Handle<T> ResourceList<T>::add(T& t)
     {
-      --resourceCount;
-      ResourceSlot* slot = getSlotPtrAt(handle.slotIndex);
-      Resource<T>* last = getResourcePtrAt(resourceCount);
-      Resource<T>* deleted = getResourcePtrAt(slot->resourceIndex);
-
-      // Update the deleted slot and add it to the free list
-      slot->version++;
-      slot->resourceIndex = freeListHead;
-      freeListHead = handle.slotIndex;
-
-      // copy the last resource over the one being deleted and fix slot that pointed to what was the last resource
-      if (last != deleted)
-      {
-        memcpy(deleted, last, sizeof(Resource<T>));
-        slot = getSlotPtrAt(last->id);
-        slot->resourceIndex = (unsigned int)(deleted - (Resource<T>*)resourceList.data);
-      }
-
-      ++freeListCount;
+      Handle<T> handle = reserve();
+      T* resource = lookup(handle);
+      memcpy((void*) resource, (void*) &t, sizeof(T));
+      return handle;
     }
 
   template <typename T>
     T* ResourceList<T>::lookup(Handle<T> handle)
     {
-      ResourceSlot* slot = getSlotPtrAt(handle.slotIndex);
-      if (handle.version != slot->version) 
-        return nullptr;
+      SMOL_ASSERT(handle.slotIndex < slots.capacity / sizeof(T), "Handle slot is out of bounds");
+      SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
 
-      Resource<T>* resource = getResourcePtrAt(slot->resourceIndex);
-      return &resource->resource;
+      SlotInfo* slotInfo = ((SlotInfo*) slots.data) + handle.slotIndex;
+      T* resource = nullptr;
+      if (handle.version == slotInfo->version)
+      {
+        resource = ((T*) resources.data) + slotInfo->resourceIndex;
+      }
+      return resource;
     }
 
   template <typename T>
-    inline bool ResourceList<T>::valid(Handle<T> handle)
+    void ResourceList<T>::remove(Handle<T> handle)
     {
-      ResourceSlot* slot = getSlotPtrAt(handle.slotIndex);
-      return handle.version != slot->version;
+      // We never leave holes on the resource list!
+      // When deleting any resource (other than the last one) we actually
+      // move the last resource to the place of the one being deleted
+      // and fix the it's slot so it points to the correct resource index.
+      SMOL_ASSERT(handle.slotIndex < slots.capacity / sizeof(T), "Handle slot is out of bounds");
+      SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
+      SlotInfo* slotOfLast = ((SlotInfo*) slots.data) + (resourceCount-1);
+      SlotInfo* slotOfRemoved = ((SlotInfo*)  slots.data) + handle.slotIndex;
+      ++slotOfRemoved->version;
+
+      if (slotOfRemoved != slotOfLast)
+      {
+        // Move the last resource to the space left by the one being removed
+        T* resourceLast = ((T*) resources.data) + slotOfLast->resourceIndex;
+        T* resourceRemoved = ((T*) resources.data) + slotOfRemoved->resourceIndex;
+        memcpy((void*) resourceRemoved,
+            (void*) resourceLast,
+            sizeof(T));
+      }
+
+      slotOfRemoved->nextFreeSlotIndex = freeSlotListStart;
+      freeSlotListStart = handle.slotIndex;
+      ++freeSlotListCount;
+      --resourceCount;
     }
 }
-
-#undef getResourcePtrAt
-#undef getSlotPtrAt
 
 #endif  // SMOL_PACKED_LIST

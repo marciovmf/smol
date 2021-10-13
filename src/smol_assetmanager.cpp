@@ -85,14 +85,15 @@ namespace smol
     strncpy(fullFileName, enginePath, enginePathLen);
     strncpy(fullFileName + enginePathLen, fileName, fileNameLen);
     fullFileName[totalStringLen] = 0;
-    debugLogInfo("Loading image '%s'", fullFileName);
 
 
     const size_t imageHeaderSize = sizeof(Image);
     char* buffer = Platform::loadFileToBuffer(fullFileName, nullptr, imageHeaderSize, imageHeaderSize);
-    delete fullFileName;
+
     if (buffer == nullptr)
     {
+      debugLogError("Failed to load image '%s': Unable to find or read from file", fullFileName);
+      delete fullFileName;
       return createProceduralImage();
     }
 
@@ -101,15 +102,17 @@ namespace smol
 
     if (bitmap->type != BITMAP_SIGNATURE)
     {
-      debugLogError("Invalid bitmap file");
+      debugLogError("Failed to load image '%s': Invalid bitmap file", fullFileName);
       Platform::unloadFileBuffer(buffer);
+      delete fullFileName;
       return nullptr;
     }
 
     if (bitmap->compression != BITMAP_COMPRESSION_BI_BITFIELDS)
     {
-      debugLogError("Unsuported bitmap compression");
+      debugLogError("Failed to load image '%s': Unsuported bitmap compression", fullFileName);
       Platform::unloadFileBuffer(buffer);
+      delete fullFileName;
       return nullptr;
     }
 
@@ -149,11 +152,13 @@ namespace smol
     }
     else if (bitmap->bitCount != 16)
     {
-      debugLogError("Unsuported bitmap bit count");
+      debugLogError("Failed to load image '%s': Unsuported bitmap bit count", fullFileName);
       unloadImage(image);
+      delete fullFileName;
       return nullptr;
     }
 
+    delete fullFileName;
     return (Image*) buffer;
   }
 

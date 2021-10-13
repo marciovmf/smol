@@ -1,5 +1,9 @@
 project("Launcher")
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if(WIN32)
   set(SMOL_WINDOWS_RESOURCE_FILE "smol_launcher_resource_win64.rc")
 endif()

@@ -29,13 +29,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/smolSDK/lib
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/smolSDK/bin
   CACHE PATH "Output directory for executables and DLL's.")
 
+set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/smolSDK")
+
 if(CMAKE_CONFIGURATION_TYPES)
   # Directory output files for multi config generators
   foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
     string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/bin" CACHE PATH "" FORCE)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${CMAKE_BINARY_DIR}/smolSDK/lib" CACHE PATH "" FORCE)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${OUTPUT_DIR}/bin" CACHE PATH "" FORCE)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
   endforeach()
 else()
   if (NOT DEFINED CMAKE_BUILD_TYPE)
@@ -67,6 +69,7 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
   ${SOURCE_PATH}/smol_keyboard.cpp
+  ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
   ${SOURCE_PATH}/include/smol/smol_engine.h
   ${SOURCE_PATH}/include/smol/smol_version.h
@@ -107,8 +110,8 @@ target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY})
 
 if(SMOL_EXPORT_SDK)
 add_custom_command(TARGET smol POST_BUILD 
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/smolSDK/include
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${CMAKE_BINARY_DIR}/smolSDK/include)
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}/include
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${OUTPUT_DIR}/include)
 endif()
 
 #
@@ -119,6 +122,11 @@ target_include_directories(game PUBLIC
   "${SOURCE_PATH}/include" 
   "${SOURCE_PATH}/include/smol")
 target_link_libraries(game PRIVATE smol)
+
+add_custom_command(TARGET game POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/../assets
+                ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets)
 
 #
 # slauncher.exe: Editor / Game launcher

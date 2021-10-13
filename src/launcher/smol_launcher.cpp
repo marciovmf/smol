@@ -6,6 +6,7 @@
 #include <smol/smol_log.h>
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_renderer.h>
+#include <smol/smol_systems_root.h>
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -27,13 +28,21 @@ namespace smol
 {
   namespace launcher
   {
+
     int smolMain(int argc, char** argv)
     {
 
-      smol::Log::toFile(SMOL_LOGFILE);
       smol::Log::verbosity(SMOL_LOGLEVEL);
+      if (SMOL_LOGFILE != nullptr)
+        smol::Log::toFile(SMOL_LOGFILE);
 
-      if (!Platform::initOpenGL(3, 1))
+      // Initialize systems root
+      smol::SystemsRoot root;
+      root.keyboard = &smol::Keyboard();
+      smol::Scene scene;
+      root.loadedScene = &scene;
+
+      if (!Platform::initOpenGL(3, 2))
         return 1;
 
       smol::Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
@@ -52,17 +61,17 @@ namespace smol
         return 1;
       }
 
-      onGameStartCallback();
-
       const int WIDTH = 1024;
       const int HEIGHT = 576;
       smol::Window* window = Platform::createWindow(WIDTH, HEIGHT, (const char*)"Smol Engine");
 
-      smol::Scene scene;
-      smol::Renderer renderer(scene, WIDTH, HEIGHT);
+      onGameStartCallback(&root);
+
+      smol::Renderer renderer(*root.loadedScene, WIDTH, HEIGHT);
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
+        root.keyboard->update();
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         Platform::updateWindowEvents(window);
         renderer.render();
