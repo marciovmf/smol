@@ -28,10 +28,8 @@ namespace smol
 {
   namespace launcher
   {
-
     int smolMain(int argc, char** argv)
     {
-
       smol::Log::verbosity(SMOL_LOGLEVEL);
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
@@ -88,8 +86,6 @@ namespace smol
 
 // Windows program entrypoint
 #ifdef SMOL_PLATFORM_WINDOWS
-//#include "win64\smol_resource_win64.h"
-
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   //TODO(marcio): handle command line here when we support any
