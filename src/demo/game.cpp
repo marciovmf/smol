@@ -46,7 +46,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
         );
 
   auto texture = scene.createTexture("assets\\smol24.bmp");
-  auto shader = scene.createShader("w:/smol/assets/default.vs", "W:/smol/assets/default.fs");
+  auto shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
   auto material = scene.createMaterial(shader, &texture, 1);
   auto renderable = scene.createRenderable(material, mesh);
 }

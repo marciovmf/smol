@@ -76,24 +76,13 @@ namespace smol
 
   Image* AssetManager::loadImageBitmap(const char* fileName)
   {
-    const char* enginePath = Platform::getBinaryPath();
-    size_t enginePathLen = strlen(enginePath);
-
-    size_t fileNameLen = strlen(fileName);
-    char* fullFileName = new char[enginePathLen + fileNameLen +1];
-    const size_t totalStringLen = fileNameLen + enginePathLen;
-    strncpy(fullFileName, enginePath, enginePathLen);
-    strncpy(fullFileName + enginePathLen, fileName, fileNameLen);
-    fullFileName[totalStringLen] = 0;
-
 
     const size_t imageHeaderSize = sizeof(Image);
-    char* buffer = Platform::loadFileToBuffer(fullFileName, nullptr, imageHeaderSize, imageHeaderSize);
+    char* buffer = Platform::loadFileToBuffer(fileName, nullptr, imageHeaderSize, imageHeaderSize);
 
     if (buffer == nullptr)
     {
-      debugLogError("Failed to load image '%s': Unable to find or read from file", fullFileName);
-      delete fullFileName;
+      debugLogError("Failed to load image '%s': Unable to find or read from file", fileName);
       return createProceduralImage();
     }
 
@@ -102,17 +91,15 @@ namespace smol
 
     if (bitmap->type != BITMAP_SIGNATURE)
     {
-      debugLogError("Failed to load image '%s': Invalid bitmap file", fullFileName);
+      debugLogError("Failed to load image '%s': Invalid bitmap file", fileName);
       Platform::unloadFileBuffer(buffer);
-      delete fullFileName;
       return nullptr;
     }
 
     if (bitmap->compression != BITMAP_COMPRESSION_BI_BITFIELDS)
     {
-      debugLogError("Failed to load image '%s': Unsuported bitmap compression", fullFileName);
+      debugLogError("Failed to load image '%s': Unsuported bitmap compression", fileName);
       Platform::unloadFileBuffer(buffer);
-      delete fullFileName;
       return nullptr;
     }
 
@@ -152,13 +139,11 @@ namespace smol
     }
     else if (bitmap->bitCount != 16)
     {
-      debugLogError("Failed to load image '%s': Unsuported bitmap bit count", fullFileName);
+      debugLogError("Failed to load image '%s': Unsuported bitmap bit count", fileName);
       unloadImage(image);
-      delete fullFileName;
       return nullptr;
     }
 
-    delete fullFileName;
     return (Image*) buffer;
   }
 

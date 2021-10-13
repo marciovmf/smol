@@ -11,27 +11,38 @@ namespace smol
 {
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
   constexpr INT SMOL_DEFAULT_ICON_ID = 101;
+  struct PlatformInternal
+  {
+    char binaryPath[MAX_PATH];
+    KeyboardState keyboardState = {};
+    
+    PlatformInternal():
+      keyboardState({})
+    {
+      // Get binary location
+      int len = GetModuleFileName(NULL, binaryPath, MAX_PATH);
+      char* truncatePos = strrchr(binaryPath, '\\');
+      if(truncatePos) *truncatePos = 0;
+
+
+      //Change the working directory to the binary location
+      smol::Log::info("Running from %s", binaryPath);
+      SetCurrentDirectory(binaryPath);
+    }
+  }; 
+
+  static PlatformInternal internal = PlatformInternal();
 
   //
   // A Windows specific implementation of a SMOL engine window
   //
-  struct PlatformInternal
-  {
-    bool initialized;
-    char binaryPath[MAX_PATH];
-  }; 
-  static PlatformInternal internal = {0};
-
   struct Window
   {
     HWND handle;
     HDC dc;
     HGLRC rc;
     bool shouldClose = false;
-    static KeyboardState keyboardState;
   };
-
-  KeyboardState Window::keyboardState = {};
 
   struct Module
   {
@@ -64,7 +75,7 @@ namespace smol
     OpenGL gl;
   } globalRenderApiInfo;
 
-  LRESULT smolWindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+  LRESULT smolWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
     switch(uMsg) 
     {
@@ -79,7 +90,7 @@ namespace smol
           int wasDown = (lParam & (1 << 30)) !=0;
           int state = (((isDown ^ wasDown) << 1) | isDown);
           short vkCode = (short) wParam;
-          Window::keyboardState.key[vkCode] = (unsigned char) state;
+          internal.keyboardState.key[vkCode] = (unsigned char) state;
         }
         break;
 
@@ -306,7 +317,7 @@ namespace smol
     // clean up changed bit for keyboard state
     for(int keyCode = 0; keyCode < smol::KeyboardState::MAX_KEYS; keyCode++)
     {
-      Window::keyboardState.key[keyCode] &= ~smol::KeyboardState::CHANGED_THIS_FRAME_BIT;
+      internal.keyboardState.key[keyCode] &= ~smol::KeyboardState::CHANGED_THIS_FRAME_BIT;
     }
 
     while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
@@ -380,7 +391,7 @@ namespace smol
 
   const unsigned char* Platform::getKeyboardState()
   {
-    return (const unsigned char*)&Window::keyboardState;
+    return (const unsigned char*)&internal.keyboardState;
   }
 
     char* Platform::loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset)
@@ -434,20 +445,6 @@ namespace smol
 
     const char* Platform::getBinaryPath()
     {
-      if (internal.initialized)
-        return internal.binaryPath;
-
-      int len = GetModuleFileNameA(
-          NULL,
-          internal.binaryPath,
-          MAX_PATH);
-
-      char* p = internal.binaryPath + len;
-      while (*p != '\\' && p > internal.binaryPath)
-        --p;
-
-      ++p;
-      *p = 0;
       return internal.binaryPath;
     }
 
