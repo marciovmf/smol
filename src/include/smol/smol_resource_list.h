@@ -25,7 +25,22 @@ namespace smol
     {
       int slotIndex;
       int version;
+
+      inline int compare(const Handle<T>& other);
+      inline int operator== (const Handle<T>& other);
     };
+
+  template <typename T>
+    int Handle<T>::compare(const Handle<T>& other)
+    {
+      return other.slotIndex == slotIndex && other.version == version;
+    }
+
+  template <typename T>
+    int Handle<T>::operator==(const Handle<T>& other)
+    {
+      return compare(other);
+    }
 
   template <typename T>
     class ResourceList
@@ -48,11 +63,11 @@ namespace smol
 
   template<typename T> 
     ResourceList<T>::ResourceList(int initialCapacity):
-    resourceCount(0),
-    freeSlotListCount(0),
-    freeSlotListStart(-1),
-    slots(Arena(sizeof(SlotInfo) * initialCapacity)),
-    resources(Arena(sizeof(T) * initialCapacity)) { }
+      resourceCount(0),
+      freeSlotListCount(0),
+      freeSlotListStart(-1),
+      slots(Arena(sizeof(SlotInfo) * initialCapacity)),
+      resources(Arena(sizeof(T) * initialCapacity)) { }
 
   template<typename T>
     inline int ResourceList<T>::count()

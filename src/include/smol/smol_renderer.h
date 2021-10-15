@@ -41,13 +41,6 @@ namespace smol
     POINT
   };
 
-  enum SceneNodeType : char
-  {
-    EMPTY,
-    MESH,
-    SPRITE
-  };
-
   struct SMOL_ENGINE_API Texture
   {
     GLuint textureObject;
@@ -92,9 +85,14 @@ namespace smol
     Handle<Mesh> mesh;
   };
 
-  struct Transform
+  struct SMOL_ENGINE_API Transform
   {
+    Vector3 position;
+    Vector3 rotation;
+    Vector3 scale;
     Mat4 mat;
+
+    void translate(float x, float y, float z);
   };
 
   struct EmptySceneNode { };
@@ -112,15 +110,21 @@ namespace smol
 
   struct SceneNode
   {
+    enum SceneNodeType : char
+    {
+      EMPTY,
+      MESH,
+      SPRITE
+    };
+
     SceneNodeType type;
     Transform transform;
-    Transform& parentTransform;
+    Handle<SceneNode> parent;
 
     union
     {
-      EmptySceneNode emptySceneNode;
-      MeshSceneNode meshSceneNode;
-      SpriteSceneNode spriteSceneNode;
+      MeshSceneNode meshNode;
+      SpriteSceneNode spriteNode;
     };
   };
 }
@@ -132,16 +136,23 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
 
+
 namespace smol
 {
+
+
+#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
+
   struct SMOL_ENGINE_API Scene
   {
+    static const Handle<SceneNode> ROOT;
+
     smol::ResourceList<smol::ShaderProgram> shaders;
     smol::ResourceList<smol::Texture> textures;
     smol::ResourceList<smol::Material> materials;
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
-    smol::ResourceList<smol::SceneNode> sceneNodes;
+    smol::ResourceList<smol::SceneNode> nodes;
     Mat4 perspective;
     Mat4 orthographic;
     Vector3 clearColor;
@@ -181,7 +192,18 @@ namespace smol
     //Handle<SceneNode> Scene::createEmptyNode(const SceneNode& node);
     //Handle<SceneNode> Scene::createMeshNode(const SceneNode& node);
     //Handle<SceneNode> Scene::createSpriteNode(const SceneNode& node);
+
+    Handle<SceneNode> createNode(
+        Handle<Renderable> renderable,
+        Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
+        Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
+        Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
+        float rotationAngle = 0,
+        Handle<SceneNode> parent = Scene::ROOT);
+
+      Transform* getTransform(Handle<SceneNode> handle);
   };
+
 
   struct SMOL_ENGINE_API Renderer
   {

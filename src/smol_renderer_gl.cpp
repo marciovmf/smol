@@ -8,6 +8,13 @@
 
 namespace smol
 {
+  const Handle<SceneNode> Scene::ROOT = INVALID_HANDLE(SceneNode);
+
+  void Transform::translate(float x, float y, float z)
+  {
+    Mat4 translationMatrix = Mat4::initTranslation(x, y, z);
+    mat = mat.mul(translationMatrix);
+  }
 
   Scene::Scene():
     shaders(32),
@@ -15,7 +22,7 @@ namespace smol
     materials(32),
     meshes(32),
     renderables(32),
-    sceneNodes(128),
+    nodes(128),
     clearColor(0.29f, 0.29f, 0.29f)
   {
   }
@@ -23,6 +30,17 @@ namespace smol
   inline void warnInvalidHandle(const char* typeName)
   {
     smol::Log::warning("Attempting to destroy a %s resource from an invalid handle", typeName);
+  }
+
+
+  Transform* Scene::getTransform(Handle<SceneNode> handle)
+  {
+    SceneNode* sceneNode = nodes.lookup(handle);
+    
+    if (!sceneNode)
+      return nullptr;
+
+    return &sceneNode->transform;
   }
 
   //-------------------------------------------------------------------
@@ -39,9 +57,9 @@ namespace smol
 
   Handle<Texture> Scene::createTexture(const Image& image)
   {
-    GLenum textureFormat = GL_RGBA;
-    GLenum textureType = GL_UNSIGNED_SHORT;
     Texture texture;
+    GLenum textureFormat = GL_RGBA;
+    GLenum textureType = GL_UNSIGNED_BYTE;
 
     if (image.bitsPerPixel == 24)
     {
@@ -55,7 +73,6 @@ namespace smol
     }
 
     glGenTextures(1, &texture.textureObject);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture.textureObject);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -345,6 +362,49 @@ namespace smol
     return handle;
   }
 
+
+  //-------------------------------------------------------------------
+  //  Scene Nodes handling 
+  //-------------------------------------------------------------------
+
+  Handle<SceneNode> Scene::createNode(
+      Handle<Renderable> renderable,
+      Vector3& position,
+      Vector3& scale,
+      Vector3& rotationAxis,
+      float rotationAngle,
+      Handle<SceneNode> parent)
+  {
+    Handle<SceneNode> handle = nodes.reserve();
+    SceneNode* node = nodes.lookup(handle);
+
+    node->type = SceneNode::MESH;
+    node->parent = parent;
+    //TODO(marcio): extract these values afer calculating the matrix transformation
+    //node->transform.position = position;
+    //node->transform.rotation = rotation;
+    node->transform.scale = scale;
+    node->transform.mat;
+    node->meshNode.renderable = renderable;
+
+    // position
+    //TODO(marcio): If this node have a parent, use the parent's matrix instead of identity
+    Mat4& modelMatrix = Mat4::initIdentity();
+
+    Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
+    Mat4 transformed = Mat4::mul(modelMatrix, translationMatrix);
+
+    // scale
+    Mat4& scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
+    transformed = Mat4::mul(transformed, scaleMatrix);
+
+    // rotation
+    Mat4& rotationMatrix = Mat4::initRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z, rotationAngle);
+    node->transform.mat = Mat4::mul(transformed, rotationMatrix);
+
+    return handle;
+  }
+
   Renderer::Renderer(Scene& scene, int width, int height)
   {
     setScene(scene);
@@ -370,7 +430,8 @@ namespace smol
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     scene->perspective = Mat4::perspective(1.0f, width/(float)height, 0.0f, 5.0f);
     scene->orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, -10.0f, 10.0f);
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
   void Renderer::render()
@@ -392,11 +453,23 @@ namespace smol
         
     }
 
-    int numRenderables = scene.renderables.count();
-    const Renderable* allRenderables = scene.renderables.getArray();
-    for(int i = 0; i < numRenderables; i++)
+    const SceneNode* allNodes = scene.nodes.getArray();
+    int numNodes = scene.nodes.count();
+
+    for(int i = 0; i < numNodes; i++)
     {
-      const Renderable* renderable = &allRenderables[i];
+      const SceneNode* node = &allNodes[i];
+      const Renderable* renderable;
+
+      if (node->type == SceneNode::MESH)
+      {
+        renderable = scene.renderables.lookup(node->meshNode.renderable);
+      }
+      else
+      {
+        continue; // Only mesh nodes are supported so far...
+      }
+
       Material* material = scene.materials.lookup(renderable->material);
       Mesh* mesh = scene.meshes.lookup(renderable->mesh);
       ShaderProgram* shader = scene.shaders.lookup(material->shader);
@@ -416,8 +489,12 @@ namespace smol
 
           // update transformations
           //TODO(marcio): Thisis slow. Change it so it updates ONCE per frame. Use a GL buffer object here.
+          //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
           GLuint uniform = glGetUniformLocation(shaderProgramId, "proj");
-          glUniformMatrix4fv(uniform, 1, 0, (const float*) scene.perspective.e);
+          Mat4 transformed = Mat4::mul(scene.perspective, (Mat4&)node->transform.mat);
+
+          //glUniformMatrix4fv(uniform, 1, 0, (const float*) scene.perspective.e);
+          glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
           glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
 
           glUseProgram(0);
