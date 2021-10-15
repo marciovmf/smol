@@ -18,13 +18,6 @@ namespace smol
 {
   struct Image;
 
-  enum ClearOperation : char
-  {
-    DONT_CLEAR = 0,
-    COLOR_BUFFER = 1,
-    DEPTH_BUFFER = 1 << 1
-  };
-
   enum RenderQueue : char
   {
     QUEUE_OPAQUE = 10,
@@ -147,6 +140,13 @@ namespace smol
   {
     static const Handle<SceneNode> ROOT;
 
+    enum ClearOperation
+    {
+      DONT_CLEAR = 0,
+      COLOR_BUFFER = 1,
+      DEPTH_BUFFER = 1 << 1
+    };
+
     smol::ResourceList<smol::ShaderProgram> shaders;
     smol::ResourceList<smol::Texture> textures;
     smol::ResourceList<smol::Material> materials;
@@ -201,7 +201,7 @@ namespace smol
         float rotationAngle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
-      Transform* getTransform(Handle<SceneNode> handle);
+    Transform* getTransform(Handle<SceneNode> handle);
   };
 
 

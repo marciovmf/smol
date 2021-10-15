@@ -13,7 +13,7 @@ namespace smol
   void Transform::translate(float x, float y, float z)
   {
     Mat4 translationMatrix = Mat4::initTranslation(x, y, z);
-    mat = mat.mul(translationMatrix);
+    mat = Mat4::mul(mat, translationMatrix);
   }
 
   Scene::Scene():
@@ -23,7 +23,8 @@ namespace smol
     meshes(32),
     renderables(32),
     nodes(128),
-    clearColor(0.29f, 0.29f, 0.29f)
+    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
   }
 
@@ -432,24 +433,26 @@ namespace smol
     scene->orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST); 
+    glDepthFunc(GL_LEQUAL);  
   }
 
   void Renderer::render()
   {
     Scene& scene = *this->scene;
     // CLEAR
-    if (scene.clearOperation != ClearOperation::DONT_CLEAR)
+    if (scene.clearOperation != Scene::DONT_CLEAR)
     {
       GLuint glClearFlags = 0;
 
-      if (scene.clearOperation && ClearOperation::COLOR_BUFFER)
+      if (scene.clearOperation && Scene::COLOR_BUFFER)
         glClearFlags |= GL_COLOR_BUFFER_BIT;
 
-      if (scene.clearOperation && ClearOperation::DEPTH_BUFFER)
+      if (scene.clearOperation && Scene::DEPTH_BUFFER)
         glClearFlags |= GL_DEPTH_BUFFER_BIT;
 
       glClearColor(scene.clearColor.x, scene.clearColor.y, scene.clearColor.z, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT);
+      glClear(glClearFlags);
         
     }
 
@@ -488,7 +491,7 @@ namespace smol
           }
 
           // update transformations
-          //TODO(marcio): Thisis slow. Change it so it updates ONCE per frame. Use a GL buffer object here.
+          //TODO(marcio): This is slow. Change it so it updates ONCE per frame. Use a GL buffer object here.
           //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
           GLuint uniform = glGetUniformLocation(shaderProgramId, "proj");
           Mat4 transformed = Mat4::mul(scene.perspective, (Mat4&)node->transform.mat);
