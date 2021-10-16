@@ -37,9 +37,8 @@ void onStart(smol::SystemsRoot* systemsRoot)
         smol::Primitive::TRIANGLE,      // primitive
         vertices, sizeof(vertices),     // positions
         indices,  sizeof(indices),      // indices
-        uv, sizeof(uv),                 // uv0
-        nullptr, 0,                     // uv1
-        nullptr, 0                      // normals
+        nullptr, 0,
+        uv, sizeof(uv)                  // uv0
         );
 
   auto texture = scene.createTexture("assets\\smol32.bmp");

@@ -133,6 +133,7 @@ namespace smol
   Handle<Mesh> Scene::createMesh(Primitive primitive,
       Vector3* vertices, size_t verticesArraySize,
       unsigned int* indices, size_t indicesArraySize,
+      Vector3* color , size_t colorArraySize,
       Vector2* uv0, size_t uv0ArraySize,
       Vector2* uv1, size_t uv1ArraySize,
       Vector3* normals, size_t normalsArraySize)
@@ -168,6 +169,17 @@ namespace smol
       glEnableVertexAttribArray(SMOL_POSITION_ATTRIB_LOCATION);
     }
 
+    mesh->vboColor = 0;
+    if(colorArraySize)
+    {
+      glGenBuffers(1, &mesh->vboColor);
+      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
+      glBufferData(GL_ARRAY_BUFFER, colorArraySize, color, GL_STATIC_DRAW);
+      glVertexAttribPointer(SMOL_COLOR_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+      glEnableVertexAttribArray(SMOL_COLOR_ATTRIB_LOCATION);
+    }
     mesh->vboUV0 = 0;
     if(uv0ArraySize)
     {
@@ -410,6 +422,9 @@ namespace smol
   {
     setScene(scene);
     resize(width, height);
+
+    // set default value for attributes
+    glVertexAttrib3f(SMOL_COLOR_ATTRIB_LOCATION, 1.0f, 0.0f, 1.0f);
   }
 
   void Renderer::setScene(Scene& scene)
@@ -424,7 +439,6 @@ namespace smol
 
   void Renderer::resize(int width, int height)
   {
-    smol::Log::info("resize called!");
     this->width = width;
     this->height = height;
 
@@ -453,7 +467,6 @@ namespace smol
 
       glClearColor(scene.clearColor.x, scene.clearColor.y, scene.clearColor.z, 1.0f);
       glClear(glClearFlags);
-        
     }
 
     const SceneNode* allNodes = scene.nodes.getArray();
@@ -479,29 +492,28 @@ namespace smol
       GLuint shaderProgramId = shader->programId;
 
       glBindVertexArray(mesh->vao);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-          glUseProgram(shaderProgramId);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+      glUseProgram(shaderProgramId);
 
-          for (int textureIndex = 0; textureIndex < material->diffuseTextureCount; textureIndex++)
-          {
-            Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-            Texture* texture = scene.textures.lookup(hTexture);
-            glBindTexture(GL_TEXTURE_2D, texture->textureObject);
-            glActiveTexture(GL_TEXTURE0 + i);
-          }
+      for (int textureIndex = 0; textureIndex < material->diffuseTextureCount; textureIndex++)
+      {
+        Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
+        Texture* texture = scene.textures.lookup(hTexture);
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, texture->textureObject);
+      }
 
-          // update transformations
-          //TODO(marcio): This is slow. Change it so it updates ONCE per frame. Use a GL buffer object here.
-          //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
-          GLuint uniform = glGetUniformLocation(shaderProgramId, "proj");
-          Mat4 transformed = Mat4::mul(scene.perspective, (Mat4&)node->transform.mat);
+      // update transformations
+      //TODO(marcio): This is slow. Change it so it updates ONCE per frame. Use a GL buffer object here.
+      //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
+      GLuint uniform = glGetUniformLocation(shaderProgramId, "proj");
+      Mat4 transformed = Mat4::mul(scene.perspective, (Mat4&)node->transform.mat);
 
-          //glUniformMatrix4fv(uniform, 1, 0, (const float*) scene.perspective.e);
-          glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
-          glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+      glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
+      glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
 
-          glUseProgram(0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+      glUseProgram(0);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       glBindVertexArray(0);
 
     }

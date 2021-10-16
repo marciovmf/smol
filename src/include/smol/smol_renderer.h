@@ -9,10 +9,11 @@
 #include <smol/smol_gl.h>
 #include <smol/smol_resource_list.h>
 
-#define SMOL_POSITION_ATTRIB_LOCATION  0
-#define SMOL_UV0_ATTRIB_LOCATION       1
-#define SMOL_UV1_ATTRIB_LOCATION       2
-#define SMOL_NORMAL_ATTRIB_LOCATION    3
+#define SMOL_POSITION_ATTRIB_LOCATION   0
+#define SMOL_UV0_ATTRIB_LOCATION        1
+#define SMOL_UV1_ATTRIB_LOCATION        2
+#define SMOL_NORMAL_ATTRIB_LOCATION     3
+#define SMOL_COLOR_ATTRIB_LOCATION      4
 
 namespace smol
 {
@@ -67,6 +68,7 @@ namespace smol
     GLuint vboNormal;
     GLuint vboUV0;
     GLuint vboUV1;
+    GLuint vboColor;
 
     unsigned int numIndices;
     unsigned int numVertices;
@@ -178,9 +180,10 @@ namespace smol
     Handle<Mesh> createMesh(Primitive primitive,
         Vector3* vertices, size_t verticesArraySize,
         unsigned int* indices, size_t indicesArraySize,
-        Vector2* uv0, size_t uv0ArraySize,
-        Vector2* uv1, size_t uv1ArraySize,
-        Vector3* normals, size_t normalsArraySize);
+        Vector3* color = nullptr, size_t colorArraySize = 0,
+        Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
+        Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
+        Vector3* normals = nullptr, size_t normalsArraySize = 0);
     void destroyMesh(Handle<Mesh> handle);
 
     // Renderables
@@ -188,11 +191,7 @@ namespace smol
     void destroyRenderable(Handle<Renderable> handle);
 
     // Scene Node
-    //TODO(marcio): Implemente these...
-    //Handle<SceneNode> Scene::createEmptyNode(const SceneNode& node);
-    //Handle<SceneNode> Scene::createMeshNode(const SceneNode& node);
-    //Handle<SceneNode> Scene::createSpriteNode(const SceneNode& node);
-
+    //TODO(marcio): Implement createNode() for all node types
     Handle<SceneNode> createNode(
         Handle<Renderable> renderable,
         Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
