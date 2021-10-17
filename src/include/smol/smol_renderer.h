@@ -72,6 +72,7 @@ namespace smol
 
     unsigned int numIndices;
     unsigned int numVertices;
+    unsigned int numPrimitives;
   };
 
   struct SMOL_ENGINE_API Renderable

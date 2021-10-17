@@ -34,24 +34,26 @@ void onStart(smol::SystemsRoot* systemsRoot)
   };
 
   auto mesh = scene.createMesh(
-        smol::Primitive::TRIANGLE,      // primitive
-        vertices, sizeof(vertices),     // positions
-        indices,  sizeof(indices),      // indices
-        nullptr, 0,
-        uv, sizeof(uv)                  // uv0
-        );
-
+      smol::Primitive::TRIANGLE,      // primitive
+      vertices, sizeof(vertices),     // positions
+      indices,  sizeof(indices),      // indices
+      nullptr, 0,                     // colors
+      uv, sizeof(uv)                  // uv0
+      );
+ 
   auto texture = scene.createTexture("assets\\smol32.bmp");
   auto shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
   auto material = scene.createMaterial(shader, &texture, 1);
   auto renderable = scene.createRenderable(material, mesh);
 
   node1 = scene.createNode(renderable, smol::Vector3{-0.5f, 0.0f, 0.0f});
-  node2 = scene.createNode(renderable, smol::Vector3{0.5f, 0.0f, -0.2f}, smol::Vector3{0.5f, 0.5f, 0.5f}, 
-      smol::Vector3{.0f, .0f, 1.0f}, 45.0f);
+  node2 = scene.createNode(renderable,
+      smol::Vector3{0.5f, 0.0f, -0.2f}, // position
+      smol::Vector3{0.5f, 0.5f, 0.5f},  // scale
+      smol::Vector3{0.0f, 0.0f, 1.0f}, 45.0f);// rotation axis + angle
+      
   selectedNode = node2;
 }
- 
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;

@@ -201,17 +201,29 @@ namespace smol
   {
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
+    
+    int primitiveMultiplier;
 
     if (primitive == Primitive::TRIANGLE)
+    {
       mesh->glPrimitive = GL_TRIANGLES;
+      primitiveMultiplier = 3;
+    }
     else if (primitive == Primitive::LINE)
+    {
       mesh->glPrimitive = GL_LINES;
+      primitiveMultiplier = 2;
+    }
     else if (primitive == Primitive::POINT)
+    {
       mesh->glPrimitive = GL_POINTS;
+      primitiveMultiplier = 1;
+    }
     else
     {
       debugLogWarning("Unknown primitive. Defaulting to TRIANGLE.");
       mesh->glPrimitive = GL_TRIANGLES;
+      primitiveMultiplier = 3;
     }
 
     // VAO
@@ -226,7 +238,7 @@ namespace smol
       glVertexAttribPointer(SMOL_POSITION_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
-
+      mesh->numPrimitives = mesh->numVertices * primitiveMultiplier;
       glEnableVertexAttribArray(SMOL_POSITION_ATTRIB_LOCATION);
     }
 
@@ -531,12 +543,12 @@ namespace smol
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-    scene->perspective = Mat4::perspective(1.0f, width/(float)height, 0.0f, 100.0f);
+    scene->perspective = Mat4::perspective(2.0f, width/(float)height, 0.01f, 100.0f);
     scene->orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST); 
-    glDepthFunc(GL_LEQUAL);  
+    glDepthFunc(GL_LESS);  
     glEnable(GL_CULL_FACE); 
     glCullFace(GL_BACK);
   }
@@ -607,7 +619,15 @@ namespace smol
       transformed = Mat4::mul(scene.perspective, transformed);
 
       glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
-      glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+
+      if (mesh->ibo == 0)
+      {
+        glDrawArrays(mesh->glPrimitive, 0, mesh->numPrimitives);
+      }
+      else
+      {
+        glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+      }
 
       glUseProgram(0);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
