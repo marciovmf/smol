@@ -145,7 +145,6 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
 namespace smol
 {
 
-
 #define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
 
   struct SMOL_ENGINE_API Scene
@@ -175,12 +174,15 @@ namespace smol
     // Shaders
     Handle<ShaderProgram> Scene::createShader(const char* vsFilePath, const char* fsFilePath, const char* gsFilePath = nullptr);
     void destroyShader(Handle<ShaderProgram> handle);
+    void destroyShader(ShaderProgram* program);
+
 
     // Textures
     //TODO: Add texture filtering options here
     Handle<Texture> Scene::createTexture(const char* bitmapPath);
     Handle<Texture> Scene::createTexture(const Image& image);
     void destroyTexture(Handle<Texture> handle);
+    void destroyTexture(Texture* texture);
 
     // Materials
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount);
@@ -195,10 +197,12 @@ namespace smol
         Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
         Vector3* normals = nullptr, size_t normalsArraySize = 0);
     void destroyMesh(Handle<Mesh> handle);
+    void destroyMesh(Mesh* mesh);
 
     // Renderables
     Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
     void destroyRenderable(Handle<Renderable> handle);
+    void destroyRenderable(Renderable* renderable);
 
     // Scene Node
     Handle<SceneNode> clone(Handle<SceneNode> handle);
@@ -212,9 +216,11 @@ namespace smol
         float rotationAngle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
+    Handle<SceneNode> destroyNode(Handle<SceneNode> handle);
+    Handle<SceneNode> destroyNode(SceneNode* node);
+
     Transform* getTransform(Handle<SceneNode> handle);
   };
-
 
   struct SMOL_ENGINE_API Renderer
   {
@@ -226,10 +232,10 @@ namespace smol
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
     void resize(int width, int height);   // Resizes the necessary resources to accomodathe the required dimentions.
     void render();                        // Called once per frame to render the scene.
+    ~Renderer();
   };
 
 }
-
 
 #endif  // SMOL_RENDERER_H
 

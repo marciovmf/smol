@@ -83,7 +83,6 @@ namespace smol
   }
 
   void warnInvalidHandle(const char* typeName)
-
   {
     smol::Log::warning("Attempting to destroy a %s resource from an invalid handle", typeName);
   }
@@ -137,6 +136,12 @@ namespace smol
     return textures.add(texture);
   }
 
+
+  void Scene::destroyTexture(Texture* texture)
+  {
+      glDeleteTextures(1, &texture->textureObject);
+  }
+
   void Scene::destroyTexture(Handle<Texture> handle)
   {
     Texture* texture = textures.lookup(handle);
@@ -146,7 +151,7 @@ namespace smol
     }
     else
     {
-      glDeleteTextures(1, &texture->textureObject);
+      destroyTexture(texture);
       textures.remove(handle);
     }
   }
@@ -274,6 +279,23 @@ namespace smol
     return handle;
   }
 
+
+  void Scene::destroyMesh(Mesh* mesh)
+  {
+    GLuint buffers[SMOL_MAX_BUFFERS_PER_MESH];
+    int numBuffers = 0;
+
+    if (mesh->ibo) buffers[numBuffers++] = mesh->ibo;
+    if (mesh->vboPosition) buffers[numBuffers++] = mesh->vboPosition;
+    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
+    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
+    if (mesh->vboUV0) buffers[numBuffers++] = mesh->vboUV0;
+    if (mesh->vboUV1) buffers[numBuffers++] = mesh->vboUV1;
+
+    glDeleteBuffers(numBuffers, (const GLuint*) buffers);
+    glDeleteVertexArrays(1, (const GLuint*) &mesh->vao);
+  }
+
   void Scene::destroyMesh(Handle<Mesh> handle)
   {
     Mesh* mesh = meshes.lookup(handle);
@@ -283,18 +305,7 @@ namespace smol
     }
     else
     {
-      GLuint buffers[SMOL_MAX_BUFFERS_PER_MESH];
-      int numBuffers = 0;
-
-      if (mesh->ibo) buffers[numBuffers++] = mesh->ibo;
-      if (mesh->vboPosition) buffers[numBuffers++] = mesh->vboPosition;
-      if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
-      if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
-      if (mesh->vboUV0) buffers[numBuffers++] = mesh->vboUV0;
-      if (mesh->vboUV1) buffers[numBuffers++] = mesh->vboUV1;
-
-      glDeleteBuffers(numBuffers, (const GLuint*) buffers);
-      glDeleteVertexArrays(1, (const GLuint*) &mesh->vao);
+      destroyMesh(mesh);
       meshes.remove(handle);
     }
   }
@@ -429,6 +440,26 @@ namespace smol
     shader->programId = program;
     shader->valid = true;
     return handle;
+  }
+
+  void Scene::destroyShader(ShaderProgram* program)
+  {
+    glDeleteProgram(program->programId);
+  }
+
+  void Scene::destroyShader(Handle<ShaderProgram> handle)
+  {
+
+    ShaderProgram* program = shaders.lookup(handle);
+    if (!program)
+    {
+      warnInvalidHandle("ShaderProgram");
+    }
+    else
+    {
+      destroyShader(program);
+      shaders.remove(handle);
+    }
   }
 
 
@@ -582,5 +613,27 @@ namespace smol
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       glBindVertexArray(0);
     }
+  }
+
+  Renderer::~Renderer()
+  {
+    int numMeshes = scene->meshes.count();
+    const Mesh* allMeshes = scene->meshes.getArray();
+    for (int i=0; i < numMeshes; i++) 
+    {
+      const Mesh* mesh = &allMeshes[i];
+      scene->destroyMesh((Mesh*) mesh);
+    }
+
+    int numTextures = scene->textures.count();
+    const Texture* allTextures = scene->textures.getArray();
+    for (int i=0; i < numTextures; i++) 
+    {
+      const Texture* texture = &allTextures[i];
+      scene->destroyTexture((Texture*) texture);
+    }
+    
+    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, scene nodes: %d.", 
+        numTextures, numMeshes, scene->renderables.count(), scene->nodes.count());
   }
 }
