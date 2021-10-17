@@ -126,7 +126,7 @@ namespace smol
   template <typename T>
     T* ResourceList<T>::lookup(Handle<T> handle)
     {
-      SMOL_ASSERT(handle.slotIndex < slots.capacity / sizeof(T), "Handle slot is out of bounds");
+      SMOL_ASSERT(handle.slotIndex < slots.capacity, "Handle slot is out of bounds");
       SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
 
       SlotInfo* slotInfo = ((SlotInfo*) slots.data) + handle.slotIndex;
