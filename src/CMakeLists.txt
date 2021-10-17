@@ -123,10 +123,16 @@ target_include_directories(game PUBLIC
   "${SOURCE_PATH}/include/smol")
 target_link_libraries(game PRIVATE smol)
 
-add_custom_command(TARGET game POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_CURRENT_SOURCE_DIR}/../assets
-                ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets)
+#
+# Copy assets
+#
+add_custom_target(assets ALL)
+add_custom_command(TARGET assets POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E echo "Coppying assets..."
+  COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/../assets
+    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets)
 
 #
 # slauncher.exe: Editor / Game launcher
