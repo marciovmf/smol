@@ -51,7 +51,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Vector3{.0f, .0f, 1.0f}, 45.0f);
   selectedNode = node2;
 }
-  
+ 
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
@@ -61,6 +61,12 @@ void onUpdate(float deltaTime)
   int yDirection = 0;
   int zDirection = 0;
   int scaleAmount = 0;
+
+
+  if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
+  {
+    scene.clone(selectedNode);
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB))
   {
@@ -123,7 +129,6 @@ void onUpdate(float deltaTime)
          amount * scaleAmount + scale.x,
          amount * scaleAmount + scale.y,
          amount * scaleAmount + scale.z);
-    smol::Log::info("%f, %f, %f", position.x, position.y, position.z);
   }
   
 }

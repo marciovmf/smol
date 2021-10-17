@@ -463,6 +463,16 @@ namespace smol
     return handle;
   }
 
+
+  Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
+  {
+    Handle<SceneNode> newHandle = nodes.reserve();
+    SceneNode* newNode = nodes.lookup(newHandle);
+    SceneNode* original = nodes.lookup(handle);
+    memcpy(newNode, original, sizeof(SceneNode));
+    return newHandle;
+  }
+
   Renderer::Renderer(Scene& scene, int width, int height)
   {
     setScene(scene);

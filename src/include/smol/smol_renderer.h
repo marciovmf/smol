@@ -169,6 +169,7 @@ namespace smol
     Mat4 orthographic;
     Vector3 clearColor;
     ClearOperation clearOperation;
+    
     Scene();
 
     // Shaders
@@ -200,6 +201,8 @@ namespace smol
     void destroyRenderable(Handle<Renderable> handle);
 
     // Scene Node
+    Handle<SceneNode> clone(Handle<SceneNode> handle);
+
     //TODO(marcio): Implement createNode() for all node types
     Handle<SceneNode> createNode(
         Handle<Renderable> renderable,
