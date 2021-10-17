@@ -10,6 +10,10 @@ smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
 smol::Handle<smol::SceneNode> selectedNode;
 
+smol::Handle<smol::Texture> texture;
+smol::Handle<smol::ShaderProgram> shader;
+smol::Handle<smol::Material> material;
+
 void onStart(smol::SystemsRoot* systemsRoot)
 {
   smol::Log::info("Game started!");
@@ -41,9 +45,9 @@ void onStart(smol::SystemsRoot* systemsRoot)
       uv, sizeof(uv)                  // uv0
       );
  
-  auto texture = scene.createTexture("assets\\smol32.bmp");
-  auto shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
-  auto material = scene.createMaterial(shader, &texture, 1);
+  texture = scene.createTexture("assets\\smol32.bmp");
+  shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
+  material = scene.createMaterial(shader, &texture, 1);
   auto renderable = scene.createRenderable(material, mesh);
 
   node1 = scene.createNode(renderable, smol::Vector3{-0.5f, 0.0f, 0.0f});
@@ -64,6 +68,20 @@ void onUpdate(float deltaTime)
   int zDirection = 0;
   int scaleAmount = 0;
 
+  if (keyboard.getKeyDown(smol::KEYCODE_F5))
+  {
+    scene.destroyShader(shader);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F6))
+  {
+    scene.destroyTexture(texture);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F7))
+  {
+    scene.destroyMaterial(material);
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
   {

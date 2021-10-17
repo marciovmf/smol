@@ -8,6 +8,7 @@
 #include <smol/smol_mat4.h>
 #include <smol/smol_gl.h>
 #include <smol/smol_resource_list.h>
+#include <smol/smol_assetmanager.h>
 
 #define SMOL_POSITION_ATTRIB_LOCATION   0
 #define SMOL_UV0_ATTRIB_LOCATION        1
@@ -165,6 +166,9 @@ namespace smol
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
     smol::ResourceList<smol::SceneNode> nodes;
+    smol::Handle<smol::Texture> defaultTexture;
+    smol::Handle<smol::ShaderProgram> defaultShader;
+    smol::Handle<smol::Material> defaultMaterial;
     Mat4 perspective;
     Mat4 orthographic;
     Vector3 clearColor;
@@ -174,6 +178,7 @@ namespace smol
 
     // Shaders
     Handle<ShaderProgram> Scene::createShader(const char* vsFilePath, const char* fsFilePath, const char* gsFilePath = nullptr);
+    Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
     void destroyShader(Handle<ShaderProgram> handle);
     void destroyShader(ShaderProgram* program);
 

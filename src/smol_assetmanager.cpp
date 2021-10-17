@@ -29,12 +29,11 @@ namespace smol
   };
 #pragma pack(pop)
 
-  Image* createProceduralImage()
+  Image* AssetManager::createCheckersImage(int width, int height, int squareCount)
   {
     // Create a procedural checker texture
-    const int texWidth = 800;
-    const int texHeight = texWidth;
-    const int squareCount = 32;
+    const int texWidth = width;
+    const int texHeight = height;
     const int squareSize = texWidth / squareCount;
     const int sizeInBytes = texWidth * texHeight * 3;
     unsigned char *buffer = new unsigned char[sizeInBytes + sizeof(Image)];//TODO(marcio): Use our own memory manager here
@@ -43,7 +42,7 @@ namespace smol
 
     for (int i = 0; i < texWidth; i++)
     {
-      for (int j = 0; j < texWidth; j++)
+      for (int j = 0; j < texHeight; j++)
       {
         int x = i / squareSize;
         int y = j / squareSize;
@@ -76,14 +75,13 @@ namespace smol
 
   Image* AssetManager::loadImageBitmap(const char* fileName)
   {
-
     const size_t imageHeaderSize = sizeof(Image);
     char* buffer = Platform::loadFileToBuffer(fileName, nullptr, imageHeaderSize, imageHeaderSize);
 
     if (buffer == nullptr)
     {
       debugLogError("Failed to load image '%s': Unable to find or read from file", fileName);
-      return createProceduralImage();
+      return AssetManager::createCheckersImage(800, 600);
     }
 
     BitmapHeader* bitmap = (BitmapHeader*) (buffer + imageHeaderSize);

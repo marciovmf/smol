@@ -80,13 +80,33 @@ namespace smol
     clearColor(160/255.0f, 165/255.0f, 170/255.0f),
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
+    Image* img = AssetManager::createCheckersImage(800, 600, 16);
+    defaultTexture = createTexture(*img);
+    AssetManager::unloadImage(img);
+
+    const char* defaultVShader =
+      "#version 330 core\n\
+layout (location = 0) in vec3 vertPos;\n\
+layout (location = 1) in vec2 vertUVIn;\n\
+uniform mat4 proj;\n\
+out vec2 uv;\n\
+void main() { gl_Position = proj * vec4(vertPos, 1.0); uv = vertUVIn; }";
+
+    const char* defaultFShader =
+      "#version 330 core\n\
+out vec4 fragColor;\n\
+uniform sampler2D mainTex;\n\
+in vec2 uv;\n\
+void main(){ fragColor = texture(mainTex, uv) * vec4(1.0, .0, 1.0, 1.0);}";
+
+    defaultShader = createShaderFromSource(defaultVShader, defaultFShader, nullptr);
+    defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
   }
 
   void warnInvalidHandle(const char* typeName)
   {
     smol::Log::warning("Attempting to destroy a %s resource from an invalid handle", typeName);
   }
-
 
   Transform* Scene::getTransform(Handle<SceneNode> handle)
   {
@@ -139,7 +159,7 @@ namespace smol
 
   void Scene::destroyTexture(Texture* texture)
   {
-      glDeleteTextures(1, &texture->textureObject);
+    glDeleteTextures(1, &texture->textureObject);
   }
 
   void Scene::destroyTexture(Handle<Texture> handle)
@@ -201,7 +221,7 @@ namespace smol
   {
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
-    
+
     int primitiveMultiplier;
 
     if (primitive == Primitive::TRIANGLE)
@@ -352,9 +372,7 @@ namespace smol
   //  Shader resource handling 
   //-------------------------------------------------------------------
 
-  Handle<ShaderProgram> Scene::createShader(const char* vsFilePath,
-      const char* fsFilePath,
-      const char* gsFilePath)
+  Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource)
   {
     //TODO(marcio): There must be a "default" shader we might use in case we fail to build a shader program.
 
@@ -369,12 +387,10 @@ namespace smol
     char errorBuffer[errorLogSize];
 
     // vertex shader
-    char* vertexSource = Platform::loadFileToBufferNullTerminated(vsFilePath);
     GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vShader, 1, &vertexSource, 0);
+    glShaderSource(vShader, 1, &vsSource, 0);
     glCompileShader(vShader);
     glGetShaderiv(vShader, GL_COMPILE_STATUS, &status);
-    Platform::unloadFileBuffer(vertexSource);
 
     if (! status)
     {
@@ -385,12 +401,10 @@ namespace smol
     }
 
     // fragment shader
-    char* fragmentSource = Platform::loadFileToBufferNullTerminated(fsFilePath);
     GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fShader, 1, &fragmentSource, 0);
+    glShaderSource(fShader, 1, &fsSource, 0);
     glCompileShader(fShader);
     glGetShaderiv(fShader, GL_COMPILE_STATUS, &status);
-    Platform::unloadFileBuffer(fragmentSource);
 
     if (! status)
     {
@@ -404,14 +418,12 @@ namespace smol
     // geometry shader
     GLuint gShader = 0;
 
-    if (gsFilePath)
+    if (gsSource)
     {
-      char* geometrySource = Platform::loadFileToBufferNullTerminated(gsFilePath);
       gShader = glCreateShader(GL_GEOMETRY_SHADER);
-      glShaderSource(gShader, 1, &geometrySource, 0);
+      glShaderSource(gShader, 1, &gsSource, 0);
       glCompileShader(gShader);
       glGetShaderiv(gShader, GL_COMPILE_STATUS, &status);
-      Platform::unloadFileBuffer(geometrySource);
 
       if (! status)
       {
@@ -431,7 +443,6 @@ namespace smol
     if (gShader) glAttachShader(program, fShader);
 
     glLinkProgram(program);
-
     glGetProgramiv(program, GL_LINK_STATUS, &status);
 
     if (! status)
@@ -454,6 +465,24 @@ namespace smol
     return handle;
   }
 
+  Handle<ShaderProgram> Scene::createShader(const char* vsFilePath,
+      const char* fsFilePath,
+      const char* gsFilePath)
+  {
+    //TODO(marcio): There must be a "default" shader we might use in case we fail to build a shader program.
+
+    char* vertexSource = vsFilePath ? Platform::loadFileToBufferNullTerminated(vsFilePath) : nullptr;
+    char* fragmentSource = fsFilePath ? Platform::loadFileToBufferNullTerminated(fsFilePath) : nullptr;
+    char* geometrySource = gsFilePath ? Platform::loadFileToBufferNullTerminated(gsFilePath) : nullptr;
+
+    Handle<ShaderProgram> handle = createShaderFromSource(vertexSource, fragmentSource, geometrySource);
+
+    if (vertexSource) Platform::unloadFileBuffer(vertexSource);
+    if (fragmentSource) Platform::unloadFileBuffer(fragmentSource);
+    if (geometrySource) Platform::unloadFileBuffer(geometrySource);
+    return handle;
+  }
+
   void Scene::destroyShader(ShaderProgram* program)
   {
     glDeleteProgram(program->programId);
@@ -473,7 +502,6 @@ namespace smol
       shaders.remove(handle);
     }
   }
-
 
   //-------------------------------------------------------------------
   //  Scene Nodes handling 
@@ -556,6 +584,10 @@ namespace smol
   void Renderer::render()
   {
     Scene& scene = *this->scene;
+    GLuint defaultShaderProgramId = scene.shaders.lookup(scene.defaultShader)->programId;
+    GLuint defaultTextureId = scene.textures.lookup(scene.defaultTexture)->textureObject;
+    Material* defaultMaterial = scene.materials.lookup(scene.defaultMaterial);
+
     // CLEAR
     if (scene.clearOperation != Scene::DONT_CLEAR)
     {
@@ -588,10 +620,18 @@ namespace smol
         continue; // Only mesh nodes are supported so far...
       }
 
+      if (!renderable) 
+      {
+        continue; // skip this draw if the renderable was deleted;
+      }
+
+      // Get Current material or default one
       Material* material = scene.materials.lookup(renderable->material);
+      if (!material) material = defaultMaterial;
+
       Mesh* mesh = scene.meshes.lookup(renderable->mesh);
       ShaderProgram* shader = scene.shaders.lookup(material->shader);
-      GLuint shaderProgramId = shader->programId;
+      GLuint shaderProgramId = shader ? shader->programId : defaultShaderProgramId;
 
       glBindVertexArray(mesh->vao);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
@@ -602,7 +642,8 @@ namespace smol
         Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
         Texture* texture = scene.textures.lookup(hTexture);
         glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, texture->textureObject);
+        GLuint textureId = texture ? texture->textureObject : defaultTextureId;
+        glBindTexture(GL_TEXTURE_2D, textureId);
       }
 
       GLuint uniform = glGetUniformLocation(shaderProgramId, "proj");
@@ -652,7 +693,7 @@ namespace smol
       const Texture* texture = &allTextures[i];
       scene->destroyTexture((Texture*) texture);
     }
-    
+
     debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, scene nodes: %d.", 
         numTextures, numMeshes, scene->renderables.count(), scene->nodes.count());
   }

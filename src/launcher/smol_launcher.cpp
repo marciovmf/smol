@@ -34,12 +34,6 @@ namespace smol
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
 
-      // Initialize systems root
-      smol::SystemsRoot root;
-      root.keyboard = &smol::Keyboard();
-      smol::Scene scene;
-      root.loadedScene = &scene;
-
       if (!Platform::initOpenGL(3, 2))
         return 1;
 
@@ -62,6 +56,12 @@ namespace smol
       const int WIDTH = 1024;
       const int HEIGHT = 576;
       smol::Window* window = Platform::createWindow(WIDTH, HEIGHT, (const char*)"Smol Engine");
+
+      // Initialize systems root
+      smol::SystemsRoot root;
+      root.keyboard = &smol::Keyboard();
+      smol::Scene scene;
+      root.loadedScene = &scene;
 
       onGameStartCallback(&root);
 

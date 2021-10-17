@@ -15,6 +15,7 @@ namespace smol
 
   struct SMOL_ENGINE_API AssetManager
   {
+    static Image* createCheckersImage(int width, int height, int squareCount = 16);
     static Image* loadImageBitmap(const char* fileName);
     static void unloadImage(Image* image);
   };
