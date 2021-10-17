@@ -55,7 +55,7 @@ namespace smol
     return m;
   }
 
-  Mat4 Mat4::mul(Mat4& a, Mat4& b)
+  Mat4 Mat4::mul(const Mat4& a, const Mat4& b)
   {
     Mat4 m; 
 
@@ -116,7 +116,7 @@ namespace smol
     return t;
   }
 
-  Vector3 Mat4::mul(Mat4& a, Vector3& b)
+  Vector3 Mat4::mul(const Mat4& a, const Vector3& b)
   {
     Vector3 t(
         a.e[0][0] * b.x + a.e[0][1] * b.y + a.e[0][2] * b.z + a.e[0][3],

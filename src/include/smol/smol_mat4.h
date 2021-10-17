@@ -16,8 +16,8 @@ namespace smol
     static Mat4 perspective(float fov, float aspect, float zNear, float zFar);
     static Mat4 ortho(float left, float right, float top, float bottom, float zNear, float zFar);
     static Mat4 transpose(Mat4& m);
-    static Mat4 mul(Mat4& a, Mat4& b);
-    static Vector3 mul(Mat4& a, Vector3& b);
+    static Mat4 mul(const Mat4& a, const Mat4& b);
+    static Vector3 mul(const Mat4& a, const Vector3& b);
 
     float e[4][4];
     Mat4& mul(Mat4& other);

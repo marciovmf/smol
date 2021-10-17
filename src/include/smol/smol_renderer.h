@@ -80,14 +80,24 @@ namespace smol
     Handle<Mesh> mesh;
   };
 
-  struct SMOL_ENGINE_API Transform
+  class SMOL_ENGINE_API Transform
   {
     Vector3 position;
     Vector3 rotation;
     Vector3 scale;
-    Mat4 mat;
+    float angle;
+    bool dirty;
+    Mat4 model;
 
-    void translate(float x, float y, float z);
+    public:
+    Transform::Transform();
+    void update();
+    const Mat4& getMatrix() const;
+    void setPosition(float x, float y, float z);
+    void setScale(float x, float y, float z);
+    void setRotation(float x, float y, float z, float angle);
+    const Vector3& getPosition() const;
+    const Vector3& getScale() const;
   };
 
   struct EmptySceneNode { };
@@ -159,7 +169,6 @@ namespace smol
     Mat4 orthographic;
     Vector3 clearColor;
     ClearOperation clearOperation;
-
     Scene();
 
     // Shaders

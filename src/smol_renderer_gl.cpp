@@ -10,10 +10,64 @@ namespace smol
 {
   const Handle<SceneNode> Scene::ROOT = INVALID_HANDLE(SceneNode);
 
-  void Transform::translate(float x, float y, float z)
+  Transform::Transform():
+    position({.0f, .0f, .0f}), rotation(.0f, .0f, .0f),
+    scale({1.0f, 1.0f, 1.0f}), angle(0.0f), dirty(false)
+    { }
+
+  const Mat4& Transform::getMatrix() const
   {
-    Mat4 translationMatrix = Mat4::initTranslation(x, y, z);
-    mat = Mat4::mul(mat, translationMatrix);
+    return  model; 
+  }
+
+  void Transform::setPosition(float x, float y, float z) 
+  { 
+    position.x = x;
+    position.y = y;
+    position.z = z;
+    dirty = true;
+  }
+
+  void Transform::setScale(float x, float y, float z)
+  { 
+    scale.x = x;
+    scale.y = y;
+    scale.z = z;
+    dirty = true;
+  }
+
+  void Transform::setRotation(float x, float y, float z, float angle) 
+  {
+    rotation.x = x;
+    rotation.y = y;
+    rotation.z = z;
+    this->angle = angle;
+    dirty = true;
+  };
+
+  const Vector3& Transform::getPosition() const { return position; }
+
+  const Vector3& Transform::getScale() const { return scale; }
+
+  void Transform::update()
+  {
+    if(dirty)
+    {
+      // scale
+      Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
+      Mat4 transformed = Mat4::mul(scaleMatrix, Mat4::initIdentity());
+
+      // rotation
+      Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z, angle);
+      transformed = Mat4::mul(rotationMatrix, transformed);
+
+      // translation
+      Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
+      transformed = Mat4::mul(translationMatrix, transformed);
+
+      model = transformed;
+      dirty = false;
+    }
   }
 
   Scene::Scene():
@@ -28,7 +82,8 @@ namespace smol
   {
   }
 
-  inline void warnInvalidHandle(const char* typeName)
+  void warnInvalidHandle(const char* typeName)
+
   {
     smol::Log::warning("Attempting to destroy a %s resource from an invalid handle", typeName);
   }
@@ -37,12 +92,13 @@ namespace smol
   Transform* Scene::getTransform(Handle<SceneNode> handle)
   {
     SceneNode* sceneNode = nodes.lookup(handle);
-    
+
     if (!sceneNode)
       return nullptr;
 
     return &sceneNode->transform;
   }
+
 
   //-------------------------------------------------------------------
   //  Texture resource handling 
@@ -99,7 +155,7 @@ namespace smol
   //  Material resource handling 
   //-------------------------------------------------------------------
   Handle<Material> Scene::createMaterial(Handle<ShaderProgram> shader,
-       Handle<Texture>* diffuseTextures, int diffuseTextureCount)
+      Handle<Texture>* diffuseTextures, int diffuseTextureCount)
   {
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_TEXTURE_DIFFUSE_MAX, "Exceeded Maximum diffuse textures per material");
 
@@ -129,7 +185,7 @@ namespace smol
   //-------------------------------------------------------------------
   //  Mesh resource handling 
   //-------------------------------------------------------------------
-  
+
   Handle<Mesh> Scene::createMesh(Primitive primitive,
       Vector3* vertices, size_t verticesArraySize,
       unsigned int* indices, size_t indicesArraySize,
@@ -165,7 +221,7 @@ namespace smol
       glVertexAttribPointer(SMOL_POSITION_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
-     
+
       glEnableVertexAttribArray(SMOL_POSITION_ATTRIB_LOCATION);
     }
 
@@ -321,10 +377,10 @@ namespace smol
       glDeleteShader(fShader);
       return handle;
     }
-   
+
     // geometry shader
     GLuint gShader = 0;
- 
+
     if (gsFilePath)
     {
       char* geometrySource = Platform::loadFileToBufferNullTerminated(gsFilePath);
@@ -396,24 +452,13 @@ namespace smol
     //TODO(marcio): extract these values afer calculating the matrix transformation
     //node->transform.position = position;
     //node->transform.rotation = rotation;
-    node->transform.scale = scale;
-    node->transform.mat;
+
+    node->transform.setPosition(position.x, position.y, position.z);
+    node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z, rotationAngle);
+    node->transform.setScale(scale.x, scale.y, scale.z);
+    node->transform.update();
+
     node->meshNode.renderable = renderable;
-
-    // position
-    //TODO(marcio): If this node have a parent, use the parent's matrix instead of identity
-    Mat4& modelMatrix = Mat4::initIdentity();
-
-    Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
-    Mat4 transformed = Mat4::mul(modelMatrix, translationMatrix);
-
-    // scale
-    Mat4& scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-    transformed = Mat4::mul(transformed, scaleMatrix);
-
-    // rotation
-    Mat4& rotationMatrix = Mat4::initRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z, rotationAngle);
-    node->transform.mat = Mat4::mul(transformed, rotationMatrix);
 
     return handle;
   }
@@ -443,12 +488,16 @@ namespace smol
     this->height = height;
 
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
-    scene->perspective = Mat4::perspective(1.0f, width/(float)height, 0.0f, 5.0f);
+    //OpenGL NDC coords are  LEFT-HANDED.
+    //This is a RIGHT-HAND projection matrix.
+    scene->perspective = Mat4::perspective(1.0f, width/(float)height, 0.0f, 100.0f);
     scene->orthographic = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST); 
     glDepthFunc(GL_LEQUAL);  
+    glEnable(GL_CULL_FACE); 
+    glCullFace(GL_BACK);
   }
 
   void Renderer::render()
@@ -474,7 +523,7 @@ namespace smol
 
     for(int i = 0; i < numNodes; i++)
     {
-      const SceneNode* node = &allNodes[i];
+      SceneNode* node = (SceneNode*) &allNodes[i];
       const Renderable* renderable;
 
       if (node->type == SceneNode::MESH)
@@ -503,11 +552,18 @@ namespace smol
         glBindTexture(GL_TEXTURE_2D, texture->textureObject);
       }
 
-      // update transformations
-      //TODO(marcio): This is slow. Change it so it updates ONCE per frame. Use a GL buffer object here.
-      //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
       GLuint uniform = glGetUniformLocation(shaderProgramId, "proj");
-      Mat4 transformed = Mat4::mul(scene.perspective, (Mat4&)node->transform.mat);
+      Transform& transform = node->transform;
+      node->transform.update();
+      const Mat4& modelMatrix = node->transform.getMatrix();
+      const Mat4 viewMatrix = Mat4::initIdentity();  //TODO(marcio): get the view matrix from a camera!
+
+      // update transformations
+      //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
+      //TODO(marcio): Change it so it updates ONCE per frame.
+      //TODO(marcio): Use a uniform buffer for tat
+      Mat4 transformed = Mat4::mul((Mat4&) viewMatrix, (Mat4&) modelMatrix);
+      transformed = Mat4::mul(scene.perspective, transformed);
 
       glUniformMatrix4fv(uniform, 1, 0, (const float*) transformed.e);
       glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
@@ -515,7 +571,6 @@ namespace smol
       glUseProgram(0);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       glBindVertexArray(0);
-
     }
   }
 }

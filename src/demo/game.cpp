@@ -16,7 +16,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
   root = systemsRoot;
   smol::Scene& scene = *(root->loadedScene);
 
-  unsigned int indices[] = {0, 1, 2, 2, 3, 0};
+  unsigned int indices[] = {0, 3, 2, 2, 1, 0};
   smol::Vector3 vertices[] =
   {
     {0.5f,  0.5f, 0.0f},  // top right
@@ -47,10 +47,11 @@ void onStart(smol::SystemsRoot* systemsRoot)
   auto renderable = scene.createRenderable(material, mesh);
 
   node1 = scene.createNode(renderable, smol::Vector3{-0.5f, 0.0f, 0.0f});
-  node2 = scene.createNode(renderable, smol::Vector3{0.5f, 0.0f, 0.0f}, smol::Vector3{0.5f, 0.5f, 0.5f});
+  node2 = scene.createNode(renderable, smol::Vector3{0.5f, 0.0f, -0.2f}, smol::Vector3{0.5f, 0.5f, 0.5f}, 
+      smol::Vector3{.0f, .0f, 1.0f}, 45.0f);
   selectedNode = node2;
 }
-
+  
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
@@ -59,7 +60,7 @@ void onUpdate(float deltaTime)
   int xDirection = 0;
   int yDirection = 0;
   int zDirection = 0;
-
+  int scaleAmount = 0;
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB))
   {
@@ -96,12 +97,35 @@ void onUpdate(float deltaTime)
     zDirection = 1;
   }
 
-  if (xDirection || yDirection || zDirection)
+  if (keyboard.getKey(smol::KEYCODE_J))
   {
-    const float amount = 0.005f;
-    smol::Transform* transform = scene.getTransform(selectedNode);
-    transform->translate(xDirection * amount, yDirection * amount, zDirection * amount);
+    scaleAmount = -1;
   }
+  if (keyboard.getKey(smol::KEYCODE_K))
+  {
+    scaleAmount = 1;
+  }
+
+  smol::Transform* transform = scene.getTransform(selectedNode);
+
+  if (xDirection || yDirection || zDirection || scaleAmount)
+  {
+    const float amount = 0.01f;
+    
+     const smol::Vector3& position = transform->getPosition();
+     transform->setPosition(
+         amount * xDirection + position.x,
+         amount * yDirection + position.y,
+         amount * zDirection + position.z);
+
+     const smol::Vector3& scale = transform->getScale();
+     transform->setScale(
+         amount * scaleAmount + scale.x,
+         amount * scaleAmount + scale.y,
+         amount * scaleAmount + scale.z);
+    smol::Log::info("%f, %f, %f", position.x, position.y, position.z);
+  }
+  
 }
 
 void onStop()
