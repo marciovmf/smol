@@ -68,6 +68,7 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_resource_list.h
   ${SOURCE_PATH}/smol_keyboard.cpp
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
@@ -85,14 +86,12 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_assetmanager.cpp
   ${SOURCE_PATH}/include/smol/smol_arena.h
   ${SOURCE_PATH}/smol_arena.cpp
-  ${SOURCE_PATH}/include/smol/smol_resource_list.h
   ${SOURCE_PATH}/include/smol/smol_log.h
   ${SOURCE_PATH}/smol_log.cpp
   ${SOURCE_PATH}/include/smol/smol_renderer.h
   ${SOURCE_PATH}/smol_renderer_gl.cpp
-  ${SOURCE_PATH}/include/smol/smol_arena.h
-  ${SOURCE_PATH}/smol_arena.cpp
-  ${SOURCE_PATH}/include/smol/smol_resource_list.h
+  ${SOURCE_PATH}/include/smol/smol_scene.h
+  ${SOURCE_PATH}/smol_scene.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 add_library(smol SHARED ${srcs})

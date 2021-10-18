@@ -1,9 +1,4 @@
-#include <smol/smol.h>
 #include <smol/smol_game.h>
-#include <smol/smol_keyboard.h>
-#include <smol/smol_renderer.h>
-#include <smol/smol_systems_root.h>
-#include <smol/smol_resource_list.h>
 
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> node1;

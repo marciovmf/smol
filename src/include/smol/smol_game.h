@@ -1,6 +1,7 @@
 #ifndef SMOL_GAME_H
 #define SMOL_GAME_H
 
+#include <smol/smol_engine.h>
 #include <smol/smol_platform.h>
 
 #ifdef SMOL_PLATFORM_WINDOWS
@@ -13,6 +14,11 @@
 #define SMOL_GAME_API
 #endif // SMOL_PLATFORM_WINDOWS
 
+#include <smol/smol_keyboard.h>
+#include <smol/smol_scene.h>
+#include <smol/smol_systems_root.h>
+#include <smol/smol_vector2.h>
+#include <smol/smol_vector3.h>
 
 namespace smol
 {
