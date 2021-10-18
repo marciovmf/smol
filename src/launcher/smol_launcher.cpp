@@ -78,7 +78,6 @@ namespace smol
       onGameStopCallback();
       Platform::unloadModule(game);
       Platform::destroyWindow(window);
-      Log::toStdout();
       return 0;
     }
   }
