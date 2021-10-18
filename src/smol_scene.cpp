@@ -7,7 +7,7 @@
 
 
 #define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
-#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destry a '%s' resource from an invalid handle", (typeName))
+#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
 
 namespace smol
 {
