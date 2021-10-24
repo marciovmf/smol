@@ -77,6 +77,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/include/smol/smol_vector2.h
+  ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
+  ${SOURCE_PATH}/smol_cfg_parser.cpp
   ${SOURCE_PATH}/smol_vector2.cpp
   ${SOURCE_PATH}/include/smol/smol_vector3.h
   ${SOURCE_PATH}/smol_vector3.cpp
