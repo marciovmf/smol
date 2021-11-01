@@ -92,6 +92,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_renderer_gl.cpp
   ${SOURCE_PATH}/include/smol/smol_scene.h
   ${SOURCE_PATH}/smol_scene.cpp
+  ${SOURCE_PATH}/include/smol/smol_mesh_data.h
+  ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 add_library(smol SHARED ${srcs})
