@@ -11,15 +11,11 @@
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
 #undef SMOL_GL_DEFINE_EXTERN
 
-#define SMOL_POSITION_ATTRIB_LOCATION   0
-#define SMOL_UV0_ATTRIB_LOCATION        1
-#define SMOL_UV1_ATTRIB_LOCATION        2
-#define SMOL_NORMAL_ATTRIB_LOCATION     3
-#define SMOL_COLOR_ATTRIB_LOCATION      4
 
 namespace smol
 {
   struct Image;
+  struct MeshData;
 
   enum RenderQueue : char
   {
@@ -63,6 +59,16 @@ namespace smol
 
   struct SMOL_ENGINE_API Mesh
   {
+    enum Attribute
+    {
+      //Don't change these values. They're referenced from the shader
+      POSITION = 0,
+      UV0 = 1,
+      UV1 = 2,
+      NORMAL = 3,
+      COLOR = 4,
+      INDEX // this one does not point to an attribute buffer
+    };
     GLuint glPrimitive;
     GLuint vao;
     GLuint ibo;
@@ -71,10 +77,8 @@ namespace smol
     GLuint vboUV0;
     GLuint vboUV1;
     GLuint vboColor;
-
     unsigned int numIndices;
     unsigned int numVertices;
-    unsigned int numPrimitives;
   };
 
   struct SMOL_ENGINE_API Renderable
@@ -191,13 +195,16 @@ namespace smol
     void destroyMaterial(Handle<Material> handle);
 
     // Meshes
-    Handle<Mesh> createMesh(Primitive primitive,
-        Vector3* vertices, size_t verticesArraySize,
-        unsigned int* indices, size_t indicesArraySize,
-        Vector3* color = nullptr, size_t colorArraySize = 0,
-        Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
-        Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
-        Vector3* normals = nullptr, size_t normalsArraySize = 0);
+
+    Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
+    Handle<Mesh> createMesh(bool dynamic,
+        Primitive primitive,
+        const Vector3* vertices, size_t verticesArraySize,
+        const unsigned int* indices, size_t indicesArraySize,
+        const Vector3* color = nullptr, size_t colorArraySize = 0,
+        const Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
+        const Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
+        const Vector3* normals = nullptr, size_t normalsArraySize = 0);
     void destroyMesh(Handle<Mesh> handle);
     void destroyMesh(Mesh* mesh);
 

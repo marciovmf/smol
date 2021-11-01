@@ -19,6 +19,7 @@
 #include <smol/smol_systems_root.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
+#include <smol/smol_mesh_data.h>
 
 namespace smol
 {
