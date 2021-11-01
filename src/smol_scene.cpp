@@ -206,13 +206,30 @@ namespace smol
   //  Mesh resource handling 
   // ##################################################################
 
+  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
+  {
+    const size_t numPositions = meshData->numPositions;
+    const size_t numIndices = meshData->numIndices;
+    const size_t vec3BufferSize = numPositions * sizeof(Vector3);
+    const size_t vec2BufferSize = numPositions * sizeof(Vector2);
+
+    return createMesh(dynamic,
+        Primitive::TRIANGLE,
+        meshData->positions,  (vec3BufferSize),
+        meshData->indices,    (numIndices * sizeof(unsigned int)),
+        meshData->colors,     (meshData->colors ? vec3BufferSize : 0),
+        meshData->uv0,        (meshData->uv0 ? vec2BufferSize : 0),
+        meshData->uv1,        (meshData->uv1 ? vec2BufferSize : 0),
+        meshData->normals,    (meshData->normals ? vec3BufferSize : 0));
+  }
+
   Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
-      Vector3* vertices, size_t verticesArraySize,
-      unsigned int* indices, size_t indicesArraySize,
-      Vector3* color , size_t colorArraySize,
-      Vector2* uv0, size_t uv0ArraySize,
-      Vector2* uv1, size_t uv1ArraySize,
-      Vector3* normals, size_t normalsArraySize)
+      const Vector3* vertices, size_t verticesArraySize,
+      const unsigned int* indices, size_t indicesArraySize,
+      const Vector3* color , size_t colorArraySize,
+      const Vector2* uv0, size_t uv0ArraySize,
+      const Vector2* uv1, size_t uv1ArraySize,
+      const Vector3* normals, size_t normalsArraySize)
   {
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);

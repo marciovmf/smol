@@ -8,6 +8,7 @@ smol::Handle<smol::SceneNode> selectedNode;
 smol::Handle<smol::Texture> texture;
 smol::Handle<smol::ShaderProgram> shader;
 smol::Handle<smol::Material> material;
+smol::Handle<smol::Mesh> mesh;
 
 void onStart(smol::SystemsRoot* systemsRoot)
 {
@@ -15,42 +16,19 @@ void onStart(smol::SystemsRoot* systemsRoot)
   root = systemsRoot;
   smol::Scene& scene = *(root->loadedScene);
 
-  unsigned int indices[] = {0, 3, 2, 2, 1, 0};
-  smol::Vector3 vertices[] =
-  {
-    {0.5f,  0.5f, 0.0f},  // top right
-    {0.5f, -0.5f, 0.0f},  // bottom right
-    {-0.5f, -0.5f, 0.0f}, // bottom left
-    {-0.5f,  0.5f, 0.0f}, // top left 
-  };
+  mesh = scene.createMesh(false, &(smol::MeshData::getPrimitiveQuad()));
 
-  smol::Vector2 uv[] =
-  {
-    {1.0f, 1.0f},  // top right
-    {1.0f, 0.0f},  // bottom right
-    {0.0f, 0.0f},  // bottom left
-    {0.0f, 1.0f}   // top left 
-  };
-
-  auto mesh = scene.createMesh(
-      smol::Primitive::TRIANGLE,      // primitive
-      vertices, sizeof(vertices),     // positions
-      indices,  sizeof(indices),      // indices
-      nullptr, 0,                     // colors
-      uv, sizeof(uv)                  // uv0
-      );
- 
   texture = scene.createTexture("assets\\smol32.bmp");
   shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
   material = scene.createMaterial(shader, &texture, 1);
   auto renderable = scene.createRenderable(material, mesh);
 
-  node1 = scene.createNode(renderable, smol::Vector3{-0.5f, 0.0f, 0.0f});
+  node1 = scene.createNode(renderable, smol::Vector3{-0.0f, 0.0f, 0.0f});
   node2 = scene.createNode(renderable,
       smol::Vector3{0.5f, 0.0f, -0.2f}, // position
       smol::Vector3{0.5f, 0.5f, 0.5f},  // scale
       smol::Vector3{0.0f, 0.0f, 1.0f}, 45.0f);// rotation axis + angle
-      
+
   selectedNode = node2;
 }
 void onUpdate(float deltaTime)
@@ -81,6 +59,7 @@ void onUpdate(float deltaTime)
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
   {
     scene.clone(selectedNode);
+    //scene.updateMeshAttribute(mesh, Mesh::POSITION, 0, 4 * 3 * sizeof(float))
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB))
@@ -132,20 +111,20 @@ void onUpdate(float deltaTime)
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
     const float amount = 0.01f;
-    
-     const smol::Vector3& position = transform->getPosition();
-     transform->setPosition(
-         amount * xDirection + position.x,
-         amount * yDirection + position.y,
-         amount * zDirection + position.z);
 
-     const smol::Vector3& scale = transform->getScale();
-     transform->setScale(
-         amount * scaleAmount + scale.x,
-         amount * scaleAmount + scale.y,
-         amount * scaleAmount + scale.z);
+    const smol::Vector3& position = transform->getPosition();
+    transform->setPosition(
+        amount * xDirection + position.x,
+        amount * yDirection + position.y,
+        amount * zDirection + position.z);
+
+    const smol::Vector3& scale = transform->getScale();
+    transform->setScale(
+        amount * scaleAmount + scale.x,
+        amount * scaleAmount + scale.y,
+        amount * scaleAmount + scale.z);
   }
-  
+
 }
 
 void onStop()

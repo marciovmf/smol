@@ -15,6 +15,7 @@
 namespace smol
 {
   struct Image;
+  struct MeshData;
 
   enum RenderQueue : char
   {
@@ -194,14 +195,16 @@ namespace smol
     void destroyMaterial(Handle<Material> handle);
 
     // Meshes
+
+    Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
-        Vector3* vertices, size_t verticesArraySize,
-        unsigned int* indices, size_t indicesArraySize,
-        Vector3* color = nullptr, size_t colorArraySize = 0,
-        Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
-        Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
-        Vector3* normals = nullptr, size_t normalsArraySize = 0);
+        const Vector3* vertices, size_t verticesArraySize,
+        const unsigned int* indices, size_t indicesArraySize,
+        const Vector3* color = nullptr, size_t colorArraySize = 0,
+        const Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
+        const Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
+        const Vector3* normals = nullptr, size_t normalsArraySize = 0);
     void destroyMesh(Handle<Mesh> handle);
     void destroyMesh(Mesh* mesh);
 
