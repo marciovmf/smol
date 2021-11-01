@@ -1,6 +1,7 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_renderer.h>
+#include <smol/smol_mesh_data.h>
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h>
 #undef SMOL_GL_DEFINE_EXTERN
