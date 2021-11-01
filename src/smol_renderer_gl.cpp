@@ -9,7 +9,7 @@ namespace smol
     resize(width, height);
 
     // set default value for attributes
-    glVertexAttrib3f(SMOL_COLOR_ATTRIB_LOCATION, 1.0f, 0.0f, 1.0f);
+    glVertexAttrib3f(Mesh::COLOR, 1.0f, 0.0f, 1.0f);
   }
 
   void Renderer::setScene(Scene& scene)
@@ -30,7 +30,7 @@ namespace smol
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-    scene->projectionMatrix = Mat4::perspective(2.0f, width/(float)height, 0.01f, 100.0f);
+    scene->projectionMatrix = Mat4::perspective(120.0f, width/(float)height, 0.01f, 100.0f);
     //scene->viewMatrix = Mat4::ortho(-2.0f, 2.0f, 2.0f, -2.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -123,7 +123,7 @@ namespace smol
 
       if (mesh->ibo == 0)
       {
-        glDrawArrays(mesh->glPrimitive, 0, mesh->numPrimitives);
+        glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
       }
       else
       {

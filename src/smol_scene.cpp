@@ -206,7 +206,7 @@ namespace smol
   //  Mesh resource handling 
   // ##################################################################
 
-  Handle<Mesh> Scene::createMesh(Primitive primitive,
+  Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
       Vector3* vertices, size_t verticesArraySize,
       unsigned int* indices, size_t indicesArraySize,
       Vector3* color , size_t colorArraySize,
@@ -217,44 +217,39 @@ namespace smol
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
 
-    int primitiveMultiplier;
 
     if (primitive == Primitive::TRIANGLE)
     {
       mesh->glPrimitive = GL_TRIANGLES;
-      primitiveMultiplier = 3;
     }
     else if (primitive == Primitive::LINE)
     {
       mesh->glPrimitive = GL_LINES;
-      primitiveMultiplier = 2;
     }
     else if (primitive == Primitive::POINT)
     {
       mesh->glPrimitive = GL_POINTS;
-      primitiveMultiplier = 1;
     }
     else
     {
       debugLogWarning("Unknown primitive. Defaulting to TRIANGLE.");
       mesh->glPrimitive = GL_TRIANGLES;
-      primitiveMultiplier = 3;
     }
 
     // VAO
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
+    GLenum bufferHint = dynamic ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
 
     if (verticesArraySize)
     {
       glGenBuffers(1, &mesh->vboPosition);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
-      glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_POSITION_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+      glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, bufferHint);
+      glVertexAttribPointer(Mesh::POSITION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
-      mesh->numPrimitives = mesh->numVertices * primitiveMultiplier;
-      glEnableVertexAttribArray(SMOL_POSITION_ATTRIB_LOCATION);
+      glEnableVertexAttribArray(Mesh::POSITION);
     }
 
     mesh->vboColor = 0;
@@ -262,22 +257,22 @@ namespace smol
     {
       glGenBuffers(1, &mesh->vboColor);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
-      glBufferData(GL_ARRAY_BUFFER, colorArraySize, color, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_COLOR_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+      glBufferData(GL_ARRAY_BUFFER, colorArraySize, color, bufferHint);
+      glVertexAttribPointer(Mesh::COLOR, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-      glEnableVertexAttribArray(SMOL_COLOR_ATTRIB_LOCATION);
+      glEnableVertexAttribArray(Mesh::COLOR);
     }
     mesh->vboUV0 = 0;
     if(uv0ArraySize)
     {
       glGenBuffers(1, &mesh->vboUV0);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
-      glBufferData(GL_ARRAY_BUFFER, uv0ArraySize, uv0, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_UV0_ATTRIB_LOCATION, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+      glBufferData(GL_ARRAY_BUFFER, uv0ArraySize, uv0, bufferHint);
+      glVertexAttribPointer(Mesh::UV0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-      glEnableVertexAttribArray(SMOL_UV0_ATTRIB_LOCATION);
+      glEnableVertexAttribArray(Mesh::UV0);
     }
 
     mesh->vboUV1 = 0;
@@ -285,10 +280,10 @@ namespace smol
     {
       glGenBuffers(1, &mesh->vboUV1);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
-      glBufferData(GL_ARRAY_BUFFER, uv1ArraySize, uv1, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_UV1_ATTRIB_LOCATION, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+      glBufferData(GL_ARRAY_BUFFER, uv1ArraySize, uv1, bufferHint);
+      glVertexAttribPointer(Mesh::UV1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glEnableVertexAttribArray(SMOL_UV1_ATTRIB_LOCATION);
+      glEnableVertexAttribArray(Mesh::UV1);
     }
 
     mesh->ibo = 0;
@@ -296,7 +291,7 @@ namespace smol
     {
       glGenBuffers(1, &mesh->ibo);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, bufferHint);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
       mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
