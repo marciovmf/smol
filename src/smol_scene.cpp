@@ -277,7 +277,6 @@ namespace smol
       glBufferData(GL_ARRAY_BUFFER, colorArraySize, color, bufferHint);
       glVertexAttribPointer(Mesh::COLOR, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-
       glEnableVertexAttribArray(Mesh::COLOR);
     }
     mesh->vboUV0 = 0;
@@ -288,7 +287,6 @@ namespace smol
       glBufferData(GL_ARRAY_BUFFER, uv0ArraySize, uv0, bufferHint);
       glVertexAttribPointer(Mesh::UV0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-
       glEnableVertexAttribArray(Mesh::UV0);
     }
 
@@ -310,7 +308,6 @@ namespace smol
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, bufferHint);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
       mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
     }
 
@@ -325,8 +322,7 @@ namespace smol
 
     if (mesh->ibo) buffers[numBuffers++] = mesh->ibo;
     if (mesh->vboPosition) buffers[numBuffers++] = mesh->vboPosition;
-    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
-    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
+    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboNormal;
     if (mesh->vboUV0) buffers[numBuffers++] = mesh->vboUV0;
     if (mesh->vboUV1) buffers[numBuffers++] = mesh->vboUV1;
 
