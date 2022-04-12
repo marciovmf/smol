@@ -235,7 +235,6 @@ namespace smol
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
 
-
     if (primitive == Primitive::TRIANGLE)
     {
       mesh->glPrimitive = GL_TRIANGLES;
@@ -257,7 +256,7 @@ namespace smol
     // VAO
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
-    GLenum bufferHint = dynamic ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
+    GLenum bufferHint = dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
     if (verticesArraySize)
     {
