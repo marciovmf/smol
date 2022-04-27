@@ -33,6 +33,11 @@ namespace smol
     POINT
   };
 
+  struct SMOL_ENGINE_API Rect
+  {
+    int x, y, w, h;
+  };
+
   struct SMOL_ENGINE_API Texture
   {
     GLuint textureObject;
@@ -165,6 +170,8 @@ namespace smol
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
     smol::ResourceList<smol::SceneNode> nodes;
+    smol::Arena renderKeys;
+    smol::Arena renderKeysSorted;
     smol::Handle<smol::Texture> defaultTexture;
     smol::Handle<smol::ShaderProgram> defaultShader;
     smol::Handle<smol::Material> defaultMaterial;
@@ -215,8 +222,17 @@ namespace smol
 
     // Scene Node
     //TODO(marcio): Implement createNode() for all node types
-    Handle<SceneNode> createNode(
+    Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
+        Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
+        Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
+        Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
+        float rotationAngle = 0,
+        Handle<SceneNode> parent = Scene::ROOT);
+
+    Handle<SceneNode> createSpriteNode(
+        Handle<Renderable> renderable,
+        Rect& rect,
         Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
         Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
         Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},

@@ -75,8 +75,9 @@ namespace smol
   }
 
   Scene::Scene():
-    shaders(32), textures(64), materials(32), meshes(32), renderables(32),
-    nodes(128), clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 
+    renderKeys((size_t)255), renderKeysSorted((size_t)255),
+    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
@@ -508,7 +509,7 @@ namespace smol
   //  Node resource handling 
   // ##################################################################
 
-  Handle<SceneNode> Scene::createNode(
+  Handle<SceneNode> Scene::createMeshNode(
       Handle<Renderable> renderable,
       Vector3& position,
       Vector3& scale,

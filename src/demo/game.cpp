@@ -3,11 +3,15 @@
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
+smol::Handle<smol::SceneNode> node3;
 smol::Handle<smol::SceneNode> selectedNode;
 
 smol::Handle<smol::Texture> texture;
+smol::Handle<smol::Texture> texture2;
 smol::Handle<smol::ShaderProgram> shader;
 smol::Handle<smol::Material> material;
+smol::Handle<smol::Material> material2;
+smol::Handle<smol::Material> materialTest;
 smol::Handle<smol::Mesh> mesh;
 
 void onStart(smol::SystemsRoot* systemsRoot)
@@ -19,15 +23,20 @@ void onStart(smol::SystemsRoot* systemsRoot)
   mesh = scene.createMesh(false, &(smol::MeshData::getPrimitiveQuad()));
 
   texture = scene.createTexture("assets\\smol32.bmp");
+  texture2 = scene.createTexture("assets\\ldk.bmp");
   shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
   material = scene.createMaterial(shader, &texture, 1);
-  auto renderable = scene.createRenderable(material, mesh);
+  material2 = scene.createMaterial(shader, &texture2, 1);
 
-  node1 = scene.createNode(renderable, smol::Vector3{-0.0f, 0.0f, 0.0f});
-  node2 = scene.createNode(renderable,
-      smol::Vector3{0.5f, 0.0f, -0.2f}, // position
+  auto renderable = scene.createRenderable(material, mesh);
+  auto renderable2 = scene.createRenderable(material2, mesh);
+
+  node1 = scene.createMeshNode(renderable, smol::Vector3{-0.0f, 0.0f, 0.0f});
+  node2 = scene.createMeshNode(renderable2, smol::Vector3{-0.5f, 0.0f, -0.2f});
+  node3 = scene.createMeshNode(renderable, smol::Vector3{0.5f, 0.0f, -0.2f},
       smol::Vector3{0.5f, 0.5f, 0.5f},  // scale
       smol::Vector3{0.0f, 0.0f, 1.0f}, 45.0f);// rotation axis + angle
+
 
   selectedNode = node2;
 }
@@ -48,7 +57,7 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_F6))
   {
-    scene.destroyTexture(texture);
+    scene.destroyTexture(texture2);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F7))
@@ -59,7 +68,6 @@ void onUpdate(float deltaTime)
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
   {
     scene.clone(selectedNode);
-    //scene.updateMeshAttribute(mesh, Mesh::POSITION, 0, 4 * 3 * sizeof(float))
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB))
