@@ -74,6 +74,7 @@ namespace smol
       COLOR = 4,
       INDEX // this one does not point to an attribute buffer
     };
+    bool dynamic;
     GLuint glPrimitive;
     GLuint vao;
     GLuint ibo;
@@ -82,6 +83,8 @@ namespace smol
     GLuint vboUV0;
     GLuint vboUV1;
     GLuint vboColor;
+    size_t verticesArraySize;
+    size_t indicesArraySize;
     unsigned int numIndices;
     unsigned int numVertices;
   };
@@ -206,12 +209,12 @@ namespace smol
     Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
-        const Vector3* vertices, size_t verticesArraySize,
-        const unsigned int* indices, size_t indicesArraySize,
-        const Vector3* color = nullptr, size_t colorArraySize = 0,
-        const Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
-        const Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
-        const Vector3* normals = nullptr, size_t normalsArraySize = 0);
+        const Vector3* vertices, int numVertices,
+        const unsigned int* indices, int numIndices,
+        const Vector3* color = nullptr,
+        const Vector2* uv0 = nullptr,
+        const Vector2* uv1 = nullptr,
+        const Vector3* normals = nullptr);
     void destroyMesh(Handle<Mesh> handle);
     void destroyMesh(Mesh* mesh);
 

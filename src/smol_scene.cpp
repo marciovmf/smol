@@ -213,28 +213,25 @@ namespace smol
     const size_t numPositions = meshData->numPositions;
     const size_t numIndices = meshData->numIndices;
     const size_t vec3BufferSize = numPositions * sizeof(Vector3);
-    const size_t vec2BufferSize = numPositions * sizeof(Vector2);
 
     return createMesh(dynamic,
         Primitive::TRIANGLE,
-        meshData->positions,  (vec3BufferSize),
-        meshData->indices,    (numIndices * sizeof(unsigned int)),
-        meshData->colors,     (meshData->colors ? vec3BufferSize : 0),
-        meshData->uv0,        (meshData->uv0 ? vec2BufferSize : 0),
-        meshData->uv1,        (meshData->uv1 ? vec2BufferSize : 0),
-        meshData->normals,    (meshData->normals ? vec3BufferSize : 0));
+        meshData->positions, meshData->numPositions,
+        meshData->indices, meshData->numIndices,
+        meshData->colors, meshData->uv0, meshData->uv1, meshData->normals);
   }
 
   Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
-      const Vector3* vertices, size_t verticesArraySize,
-      const unsigned int* indices, size_t indicesArraySize,
-      const Vector3* color , size_t colorArraySize,
-      const Vector2* uv0, size_t uv0ArraySize,
-      const Vector2* uv1, size_t uv1ArraySize,
-      const Vector3* normals, size_t normalsArraySize)
+      const Vector3* vertices, int numVertices,
+      const unsigned int* indices, int numIndices,
+      const Vector3* color,
+      const Vector2* uv0,
+      const Vector2* uv1,
+      const Vector3* normals)
   {
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
+    mesh->dynamic = dynamic;
 
     if (primitive == Primitive::TRIANGLE)
     {
@@ -259,51 +256,66 @@ namespace smol
     glBindVertexArray(mesh->vao);
     GLenum bufferHint = dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
-    if (verticesArraySize)
+    if (numVertices)
     {
+      mesh->numVertices = numVertices;
+      mesh->verticesArraySize = numVertices * sizeof(Vector3);
+
       glGenBuffers(1, &mesh->vboPosition);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
-      glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, bufferHint);
+      glBufferData(GL_ARRAY_BUFFER, mesh->verticesArraySize, vertices, bufferHint);
       glVertexAttribPointer(Mesh::POSITION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-      mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
       glEnableVertexAttribArray(Mesh::POSITION);
+    }
+    
+    mesh->ibo = 0;
+    if (numIndices)
+    {
+      mesh->numIndices = numIndices;
+      mesh->indicesArraySize = numIndices * sizeof(unsigned int);
+
+      glGenBuffers(1, &mesh->ibo);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indicesArraySize, indices, bufferHint);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     mesh->vboColor = 0;
-    if(colorArraySize)
+    if(color)
     {
       glGenBuffers(1, &mesh->vboColor);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
-      glBufferData(GL_ARRAY_BUFFER, colorArraySize, color, bufferHint);
+      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Vector3), color, bufferHint);
       glVertexAttribPointer(Mesh::COLOR, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glEnableVertexAttribArray(Mesh::COLOR);
     }
     mesh->vboUV0 = 0;
-    if(uv0ArraySize)
+    if(uv0)
     {
       glGenBuffers(1, &mesh->vboUV0);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
-      glBufferData(GL_ARRAY_BUFFER, uv0ArraySize, uv0, bufferHint);
+      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Vector2), uv0, bufferHint);
       glVertexAttribPointer(Mesh::UV0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glEnableVertexAttribArray(Mesh::UV0);
     }
 
     mesh->vboUV1 = 0;
-    if(uv1ArraySize)
+    if(uv1)
     {
       glGenBuffers(1, &mesh->vboUV1);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
-      glBufferData(GL_ARRAY_BUFFER, uv1ArraySize, uv1, bufferHint);
+      glBufferData(GL_ARRAY_BUFFER,  mesh->numVertices * sizeof(Vector2), uv1, bufferHint);
       glVertexAttribPointer(Mesh::UV1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glEnableVertexAttribArray(Mesh::UV1);
     }
 
-    mesh->ibo = 0;
-    if (indicesArraySize)
+    glBindVertexArray(0);
+    return handle;
+  }
     {
       glGenBuffers(1, &mesh->ibo);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
