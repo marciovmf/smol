@@ -20,7 +20,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
   root = systemsRoot;
   smol::Scene& scene = *(root->loadedScene);
 
-  mesh = scene.createMesh(false, &(smol::MeshData::getPrimitiveQuad()));
+  mesh = scene.createMesh(true, &(smol::MeshData::getPrimitiveQuad()));
 
   texture = scene.createTexture("assets\\smol32.bmp");
   texture2 = scene.createTexture("assets\\ldk.bmp");
@@ -33,13 +33,14 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   node1 = scene.createMeshNode(renderable, smol::Vector3{-0.0f, 0.0f, 0.0f});
   node2 = scene.createMeshNode(renderable2, smol::Vector3{-0.5f, 0.0f, -0.2f});
-  node3 = scene.createMeshNode(renderable, smol::Vector3{0.5f, 0.0f, -0.2f},
-      smol::Vector3{0.5f, 0.5f, 0.5f},  // scale
-      smol::Vector3{0.0f, 0.0f, 1.0f}, 45.0f);// rotation axis + angle
+  //node3 = scene.createMeshNode(renderable, smol::Vector3{0.5f, 0.0f, -0.2f},
+  //    smol::Vector3{0.5f, 0.5f, 0.5f},  // scale
+  //    smol::Vector3{0.0f, 0.0f, 1.0f}, 45.0f);// rotation axis + angle
 
 
   selectedNode = node2;
 }
+
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
@@ -49,6 +50,38 @@ void onUpdate(float deltaTime)
   int yDirection = 0;
   int zDirection = 0;
   int scaleAmount = 0;
+
+  if (keyboard.getKeyDown(smol::KEYCODE_T))
+  {
+    const smol::MeshData* cone = &(smol::MeshData::getPrimitiveCone());
+    scene.updateMesh(mesh,
+        cone->positions, cone->numPositions,
+        cone->indices, cone->numIndices,
+        cone->colors, cone->uv0, cone->uv1, cone->normals);
+  }
+ 
+  if (keyboard.getKeyDown(smol::KEYCODE_Y))
+  {
+    const smol::MeshData* arrow = &(smol::MeshData::getPrimitiveCube());
+
+    scene.updateMesh(mesh,
+        arrow->positions, arrow->numPositions,
+        arrow->indices, arrow->numIndices,
+        arrow->colors,
+        arrow->uv0,
+        arrow->uv1,
+        arrow->normals);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_U))
+  {
+    const smol::MeshData* sphere = &(smol::MeshData::getPrimitiveSphere());
+
+    scene.updateMesh(mesh,
+        sphere->positions, sphere->numPositions,
+        sphere->indices, sphere->numIndices,
+        sphere->colors, sphere->uv0, sphere->uv1, sphere->normals);
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5))
   {
