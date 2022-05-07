@@ -215,6 +215,15 @@ namespace smol
         const Vector2* uv0 = nullptr,
         const Vector2* uv1 = nullptr,
         const Vector3* normals = nullptr);
+
+    void updateMesh(Handle<Mesh> handle,
+        const Vector3* vertices, int numVertices,
+        const unsigned int* indices, int numIndices,
+        const Vector3* color = nullptr,
+        const Vector2* uv0 = nullptr,
+        const Vector2* uv1 = nullptr,
+        const Vector3* normals = nullptr);
+
     void destroyMesh(Handle<Mesh> handle);
     void destroyMesh(Mesh* mesh);
 

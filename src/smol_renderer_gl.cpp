@@ -93,18 +93,18 @@ namespace smol
       Mesh* mesh = scene->meshes.lookup(renderable->mesh);
 
       glBindVertexArray(mesh->vao);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
 
-      if (mesh->ibo == 0)
+      if (mesh->ibo != 0)
       {
-        glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+        glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       }
       else
       {
-        glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+        glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
       }
 
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       glBindVertexArray(0);
     }
 

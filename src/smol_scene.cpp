@@ -316,16 +316,137 @@ namespace smol
     glBindVertexArray(0);
     return handle;
   }
+
+  void Scene::updateMesh(Handle<Mesh> handle,
+      const Vector3* vertices, int numVertices,
+      const unsigned int* indices, int numIndices,
+      const Vector3* color,
+      const Vector2* uv0,
+      const Vector2* uv1,
+      const Vector3* normals)
+  {
+
+    Mesh* mesh = meshes.lookup(handle);
+    if (!mesh->dynamic)
     {
-      glGenBuffers(1, &mesh->ibo);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, bufferHint);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-      mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
+      Log::warning("Unable to update a static mesh");
+      return;
     }
 
-    glBindVertexArray(0);
-    return handle;
+    bool resizeBuffers = false;
+
+    if (vertices)
+    {
+      size_t verticesArraySize = numVertices * sizeof(Vector3);
+
+      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
+      if (verticesArraySize > mesh->verticesArraySize)
+      {
+        resizeBuffers = true;
+        mesh->verticesArraySize = verticesArraySize;
+        glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, GL_DYNAMIC_DRAW);
+      }
+      else
+      {
+        glBufferSubData(GL_ARRAY_BUFFER, 0, verticesArraySize, vertices);
+      }
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
+      Log::info("Num vertices = %d", mesh->numVertices);
+    }
+
+    if (indices)
+    {
+      if (!mesh->ibo)
+      {
+        Log::warning("Unable to update indices for mesh created without index buffer.");
+      }
+      else
+      {
+        size_t indicesArraySize = numIndices * sizeof(unsigned int);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+        if (indicesArraySize > mesh->indicesArraySize)
+        {
+          mesh->indicesArraySize = indicesArraySize;
+          glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesArraySize, indices);
+        }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
+        Log::info("Num Indices = %d", mesh->numIndices);
+      }
+    }
+
+    if(color)
+    {
+      if (!mesh->vboColor)
+      {
+        Log::warning("Unable to update color for mesh created without color buffer.");
+      }
+      else
+      {
+        size_t size =  mesh->numVertices * sizeof(Vector3);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
+        if (resizeBuffers)
+        {
+          glBufferData(GL_ARRAY_BUFFER, size, color, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, color);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
+
+    if(uv0)
+    {
+      if (!mesh->vboUV0)
+      {
+        Log::warning("Unable to update UV0 for mesh created without UV0 buffer.");
+      }
+      else
+      {
+        size_t size = mesh->numVertices * sizeof(Vector2);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
+        if(resizeBuffers)
+        {
+          glBufferData(GL_ARRAY_BUFFER, size, uv0, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, uv0);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
+
+    if(uv1)
+    {
+      if (!mesh->vboUV1)
+      {
+        Log::warning("Unable to update UV1 for mesh created without UV1 buffer.");
+      }
+      else
+      {
+        size_t size = mesh->numVertices * sizeof(Vector2);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
+        if(resizeBuffers)
+        {
+          glBufferData(GL_ARRAY_BUFFER, size, uv1, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, uv1);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
   }
 
   void Scene::destroyMesh(Mesh* mesh)
