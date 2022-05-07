@@ -14,11 +14,11 @@ namespace smol
     const Vector3* colors;
     const Vector2* uv0;
     const Vector2* uv1;
-    const size_t numPositions;
-    const size_t numIndices;
+    const int numPositions;
+    const int numIndices;
 
-    MeshData(Vector3* positions, size_t numPositions,
-        unsigned int* indices = nullptr, size_t numIndices = 0,
+    MeshData(Vector3* positions, int numPositions,
+        unsigned int* indices = nullptr, int numIndices = 0,
         Vector3* colors = nullptr,
         Vector3* normals = nullptr, 
         Vector2* uv0 = nullptr, 

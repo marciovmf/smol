@@ -7411,14 +7411,14 @@ namespace smol
   smol::Vector2 uv0Quad[] =
   {
     {0.0f, 1.0f},   // top left 
-    {1.0f, 0.0f},  // bottom right
-    {1.0f, 1.0f},  // top right
-    {0.0f, 0.0f},  // bottom left
+    {1.0f, 0.0f},   // bottom right
+    {1.0f, 1.0f},   // top right
+    {0.0f, 0.0f},   // bottom left
   };
 
 
-  MeshData::MeshData(Vector3* positions, size_t numPositions,
-      unsigned int* indices, size_t numIndices,
+  MeshData::MeshData(Vector3* positions, int numPositions,
+      unsigned int* indices, int numIndices,
       Vector3* colors,
       Vector3* normals,
       Vector2* uv0,
@@ -7431,7 +7431,7 @@ namespace smol
   const MeshData MeshData::getPrimitiveCube()
   {
     MeshData cube(positionsCube, sizeof(positionsCube) / sizeof(Vector3),
-        indicesCube, sizeof(indicesCube), nullptr, normalsCube, uv0Cube);
+        indicesCube, sizeof(indicesCube) / sizeof(unsigned int), nullptr, normalsCube, uv0Cube);
     return cube;
   }
 
@@ -7445,14 +7445,14 @@ namespace smol
   const MeshData MeshData::getPrimitiveSphere()
   {
     MeshData sphere(positionsSphere, sizeof(positionsSphere) / sizeof(Vector3),
-        indicesSphere, sizeof(indicesSphere), nullptr, normalsSphere, uv0Sphere);
+        indicesSphere, sizeof(indicesSphere) / sizeof(unsigned int), nullptr, normalsSphere, uv0Sphere);
     return sphere;
   }
 
   const MeshData MeshData::getPrimitiveCone()
   {
     MeshData cone(positionsCone, sizeof(positionsCone) / sizeof(Vector3),
-        indicesCone, sizeof(indicesCone), nullptr, normalsCone, uv0Cone);
+        indicesCone, sizeof(indicesCone) / sizeof(unsigned int), nullptr, normalsCone, uv0Cone);
     return cone;
   }
 
@@ -7466,7 +7466,7 @@ namespace smol
   const MeshData MeshData::getPrimitiveQuad()
   {
     MeshData quad(positionsQuad, sizeof(positionsQuad) / sizeof(Vector3),
-        indicesQuad, sizeof(indicesQuad), nullptr, normalsQuad, uv0Quad);
+        indicesQuad, sizeof(indicesQuad) / sizeof(unsigned int), nullptr, normalsQuad, uv0Quad);
     return quad;
   }
 }
