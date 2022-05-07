@@ -353,7 +353,6 @@ namespace smol
 
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
-      Log::info("Num vertices = %d", mesh->numVertices);
     }
 
     if (indices)
@@ -378,7 +377,6 @@ namespace smol
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
-        Log::info("Num Indices = %d", mesh->numIndices);
       }
     }
 
