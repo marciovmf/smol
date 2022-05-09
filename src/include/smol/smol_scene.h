@@ -38,6 +38,10 @@ namespace smol
     int x, y, w, h;
   };
 
+  struct SMOL_ENGINE_API Rectf
+  {
+    float x, y, w, h;
+  };
   struct SMOL_ENGINE_API Texture
   {
     int width;
