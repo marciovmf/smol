@@ -131,6 +131,9 @@ namespace smol
   Handle<Texture> Scene::createTexture(const Image& image)
   {
     Texture texture;
+    texture.width = image.width;
+    texture.height = image.height;
+
     GLenum textureFormat = GL_RGBA;
     GLenum textureType = GL_UNSIGNED_BYTE;
 

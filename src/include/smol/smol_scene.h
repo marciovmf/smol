@@ -40,6 +40,8 @@ namespace smol
 
   struct SMOL_ENGINE_API Texture
   {
+    int width;
+    int height;
     GLuint textureObject;
   };
 
