@@ -104,7 +104,7 @@ namespace smol
     image->width = bitmap->width;
     image->height = bitmap->height;
     image->bitsPerPixel = bitmap->bitCount;
-    image->data = sizeof(BitmapHeader) + (char*) bitmap;
+    image->data = bitmap->offBits + (char*) bitmap;
 
     if (bitmap->bitCount == 24 || bitmap->bitCount == 32)
     {
