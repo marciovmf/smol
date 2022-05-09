@@ -14,7 +14,9 @@ namespace smol
     size_t used;
     char* data;
 
+    Arena();
     Arena(size_t initialSize);
+    void initialize(size_t initialSize);
     ~Arena();
     char* pushSize(size_t size);
     void reset();

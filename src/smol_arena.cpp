@@ -5,16 +5,19 @@
 
 namespace smol
 {
-  Arena::Arena(size_t initialSize):
-    capacity(initialSize),
-    used(0),
-    data((char*) Platform::getMemory(capacity))
-  {
-  }
+  Arena::Arena(): capacity(0), used(0), data(nullptr) { }
+
+  Arena::Arena(size_t initialSize)
+  { initialize(initialSize); }
 
   Arena::~Arena()
+  { Platform::freeMemory(data, capacity); }
+
+  void Arena::initialize(size_t initialSize)
   {
-    Platform::freeMemory(data, capacity);
+    capacity = initialSize;
+    used = 0;
+    data = (char*) Platform::getMemory(capacity);
   }
 
   char* Arena::pushSize(size_t size)
