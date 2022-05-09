@@ -18,6 +18,7 @@ namespace smol
     void resize(int width, int height);   // Resizes the necessary resources to accomodathe the required dimentions.
     void render();                        // Called once per frame to render the scene.
     ~Renderer();
+    Vector2 getViewportSize();
   };
 
 }

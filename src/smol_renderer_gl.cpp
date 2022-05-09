@@ -70,6 +70,12 @@ namespace smol
     }
 
     void Renderer::resize(int width, int height)
+
+
+  Vector2 Renderer::getViewportSize()
+  {
+    return Vector2((float)width, (float)height);
+  }
     {
       this->width = width;
       this->height = height;
