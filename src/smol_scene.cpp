@@ -12,6 +12,12 @@
 
 namespace smol
 {
+  const size_t SpriteBatcher::positionsSize = 4 * sizeof(Vector3);
+  const size_t SpriteBatcher::colorsSize = 4 * sizeof(Vector3);
+  const size_t SpriteBatcher::uvsSize = 4 * sizeof(Vector2);
+  const size_t SpriteBatcher::indicesSize = 6 * sizeof(unsigned int);
+  const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
+
   const Handle<SceneNode> Scene::ROOT = INVALID_HANDLE(SceneNode);
 
   Transform::Transform():
@@ -53,30 +59,33 @@ namespace smol
 
   const Vector3& Transform::getScale() const { return scale; }
 
-  void Transform::update()
+  bool Transform::isDirty() const { return dirty; }
+
+  bool Transform::update()
   {
-    if(dirty)
-    {
-      // scale
-      Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-      Mat4 transformed = Mat4::mul(scaleMatrix, Mat4::initIdentity());
+    if(!dirty)
+      return false;
 
-      // rotation
-      Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z, angle);
-      transformed = Mat4::mul(rotationMatrix, transformed);
+    // scale
+    Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
+    Mat4 transformed = Mat4::mul(scaleMatrix, Mat4::initIdentity());
 
-      // translation
-      Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
-      transformed = Mat4::mul(translationMatrix, transformed);
+    // rotation
+    Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z, angle);
+    transformed = Mat4::mul(rotationMatrix, transformed);
 
-      model = transformed;
-      dirty = false;
-    }
+    // translation
+    Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
+    transformed = Mat4::mul(translationMatrix, transformed);
+
+    model = transformed;
+    dirty = false;
+    return true;
   }
 
   Scene::Scene():
     shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 
-    renderKeys((size_t)255), renderKeysSorted((size_t)255),
+    batchers(8), renderKeys((size_t)255), renderKeysSorted((size_t)255),
     clearColor(160/255.0f, 165/255.0f, 170/255.0f),
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
@@ -84,7 +93,6 @@ namespace smol
     Image* img = AssetManager::createCheckersImage(800, 600, 16);
     defaultTexture = createTexture(*img);
     AssetManager::unloadImage(img);
-
 
     const char* defaultVShader =
       "#version 330 core\n\
@@ -147,6 +155,7 @@ namespace smol
       textureFormat = GL_RGB;
       textureType = GL_UNSIGNED_SHORT_5_6_5;
     }
+
 
     glGenTextures(1, &texture.textureObject);
     glBindTexture(GL_TEXTURE_2D, texture.textureObject);
@@ -480,6 +489,31 @@ namespace smol
   }
 
   // ##################################################################
+  //  SpriteBatcher handling 
+  // ##################################################################
+  Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
+  {
+    Handle<SpriteBatcher> handle = batchers.reserve();
+    SpriteBatcher* batcher =  batchers.lookup(handle);
+    batcher->arena.initialize(capacity * SpriteBatcher::totalSpriteSize + 1);
+
+    // It doesn't matter the contents of memory. Nothing is read from this pointer. It's just necessary to create a valid MeshData;
+    char* memory = batcher->arena.pushSize(capacity * SpriteBatcher::totalSpriteSize);
+    MeshData meshData((Vector3*)memory, capacity, 
+        (unsigned int*)memory, capacity * 6,
+        (Vector3*) memory, nullptr,
+        (Vector2*) memory, nullptr);
+    Handle<Renderable> renderable = createRenderable(material, createMesh(true, &meshData));
+
+    batcher->renderable = renderable;
+    batcher->spriteCount = 0;
+    batcher->spriteCapacity = capacity;
+    batcher->dirty = false;
+
+    return handle;
+  }
+
+  // ##################################################################
   //  Renderable resource handling 
   // ##################################################################
 
@@ -666,12 +700,50 @@ namespace smol
     return handle;
   }
 
+    Handle<SceneNode> Scene::createSpriteNode(
+        Handle<SpriteBatcher> batcher,
+        Rect& rect,
+        Vector3& position,
+        float width,
+        float height,
+        int angle,
+        Vector3& scale,
+        Vector3& rotationAxis,
+        Handle<SceneNode> parent)
+  {
+    Handle<SceneNode> handle = nodes.reserve();
+    SceneNode* node = nodes.lookup(handle);
+
+    node->type = SceneNode::SPRITE;
+    node->parent = parent;
+    node->transform.setPosition(position.x, position.y, position.z);
+    node->transform.setRotation(0.0f, 0.0f, 0.0f, (float)angle);
+    node->transform.setScale(scale.x, scale.y, scale.z);
+    node->transform.update();
+    node->spriteNode.rect = rect;
+    node->spriteNode.batcher = batcher;
+    node->spriteNode.width = width;
+    node->spriteNode.height = height;
+    node->spriteNode.angle = angle;
+
+    SpriteBatcher* batcherPtr = batchers.lookup(batcher);
+    if (batcherPtr)
+    {
+      batcherPtr->spriteCount++;
+      batcherPtr->dirty = true;
+    }
+
+    return handle;
+  }
+
   Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
   {
     Handle<SceneNode> newHandle = nodes.reserve();
     SceneNode* newNode = nodes.lookup(newHandle);
     SceneNode* original = nodes.lookup(handle);
     memcpy(newNode, original, sizeof(SceneNode));
+
+    //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
     return newHandle;
   }
 }

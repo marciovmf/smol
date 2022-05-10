@@ -20,7 +20,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
   root = systemsRoot;
   smol::Scene& scene = *(root->loadedScene);
 
-  mesh = scene.createMesh(true, &(smol::MeshData::getPrimitiveQuad()));
+  mesh = scene.createMesh(true, &(smol::MeshData::getPrimitiveCube()));
 
   texture = scene.createTexture("assets\\smol32.bmp");
   texture2 = scene.createTexture("assets\\ldk.bmp");
@@ -30,13 +30,39 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   auto renderable = scene.createRenderable(material, mesh);
   auto renderable2 = scene.createRenderable(material2, mesh);
+  auto batcher = scene.createSpriteBatcher(material);
 
-  node1 = scene.createMeshNode(renderable, smol::Vector3{-0.0f, 0.0f, 0.0f});
-  node2 = scene.createMeshNode(renderable2, smol::Vector3{-0.5f, 0.0f, -0.2f});
-  //node3 = scene.createMeshNode(renderable, smol::Vector3{0.5f, 0.0f, -0.2f},
-  //    smol::Vector3{0.5f, 0.5f, 0.5f},  // scale
-  //    smol::Vector3{0.0f, 0.0f, 1.0f}, 45.0f);// rotation axis + angle
+  //node1 = scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
+  //
+  node1 = scene.createSpriteNode(batcher,
+      smol::Rect{0, 0, 800, 800},
+      smol::Vector3{0.0f, 200.0f, 0.0f},
+      100.0f, 100.0f);
 
+  node2 = scene.createMeshNode(renderable2, 
+      smol::Vector3{0.0f, 0.0f, -2.0f},
+      smol::Vector3{0.4f, 0.4f, 0.4f},
+      smol::Vector3{0.0f, 0.5f, 1.0f}, 45.0f);
+
+   scene.createSpriteNode(batcher, 
+      smol::Rect{0, 0, 800, 800},
+      smol::Vector3{200.0f, 200.0f, 0.0f},
+      100.0f, 100.0f);
+
+   scene.createMeshNode(renderable2, 
+      smol::Vector3{-1.0f, 0.0f, -2.0f},
+      smol::Vector3{0.2f, 0.2f, 0.2f},
+      smol::Vector3{0.0f, 0.5f, 1.0f}, 30.0f);
+
+   scene.createSpriteNode(batcher, 
+      smol::Rect{0, 0, 800, 800},
+      smol::Vector3{400.0f, 200.0f, 0.0f},
+      100.0f, 100.0f);
+
+   scene.createMeshNode(renderable2, 
+      smol::Vector3{1.6f, 0.0f, -4.0f},
+      smol::Vector3{0.2f, 0.2f, 0.2f},
+      smol::Vector3{0.5f, 1.0f, 0.0f}, 30.0f);
 
   selectedNode = node2;
 }
@@ -121,11 +147,11 @@ void onUpdate(float deltaTime)
   // up/down movement
   if (keyboard.getKey(smol::KEYCODE_W))
   {
-    yDirection = 1;
+    yDirection = -1;
   }
   else if (keyboard.getKey(smol::KEYCODE_S))
   {
-    yDirection = -1;
+    yDirection = 1;
   }
 
   // back/forth movement
@@ -152,18 +178,21 @@ void onUpdate(float deltaTime)
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
     const float amount = 0.01f;
+    //const float moveAmount = selectedNode == node1 ? 1.0f : amount;
+    const float moveAmount = 1.0f;
 
     const smol::Vector3& position = transform->getPosition();
     transform->setPosition(
-        amount * xDirection + position.x,
-        amount * yDirection + position.y,
-        amount * zDirection + position.z);
+        moveAmount * xDirection + position.x,
+        moveAmount * yDirection + position.y,
+        moveAmount * zDirection + position.z);
 
     const smol::Vector3& scale = transform->getScale();
     transform->setScale(
         amount * scaleAmount + scale.x,
         amount * scaleAmount + scale.y,
         amount * scaleAmount + scale.z);
+
   }
 
 }

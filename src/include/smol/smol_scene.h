@@ -42,6 +42,7 @@ namespace smol
   {
     float x, y, w, h;
   };
+
   struct SMOL_ENGINE_API Texture
   {
     int width;
@@ -101,6 +102,21 @@ namespace smol
     Handle<Mesh> mesh;
   };
 
+  struct SMOL_ENGINE_API SpriteBatcher
+  {
+    static const size_t positionsSize;
+    static const size_t indicesSize;
+    static const size_t colorsSize;
+    static const size_t uvsSize;
+    static const size_t totalSpriteSize;
+
+    Handle<Renderable> renderable;
+    Arena arena;
+    int spriteCount;
+    int spriteCapacity;
+    bool dirty;
+  };
+
   class SMOL_ENGINE_API Transform
   {
     Vector3 position;
@@ -112,13 +128,14 @@ namespace smol
 
     public:
     Transform::Transform();
-    void update();
+    bool update();
     const Mat4& getMatrix() const;
     void setPosition(float x, float y, float z);
     void setScale(float x, float y, float z);
     void setRotation(float x, float y, float z, float angle);
     const Vector3& getPosition() const;
     const Vector3& getScale() const;
+    bool isDirty() const;
   };
 
   struct EmptySceneNode { };
@@ -130,17 +147,21 @@ namespace smol
 
   struct SpriteSceneNode
   {
-    float x, y, w, h;
-    smol::Renderable& renderable;
+    Handle<SpriteBatcher> batcher;
+    Rect rect;
+    float width;
+    float height;
+    int angle;
+    Vector3& color;
   };
 
   struct SceneNode
   {
     enum SceneNodeType : char
     {
-      EMPTY,
-      MESH,
-      SPRITE
+      EMPTY = 0,
+      SPRITE,
+      MESH
     };
 
     SceneNodeType type;
@@ -161,6 +182,7 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
+template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
 
 namespace smol
 {
@@ -179,6 +201,7 @@ namespace smol
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
     smol::ResourceList<smol::SceneNode> nodes;
+    smol::ResourceList<smol::SpriteBatcher> batchers;
     smol::Arena renderKeys;
     smol::Arena renderKeysSorted;
     smol::Handle<smol::Texture> defaultTexture;
@@ -186,6 +209,7 @@ namespace smol
     smol::Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
     Mat4 projectionMatrix;
+    Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
 
@@ -238,6 +262,9 @@ namespace smol
     void destroyRenderable(Handle<Renderable> handle);
     void destroyRenderable(Renderable* renderable);
 
+    // Sprite Batcher
+    Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
+
     // Scene Node
     //TODO(marcio): Implement createNode() for all node types
     Handle<SceneNode> createMeshNode(
@@ -249,13 +276,16 @@ namespace smol
         Handle<SceneNode> parent = Scene::ROOT);
 
     Handle<SceneNode> createSpriteNode(
-        Handle<Renderable> renderable,
+        Handle<SpriteBatcher> batcher,
         Rect& rect,
-        Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
+        Vector3& position,
+        float width,
+        float height,
+        int angle = 0,
         Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
         Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
-        float rotationAngle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
+
     Handle<SceneNode> destroyNode(Handle<SceneNode> handle);
     Handle<SceneNode> destroyNode(SceneNode* node);
     Handle<SceneNode> clone(Handle<SceneNode> handle);

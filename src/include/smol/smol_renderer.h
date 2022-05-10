@@ -8,9 +8,9 @@ namespace smol
 {
   class SMOL_ENGINE_API Renderer
   {
+    Scene* scene;
     int width;
     int height;
-    Scene* scene;
 
     public:
     Renderer (Scene& scene, int width, int height);

@@ -53,8 +53,8 @@ namespace smol
         return 1;
       }
 
-      const int WIDTH = 1024;
-      const int HEIGHT = 576;
+      const int WIDTH = 1080;
+      const int HEIGHT = 768;
       smol::Window* window = Platform::createWindow(WIDTH, HEIGHT, (const char*)"Smol Engine");
 
       // Initialize systems root
