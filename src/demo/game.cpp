@@ -23,7 +23,8 @@ void onStart(smol::SystemsRoot* systemsRoot)
   mesh = scene.createMesh(true, &(smol::MeshData::getPrimitiveCube()));
 
   texture = scene.createTexture("assets\\smol32.bmp");
-  texture2 = scene.createTexture("assets\\ldk.bmp");
+  texture2 = scene.createTexture("assets\\smol16.bmp");
+
   shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
   material = scene.createMaterial(shader, &texture, 1);
   material2 = scene.createMaterial(shader, &texture2, 1);
@@ -35,31 +36,30 @@ void onStart(smol::SystemsRoot* systemsRoot)
   //node1 = scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
   //
   node1 = scene.createSpriteNode(batcher,
+      smol::Rect{120, 580, 710, 200},
+      smol::Vector3{0.0f, 0.0f, 0.0f},
+      350.0f, 100.0f, smol::Color::WHITE);
+
+  scene.createSpriteNode(batcher, 
       smol::Rect{0, 0, 800, 800},
-      smol::Vector3{0.0f, 200.0f, 0.0f},
-      100.0f, 100.0f);
+      smol::Vector3{200.0f, 200.0f, 0.0f},
+      100.0f, 100.0f, smol::Color::GREEN);
+
+  scene.createSpriteNode(batcher, 
+      smol::Rect{0, 0, 800, 800},
+      smol::Vector3{400.0f, 200.0f, 0.0f},
+      100.0f, 100.0f, smol::Color::BLUE);
 
   node2 = scene.createMeshNode(renderable2, 
       smol::Vector3{0.0f, 0.0f, -2.0f},
-      smol::Vector3{0.4f, 0.4f, 0.4f},
-      smol::Vector3{0.0f, 0.5f, 1.0f}, 45.0f);
+      smol::Vector3{0.3f, 0.3f, 0.3f});
 
-   scene.createSpriteNode(batcher, 
-      smol::Rect{0, 0, 800, 800},
-      smol::Vector3{200.0f, 200.0f, 0.0f},
-      100.0f, 100.0f);
-
-   scene.createMeshNode(renderable2, 
+  scene.createMeshNode(renderable2, 
       smol::Vector3{-1.0f, 0.0f, -2.0f},
       smol::Vector3{0.2f, 0.2f, 0.2f},
       smol::Vector3{0.0f, 0.5f, 1.0f}, 30.0f);
 
-   scene.createSpriteNode(batcher, 
-      smol::Rect{0, 0, 800, 800},
-      smol::Vector3{400.0f, 200.0f, 0.0f},
-      100.0f, 100.0f);
-
-   scene.createMeshNode(renderable2, 
+  scene.createMeshNode(renderable2, 
       smol::Vector3{1.6f, 0.0f, -4.0f},
       smol::Vector3{0.2f, 0.2f, 0.2f},
       smol::Vector3{0.5f, 1.0f, 0.0f}, 30.0f);
@@ -85,7 +85,7 @@ void onUpdate(float deltaTime)
         cone->indices, cone->numIndices,
         cone->colors, cone->uv0, cone->uv1, cone->normals);
   }
- 
+
   if (keyboard.getKeyDown(smol::KEYCODE_Y))
   {
     const smol::MeshData* arrow = &(smol::MeshData::getPrimitiveCube());

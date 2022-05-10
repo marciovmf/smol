@@ -6,12 +6,13 @@
 
 namespace smol
 {
+  struct Color;
   struct SMOL_ENGINE_API MeshData
   {
     const unsigned int* indices;
     const Vector3* positions;
     const Vector3* normals;
-    const Vector3* colors;
+    const Color* colors;
     const Vector2* uv0;
     const Vector2* uv1;
     const int numPositions;
@@ -19,7 +20,7 @@ namespace smol
 
     MeshData(Vector3* positions, int numPositions,
         unsigned int* indices = nullptr, int numIndices = 0,
-        Vector3* colors = nullptr,
+        Color* colors = nullptr,
         Vector3* normals = nullptr, 
         Vector2* uv0 = nullptr, 
         Vector2* uv1 = nullptr);

@@ -11,6 +11,8 @@
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
 #undef SMOL_GL_DEFINE_EXTERN
 
+#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
+#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
 
 namespace smol
 {
@@ -41,6 +43,31 @@ namespace smol
   struct SMOL_ENGINE_API Rectf
   {
     float x, y, w, h;
+  };
+
+  struct SMOL_ENGINE_API Color
+  {
+    static const Color BLACK;
+    static const Color WHITE;
+    static const Color RED;
+    static const Color LIME;
+    static const Color BLUE;
+    static const Color YELLOW;
+    static const Color CYAN;
+    static const Color MAGENTA;
+    static const Color SILVER;
+    static const Color GRAY;
+    static const Color MAROON;
+    static const Color OLIVE;
+    static const Color GREEN;
+    static const Color PURPLE;
+    static const Color TEAL;
+    static const Color NAVY;
+
+    float r, g, b, a;
+
+    Color(int r, int g, int b, int a = 255);
+    Color(float r, float g, float b, float a = 1.0f);
   };
 
   struct SMOL_ENGINE_API Texture
@@ -151,8 +178,8 @@ namespace smol
     Rect rect;
     float width;
     float height;
+    Color color;
     int angle;
-    Vector3& color;
   };
 
   struct SceneNode
@@ -241,7 +268,7 @@ namespace smol
         Primitive primitive,
         const Vector3* vertices, int numVertices,
         const unsigned int* indices, int numIndices,
-        const Vector3* color = nullptr,
+        const Color* color = nullptr,
         const Vector2* uv0 = nullptr,
         const Vector2* uv1 = nullptr,
         const Vector3* normals = nullptr);
@@ -249,7 +276,7 @@ namespace smol
     void updateMesh(Handle<Mesh> handle,
         const Vector3* vertices, int numVertices,
         const unsigned int* indices, int numIndices,
-        const Vector3* color = nullptr,
+        const Color* color = nullptr,
         const Vector2* uv0 = nullptr,
         const Vector2* uv1 = nullptr,
         const Vector3* normals = nullptr);
@@ -281,9 +308,8 @@ namespace smol
         Vector3& position,
         float width,
         float height,
+        const Color& color = Color::WHITE,
         int angle = 0,
-        Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
-        Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
         Handle<SceneNode> parent = Scene::ROOT);
 
     Handle<SceneNode> destroyNode(Handle<SceneNode> handle);

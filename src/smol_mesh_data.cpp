@@ -99,7 +99,6 @@ namespace smol
     {0.625001f,     0.500001f},
   };
 
-
   // 
   // Arrow
   //
@@ -7418,8 +7417,9 @@ namespace smol
 
 
   MeshData::MeshData(Vector3* positions, int numPositions,
-      unsigned int* indices, int numIndices,
-      Vector3* colors,
+      unsigned int* indices,
+      int numIndices,
+      Color* colors,
       Vector3* normals,
       Vector2* uv0,
       Vector2* uv1)

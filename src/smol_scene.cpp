@@ -7,13 +7,34 @@
 #undef SMOL_GL_DEFINE_EXTERN
 
 
-#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
-#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
-
 namespace smol
 {
+  Color::Color(int r, int g, int b, int a):
+    a(a/255.0f), b(b/255.0f), g(g/255.0f), r(r/255.0f) { }
+
+  Color::Color(float r, float g, float b, float a):
+    a(a), b(b), g(g), r(r) { }
+
+  const Color Color::BLACK =    Color(1,0,0);
+  const Color Color::WHITE =    Color(255,255,255);
+  const Color Color::RED =      Color(255,0,0);
+  const Color Color::LIME =     Color(0,255,0);
+  const Color Color::BLUE =     Color(0,0,255);
+  const Color Color::YELLOW =   Color(255,255,0);
+  const Color Color::CYAN =     Color(0,255,255);
+  const Color Color::MAGENTA =  Color(255,0,255);
+  const Color Color::SILVER =   Color(192,192,192);
+  const Color Color::GRAY =     Color(128,128,128);
+  const Color Color::MAROON =   Color(128,0,0);
+  const Color Color::OLIVE =    Color(128,128,0);
+  const Color Color::GREEN =    Color(0,128,0);
+  const Color Color::PURPLE =   Color(128,0,128);
+  const Color Color::TEAL =     Color(0,128,128);
+  const Color Color::NAVY =     Color(0,0,128);
+
+
   const size_t SpriteBatcher::positionsSize = 4 * sizeof(Vector3);
-  const size_t SpriteBatcher::colorsSize = 4 * sizeof(Vector3);
+  const size_t SpriteBatcher::colorsSize = 4 * sizeof(Color);
   const size_t SpriteBatcher::uvsSize = 4 * sizeof(Vector2);
   const size_t SpriteBatcher::indicesSize = 6 * sizeof(unsigned int);
   const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
@@ -90,7 +111,7 @@ namespace smol
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
-    Image* img = AssetManager::createCheckersImage(800, 600, 16);
+    Image* img = AssetManager::createCheckersImage(800, 600, 32);
     defaultTexture = createTexture(*img);
     AssetManager::unloadImage(img);
 
@@ -107,7 +128,7 @@ namespace smol
       out vec4 fragColor;\n\
       uniform sampler2D mainTex;\n\
       in vec2 uv;\n\
-      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0, .0, 1.0, 1.0);}";
+      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
 
     defaultShader = createShaderFromSource(defaultVShader, defaultFShader, nullptr);
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
@@ -196,10 +217,13 @@ namespace smol
     Handle<Material> handle = materials.reserve();
     Material* material = materials.lookup(handle);
 
-    material->shader = shader;
-    material->diffuseTextureCount = diffuseTextureCount;
-    size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
-    memcpy(material->textureDiffuse, diffuseTextures, copySize);
+    if (diffuseTextureCount)
+    {
+      size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
+      material->shader = shader;
+      material->diffuseTextureCount = diffuseTextureCount;
+      memcpy(material->textureDiffuse, diffuseTextures, copySize);
+    }
     return handle;
   }
 
@@ -236,7 +260,7 @@ namespace smol
   Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
       const Vector3* vertices, int numVertices,
       const unsigned int* indices, int numIndices,
-      const Vector3* color,
+      const Color* color,
       const Vector2* uv0,
       const Vector2* uv1,
       const Vector3* normals)
@@ -280,7 +304,7 @@ namespace smol
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glEnableVertexAttribArray(Mesh::POSITION);
     }
-    
+
     mesh->ibo = 0;
     if (numIndices)
     {
@@ -298,8 +322,8 @@ namespace smol
     {
       glGenBuffers(1, &mesh->vboColor);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
-      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Vector3), color, bufferHint);
-      glVertexAttribPointer(Mesh::COLOR, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Color), color, bufferHint);
+      glVertexAttribPointer(Mesh::COLOR, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glEnableVertexAttribArray(Mesh::COLOR);
     }
@@ -332,7 +356,7 @@ namespace smol
   void Scene::updateMesh(Handle<Mesh> handle,
       const Vector3* vertices, int numVertices,
       const unsigned int* indices, int numIndices,
-      const Vector3* color,
+      const Color* color,
       const Vector2* uv0,
       const Vector2* uv1,
       const Vector3* normals)
@@ -400,7 +424,7 @@ namespace smol
       }
       else
       {
-        size_t size =  mesh->numVertices * sizeof(Vector3);
+        size_t size =  mesh->numVertices * sizeof(Color);
         glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
         if (resizeBuffers)
         {
@@ -501,7 +525,7 @@ namespace smol
     char* memory = batcher->arena.pushSize(capacity * SpriteBatcher::totalSpriteSize);
     MeshData meshData((Vector3*)memory, capacity, 
         (unsigned int*)memory, capacity * 6,
-        (Vector3*) memory, nullptr,
+        (Color*) memory, nullptr,
         (Vector2*) memory, nullptr);
     Handle<Renderable> renderable = createRenderable(material, createMesh(true, &meshData));
 
@@ -700,16 +724,15 @@ namespace smol
     return handle;
   }
 
-    Handle<SceneNode> Scene::createSpriteNode(
-        Handle<SpriteBatcher> batcher,
-        Rect& rect,
-        Vector3& position,
-        float width,
-        float height,
-        int angle,
-        Vector3& scale,
-        Vector3& rotationAxis,
-        Handle<SceneNode> parent)
+  Handle<SceneNode> Scene::createSpriteNode(
+      Handle<SpriteBatcher> batcher,
+      Rect& rect,
+      Vector3& position,
+      float width,
+      float height,
+      const Color& color,
+      int angle,
+      Handle<SceneNode> parent)
   {
     Handle<SceneNode> handle = nodes.reserve();
     SceneNode* node = nodes.lookup(handle);
@@ -717,14 +740,15 @@ namespace smol
     node->type = SceneNode::SPRITE;
     node->parent = parent;
     node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(0.0f, 0.0f, 0.0f, (float)angle);
-    node->transform.setScale(scale.x, scale.y, scale.z);
+    node->transform.setRotation(0.0f, 0.0f, 1.0f, (float)angle);
+    node->transform.setScale(1.0f, 1.0f, 1.0f);
     node->transform.update();
     node->spriteNode.rect = rect;
     node->spriteNode.batcher = batcher;
     node->spriteNode.width = width;
     node->spriteNode.height = height;
     node->spriteNode.angle = angle;
+    node->spriteNode.color = color;
 
     SpriteBatcher* batcherPtr = batchers.lookup(batcher);
     if (batcherPtr)

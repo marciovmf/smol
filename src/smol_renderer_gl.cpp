@@ -70,7 +70,7 @@ namespace smol
     resize(width, height);
 
     // set default value for attributes
-    glVertexAttrib3f(Mesh::COLOR, 1.0f, 0.0f, 1.0f);
+    //glVertexAttrib3f(Mesh::COLOR, 1.0f, 0.0f, 1.0f);
   }
 
   void Renderer::setScene(Scene& scene)
@@ -150,12 +150,12 @@ namespace smol
       batcher->arena.reset();
       char* memory = batcher->arena.pushSize(totalSize);
       Vector3* positions = (Vector3*)(memory);
-      Vector3* colors = (Vector3*)(positions + batcher->spriteCount * 4);
+      Color* colors = (Color*)(positions + batcher->spriteCount * 4);
       Vector2* uvs = (Vector2*)(colors + batcher->spriteCount * 4);
       unsigned int* indices = (unsigned int*)(uvs + batcher->spriteCount * 4);
 
       Vector3* pVertex = positions;
-      Vector3* pColors = colors;
+      Color* pColors = colors;
       Vector2* pUVs = uvs;
       unsigned int* pIndices = indices;
 
@@ -168,7 +168,7 @@ namespace smol
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
         Transform& transform = sceneNode->transform;
         SpriteSceneNode& node = sceneNode->spriteNode;
-       
+
         // convert UVs from pixels to 0~1 range
         // pixel coords origin is at top left corner
         Rectf uvRect;
@@ -180,24 +180,23 @@ namespace smol
         const Vector3& pos = transform.getPosition();
         float posY = renderer->getViewportSize().y - pos.y;
 
-        //if (node.angle == 0)
         {
-          pVertex[0] = {pos.x,  posY, pos.z};  // top left
+          pVertex[0] = {pos.x,  posY, pos.z};                             // top left
           pVertex[1] = {pos.x + node.width,  posY - node.height, pos.z};  // bottom right
-          pVertex[2] = {pos.x + node.width,  posY, pos.z};  // top right
-          pVertex[3] = {pos.x, posY - node.height, pos.z};  // bottom left
+          pVertex[2] = {pos.x + node.width,  posY, pos.z};                // top right
+          pVertex[3] = {pos.x, posY - node.height, pos.z};                // bottom left
           pVertex += 4;
 
-          pColors[0] = Vector3{1.0f, 0.0f, 0.0f};
-          pColors[1] = Vector3{1.0f, 0.0f, 0.0f};
-          pColors[2] = Vector3{1.0f, 0.0f, 0.0f};
-          pColors[3] = Vector3{1.0f, 0.0f, 0.0f};
+          pColors[0] = node.color;                                        // top left
+          pColors[1] = node.color;                                        // bottom right
+          pColors[2] = node.color;                                        // top right
+          pColors[3] = node.color;                                        // bottom left
           pColors += 4;
 
-          pUVs[0] = {uvRect.x, uvRect.y};                        // top left 
-          pUVs[1] = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};  // bottom right
-          pUVs[2] = {uvRect.x + uvRect.w, uvRect.y};             // top right
-          pUVs[3] = {uvRect.x, uvRect.y - uvRect.h};             // bottom left
+          pUVs[0] = {uvRect.x, uvRect.y};                                 // top left 
+          pUVs[1] = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};           // bottom right
+          pUVs[2] = {uvRect.x + uvRect.w, uvRect.y};                      // top right
+          pUVs[3] = {uvRect.x, uvRect.y - uvRect.h};                      // bottom left
           pUVs += 4;
 
           pIndices[0] = offset + 0;
@@ -287,7 +286,7 @@ namespace smol
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-      
+
       // Change material only if necessary
       const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
       Material* material = scene.materials.lookup(renderable->material);
@@ -297,7 +296,19 @@ namespace smol
       {
         currentMaterial = material;
         shader = scene.shaders.lookup(material->shader);
-        shaderProgramId = shader ? shader->programId : defaultShaderProgramId;
+        if(shader)
+        {
+          // use WHITE as default color for vertex attribute when using a valid shader
+          shaderProgramId = shader->programId;
+          glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
+        }
+        else
+        {
+          // use MAGENTA as default color for vertex attribute when using the default shader
+          shaderProgramId = defaultShaderProgramId;
+          glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
+        }
+
         glUseProgram(shaderProgramId);
 
         for (int textureIndex = 0; textureIndex < material->diffuseTextureCount; textureIndex++)
