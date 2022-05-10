@@ -53,10 +53,10 @@ namespace smol
   static inline uint64 encodeRenderKey(SceneNode::SceneNodeType nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
   {
     // Render key format
-    //  8 bit       | 16 bit          | 8 bit             | 32 bit
-    //  Node type   | Material index  | queue / priority  | node index
-      uint64 key = (uint8) nodeType | ((uint16) materialIndex) << 8 | queue << 24 | ((uint64) nodeIndex) << 32;
-      return key;
+    // 64--------------------32---------------16-----------8---------------0
+    // sceneNode index       | material index  | node type | render queue
+    uint64 key = ((uint64) nodeIndex) << 32 | ((uint16) materialIndex) << 24 |  nodeType << 8 | (uint8) queue;
+    return key;
   }
 
   static inline uint32 getNodeIndexFromRenderKey(uint64 key)
@@ -283,7 +283,6 @@ namespace smol
     GLuint shaderProgramId = 0; 
     GLuint uniformLocationProj = 0;
 
-    Log::info("Start {");
     for(int i = 0; i < numKeys; i++)
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
@@ -326,10 +325,7 @@ namespace smol
         transformed = Mat4::mul(scene.projectionMatrix, transformed);
 
         glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) transformed.e);
-
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-
-        Log::info("MESH");
         drawRenderable(&scene, renderable, shaderProgramId);
       }
       else if (node->type == SceneNode::SPRITE)
@@ -346,7 +342,6 @@ namespace smol
         }
 
         //draw
-        Log::info("SPRITE x%d",batcher->spriteCount);
         Renderable* renderable = scene.renderables.lookup(batcher->renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
         i+=batcher->spriteCount - 1;
@@ -357,7 +352,6 @@ namespace smol
         continue; 
       }
     }
-    Log::info("}\n");
 
     // unbind the last shader and textures (material)
     glUseProgram(defaultShaderProgramId);

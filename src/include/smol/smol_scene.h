@@ -160,8 +160,8 @@ namespace smol
     enum SceneNodeType : char
     {
       EMPTY = 0,
+      MESH,
       SPRITE,
-      MESH
     };
 
     SceneNodeType type;
