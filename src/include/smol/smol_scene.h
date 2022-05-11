@@ -254,6 +254,7 @@ namespace smol
 
     // Sprite Batcher
     Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
+    void destroySpriteBatcher(Handle<SpriteBatcher> handle);
 
     // Scene Node
     //TODO(marcio): Implement createNode() for all node types

@@ -418,5 +418,10 @@ namespace smol
 
     debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, scene nodes: %d.", 
         numTextures, numMeshes, scene->renderables.count(), scene->nodes.count());
+    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, tsprite batchers: %d, tscene nodes: %d.", 
+        numTextures, numMeshes,
+        scene->renderables.count(),
+        scene->batchers.count(),
+        scene->nodes.count());
   }
 }

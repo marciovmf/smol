@@ -444,6 +444,32 @@ namespace smol
   }
 
   // ##################################################################
+  //  Renderable resource handling 
+  // ##################################################################
+
+  Handle<Renderable> Scene::createRenderable(Handle<Material> material, Handle<Mesh> mesh)
+  {
+    Handle<Renderable> handle = renderables.reserve();
+    Renderable* renderable = renderables.lookup(handle);
+    renderable->mesh = mesh;
+    renderable->material = material;
+    return handle;
+  }
+
+  void Scene::destroyRenderable(Handle<Renderable> handle)
+  {
+    Renderable* renderable = renderables.lookup(handle);
+    if(!renderable)
+    {
+      warnInvalidHandle("Renderable");
+    }
+    else
+    {
+      renderables.remove(handle);
+    }
+  }
+
+  // ##################################################################
   //  SpriteBatcher handling 
   // ##################################################################
   Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
@@ -468,29 +494,17 @@ namespace smol
     return handle;
   }
 
-  // ##################################################################
-  //  Renderable resource handling 
-  // ##################################################################
-
-  Handle<Renderable> Scene::createRenderable(Handle<Material> material, Handle<Mesh> mesh)
+  void Scene::destroySpriteBatcher(Handle<SpriteBatcher> handle)
   {
-    Handle<Renderable> handle = renderables.reserve();
-    Renderable* renderable = renderables.lookup(handle);
-    renderable->mesh = mesh;
-    renderable->material = material;
-    return handle;
-  }
-
-  void Scene::destroyRenderable(Handle<Renderable> handle)
-  {
-    Renderable* renderable = renderables.lookup(handle);
-    if(!renderable)
+    SpriteBatcher* batcher = batchers.lookup(handle);
+    if(!batcher)
     {
-      warnInvalidHandle("Renderable");
+      warnInvalidHandle("SpriteBatcher");
     }
     else
     {
-      renderables.remove(handle);
+      destroyRenderable(batcher->renderable);
+      batchers.remove(handle);
     }
   }
 
