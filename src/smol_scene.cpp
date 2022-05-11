@@ -18,68 +18,6 @@ namespace smol
 
   const Handle<SceneNode> Scene::ROOT = INVALID_HANDLE(SceneNode);
 
-  Transform::Transform():
-    position({.0f, .0f, .0f}), rotation(.0f, .0f, .0f),
-    scale({1.0f, 1.0f, 1.0f}), angle(0.0f), dirty(false)
-    { }
-
-  const Mat4& Transform::getMatrix() const
-  {
-    return  model; 
-  }
-
-  void Transform::setPosition(float x, float y, float z) 
-  { 
-    position.x = x;
-    position.y = y;
-    position.z = z;
-    dirty = true;
-  }
-
-  void Transform::setScale(float x, float y, float z)
-  { 
-    scale.x = x;
-    scale.y = y;
-    scale.z = z;
-    dirty = true;
-  }
-
-  void Transform::setRotation(float x, float y, float z, float angle) 
-  {
-    rotation.x = x;
-    rotation.y = y;
-    rotation.z = z;
-    this->angle = angle;
-    dirty = true;
-  };
-
-  const Vector3& Transform::getPosition() const { return position; }
-
-  const Vector3& Transform::getScale() const { return scale; }
-
-  bool Transform::isDirty() const { return dirty; }
-
-  bool Transform::update()
-  {
-    if(!dirty)
-      return false;
-
-    // scale
-    Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-    Mat4 transformed = Mat4::mul(scaleMatrix, Mat4::initIdentity());
-
-    // rotation
-    Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z, angle);
-    transformed = Mat4::mul(rotationMatrix, transformed);
-
-    // translation
-    Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
-    transformed = Mat4::mul(translationMatrix, transformed);
-
-    model = transformed;
-    dirty = false;
-    return true;
-  }
 
   Scene::Scene():
     shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 

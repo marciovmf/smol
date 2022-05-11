@@ -80,6 +80,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_vector2.cpp
   ${SOURCE_PATH}/include/smol/smol_vector3.h
   ${SOURCE_PATH}/smol_vector3.cpp
+  ${SOURCE_PATH}/include/smol/smol_transform.h
+  ${SOURCE_PATH}/smol_transform.cpp
   ${SOURCE_PATH}/include/smol/smol_color.h
   ${SOURCE_PATH}/smol_color.cpp
   ${SOURCE_PATH}/include/smol/smol_mat4.h
