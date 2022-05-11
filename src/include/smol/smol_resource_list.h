@@ -57,6 +57,7 @@ namespace smol
       Handle<T> add(T&);
       T* lookup(Handle<T> handle);
       void remove(Handle<T> handle);
+      void reset();
       int count();
       const T* getArray();
     };
@@ -165,6 +166,16 @@ namespace smol
       freeSlotListStart = handle.slotIndex;
       ++freeSlotListCount;
       --resourceCount;
+    }
+
+  template <typename T>
+    void ResourceList<T>::reset()
+    {
+      slots.reset();
+      resources.reset();
+      int resourceCount = 0;
+      int freeSlitstCount = 0;
+      int freeSlitstStart = -1;
     }
 }
 
