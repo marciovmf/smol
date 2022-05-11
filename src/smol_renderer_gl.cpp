@@ -166,6 +166,10 @@ namespace smol
       {
         uint64 key = ((uint64*)renderKeyList)[i];
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+
+        if (!sceneNode->active)
+          continue;
+
         Transform& transform = sceneNode->transform;
         SpriteSceneNode& node = sceneNode->spriteNode;
 
@@ -254,19 +258,38 @@ namespace smol
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
+      node->dirty |= node->transform.update();
+      bool discard = false;
 
-      const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-      // skip this draw if the renderable was deleted;
-      if (!renderable) { continue; }
-
-      if (node->transform.update() && node->type == SceneNode::SPRITE)
+      switch(node->type)
       {
-        SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
-        batcher->dirty = true;
+        case SceneNode::SPRITE:
+          if (node->dirty)
+          {
+            SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
+            batcher->dirty = true;
+          }
+          break;
+
+        default:
+          if (!node->active)
+          {
+            discard = true;
+          }
+          break;
       }
 
-      uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
-      *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex), 0, i);
+      const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
+      if (!renderable)
+        discard = true;
+
+      if(!discard)
+      {
+        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
+        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex), 0, i);
+      }
+
+      node->dirty = false;
     }
 
     // ----------------------------------------------------------------------
@@ -327,8 +350,11 @@ namespace smol
       //TODO(marcio): Change it so it updates ONCE per frame.
       //TODO(marcio): Use a uniform buffer for that
 
-      if (node->type == SceneNode::MESH)
+      if (node->type == SceneNode::MESH) 
       {
+        if (!node->active)
+          continue;
+
         //TODO(marcio): get the view matrix from a camera!
         Mat4 transformed = Mat4::mul(
             Mat4::initIdentity(),           // view matrix
@@ -341,7 +367,6 @@ namespace smol
       }
       else if (node->type == SceneNode::SPRITE)
       {
-
         //TODO(marcio): get the view matrix from a camera!
         Mat4& transformed = Mat4::mul(scene.projectionMatrix2D, Mat4::initIdentity());
         glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) transformed.e);

@@ -134,6 +134,22 @@ namespace smol
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
   }
 
+  void Scene::setNodeActive(Handle<SceneNode> handle, bool status)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node) return;
+    node->active = status;
+    node->dirty = true;
+  }
+
+  bool Scene::isNodeActive(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node) return false;
+
+    return node->active;
+  }
+
 
   Transform* Scene::getTransform(Handle<SceneNode> handle)
   {

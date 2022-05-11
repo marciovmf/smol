@@ -59,7 +59,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Vector3{0.2f, 0.2f, 0.2f},
       smol::Vector3{0.0f, 0.5f, 1.0f}, 30.0f);
 
-  scene.createMeshNode(renderable2, 
+  node3 = scene.createMeshNode(renderable2, 
       smol::Vector3{1.6f, 0.0f, -4.0f},
       smol::Vector3{0.2f, 0.2f, 0.2f},
       smol::Vector3{0.5f, 1.0f, 0.0f}, 30.0f);
@@ -67,6 +67,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
   selectedNode = node2;
 }
 
+float angle = 0.0f;
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
@@ -121,12 +122,13 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_F7))
   {
-    scene.destroyMaterial(material);
+    scene.destroyMaterial(material2);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
   {
-    scene.clone(selectedNode);
+    //scene.clone(selectedNode);
+    scene.setNodeActive(selectedNode, !scene.isNodeActive(selectedNode));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB))
@@ -194,6 +196,11 @@ void onUpdate(float deltaTime)
         amount * scaleAmount + scale.z);
 
   }
+
+    transform = scene.getTransform(node3);
+    transform->setRotation(0.0f, 1.0f, 0.0f, angle);
+    angle+=0.05f;
+
 
 }
 

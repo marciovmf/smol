@@ -191,6 +191,8 @@ namespace smol
       SPRITE,
     };
 
+    bool active = true;
+    bool dirty = true; // changed this frame
     SceneNodeType type;
     Transform transform;
     Handle<SceneNode> parent;
@@ -243,6 +245,9 @@ namespace smol
     static const Handle<SceneNode> ROOT;
 
     Scene();
+
+    void setNodeActive(Handle<SceneNode> handle, bool status);
+    bool isNodeActive(Handle<SceneNode> handle);
 
     // Shaders
     Handle<ShaderProgram> Scene::createShader(const char* vsFilePath, const char* fsFilePath, const char* gsFilePath = nullptr);
