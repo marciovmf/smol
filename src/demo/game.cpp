@@ -13,6 +13,9 @@ smol::Handle<smol::Material> material;
 smol::Handle<smol::Material> material2;
 smol::Handle<smol::Material> materialTest;
 smol::Handle<smol::Mesh> mesh;
+smol::Handle<smol::SpriteBatcher> batcher;
+
+int shape = 0;
 
 void onStart(smol::SystemsRoot* systemsRoot)
 {
@@ -31,7 +34,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   auto renderable = scene.createRenderable(material, mesh);
   auto renderable2 = scene.createRenderable(material2, mesh);
-  auto batcher = scene.createSpriteBatcher(material);
+  batcher = scene.createSpriteBatcher(material);
 
   //node1 = scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
   //
@@ -68,6 +71,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
 }
 
 float angle = 0.0f;
+bool once = true;
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
@@ -80,34 +84,57 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {
-    const smol::MeshData* cone = &(smol::MeshData::getPrimitiveCone());
+
+    const smol::MeshData* m;
+
+    shape++;
+    if (shape > 4)
+      shape = 0;
+
+    switch(shape)
+    {
+      case 0:
+        m = &(smol::MeshData::getPrimitiveCylinder());
+        break;
+      case 1:
+        m = &(smol::MeshData::getPrimitiveCube());
+        break;
+      case 2:
+        m = &(smol::MeshData::getPrimitiveSphere());
+        break;
+      case 3:
+        m = &(smol::MeshData::getPrimitiveQuad());
+        break;
+      case 4:
+        m = &(smol::MeshData::getPrimitiveCone());
+        break;
+    }
+
     scene.updateMesh(mesh,
-        cone->positions, cone->numPositions,
-        cone->indices, cone->numIndices,
-        cone->colors, cone->uv0, cone->uv1, cone->normals);
+        m->positions, m->numPositions,
+        m->indices, m->numIndices,
+        m->colors, m->uv0, m->uv1, m->normals);
   }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_Y))
+  if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
   {
-    const smol::MeshData* arrow = &(smol::MeshData::getPrimitiveCube());
+    once = false;
+    const int numHSprites = 20;
+    const int numVSprites = 20;
+    float spriteWidth = 1080 /(float) numHSprites;
+    float spriteHeight = 768 /(float) numVSprites;
 
-    scene.updateMesh(mesh,
-        arrow->positions, arrow->numPositions,
-        arrow->indices, arrow->numIndices,
-        arrow->colors,
-        arrow->uv0,
-        arrow->uv1,
-        arrow->normals);
-  }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_U))
-  {
-    const smol::MeshData* sphere = &(smol::MeshData::getPrimitiveSphere());
-
-    scene.updateMesh(mesh,
-        sphere->positions, sphere->numPositions,
-        sphere->indices, sphere->numIndices,
-        sphere->colors, sphere->uv0, sphere->uv1, sphere->normals);
+    for (int x = 0; x < numHSprites; x++)
+    {
+      for (int y = 0; y < numVSprites; y++)
+      {
+        scene.createSpriteNode(batcher, 
+            smol::Rect{0, 0, 800, 800},
+            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.0f},
+            spriteWidth, spriteHeight,
+            smol::Color(rand() % 256, rand() % 256, rand() % 256));
+      }
+    }
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5))
