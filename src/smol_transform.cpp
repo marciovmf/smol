@@ -8,7 +8,7 @@ namespace smol
 
   const Mat4& Transform::getMatrix() const
   {
-    return  model; 
+    return model; 
   }
 
   void Transform::setPosition(float x, float y, float z) 
@@ -27,18 +27,19 @@ namespace smol
     dirty = true;
   }
 
-  void Transform::setRotation(float x, float y, float z, float angle) 
+  void Transform::setRotation(float x, float y, float z) 
   {
     rotation.x = x;
     rotation.y = y;
     rotation.z = z;
-    this->angle = angle;
     dirty = true;
   };
 
   const Vector3& Transform::getPosition() const { return position; }
 
   const Vector3& Transform::getScale() const { return scale; }
+
+  const Vector3& Transform::getRotation() const { return rotation; }
 
   bool Transform::isDirty() const { return dirty; }
 
@@ -47,16 +48,11 @@ namespace smol
     if(!dirty)
       return false;
 
-    // scale
     Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-    Mat4 transformed = Mat4::mul(scaleMatrix, Mat4::initIdentity());
-
-    // rotation
-    Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z, angle);
-    transformed = Mat4::mul(rotationMatrix, transformed);
-
-    // translation
+    Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z);
     Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
+    
+    Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
     transformed = Mat4::mul(translationMatrix, transformed);
 
     model = transformed;

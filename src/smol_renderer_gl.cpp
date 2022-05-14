@@ -357,9 +357,8 @@ namespace smol
 
         //TODO(marcio): get the view matrix from a camera!
         Mat4 transformed = Mat4::mul(
-            Mat4::initIdentity(),           // view matrix
+            scene.projectionMatrix,
             node->transform.getMatrix());   // model matrix
-        transformed = Mat4::mul(scene.projectionMatrix, transformed);
 
         glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) transformed.e);
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
@@ -368,8 +367,8 @@ namespace smol
       else if (node->type == SceneNode::SPRITE)
       {
         //TODO(marcio): get the view matrix from a camera!
-        Mat4& transformed = Mat4::mul(scene.projectionMatrix2D, Mat4::initIdentity());
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) transformed.e);
+        glUniformMatrix4fv(uniformLocationProj, 1, 0, 
+            (const float*) scene.projectionMatrix2D.e);
 
         SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
         if(batcher->dirty)

@@ -22,9 +22,10 @@ namespace smol
     const Mat4& getMatrix() const;
     void setPosition(float x, float y, float z);
     void setScale(float x, float y, float z);
-    void setRotation(float x, float y, float z, float angle);
+    void setRotation(float x, float y, float z);
     const Vector3& getPosition() const;
     const Vector3& getScale() const;
+    const Vector3& getRotation() const;
     bool isDirty() const;
   };
 }

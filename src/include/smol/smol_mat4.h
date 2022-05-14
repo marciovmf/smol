@@ -12,7 +12,7 @@ namespace smol
     static Mat4 initScale(float amount);
     static Mat4 initScale(float x, float y, float z);
     static Mat4 initTranslation(float x, float y, float z);
-    static Mat4 initRotation(float x, float y, float z, float angle);
+    static Mat4 initRotation(float x, float y, float z);
     static Mat4 perspective(float fov, float aspect, float zNear, float zFar);
     static Mat4 ortho(float left, float right, float top, float bottom, float zNear, float zFar);
     static Mat4 transpose(Mat4& m);

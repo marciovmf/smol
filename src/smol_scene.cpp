@@ -651,7 +651,6 @@ namespace smol
       Vector3& position,
       Vector3& scale,
       Vector3& rotationAxis,
-      float rotationAngle,
       Handle<SceneNode> parent)
   {
     Handle<SceneNode> handle = nodes.reserve();
@@ -660,7 +659,7 @@ namespace smol
     node->type = SceneNode::MESH;
     node->parent = parent;
     node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z, rotationAngle);
+    node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z);
     node->transform.setScale(scale.x, scale.y, scale.z);
     node->transform.update();
 
@@ -685,7 +684,7 @@ namespace smol
     node->type = SceneNode::SPRITE;
     node->parent = parent;
     node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(0.0f, 0.0f, 1.0f, (float)angle);
+    node->transform.setRotation(0.0f, 0.0f, 1.0f);
     node->transform.setScale(1.0f, 1.0f, 1.0f);
     node->transform.update();
     node->spriteNode.rect = rect;

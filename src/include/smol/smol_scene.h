@@ -263,7 +263,6 @@ namespace smol
         Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
         Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
         Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
-        float rotationAngle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
     Handle<SceneNode> createSpriteNode(
