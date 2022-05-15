@@ -5,23 +5,35 @@
 
 namespace smol
 {
-  Arena::Arena(size_t initialSize):
-    capacity(initialSize),
-    used(0),
-    data((char*) Platform::getMemory(capacity))
-  {
-  }
+  Arena::Arena(): capacity(0), used(0), data(nullptr) { }
+
+  Arena::Arena(size_t initialSize)
+  { initialize(initialSize); }
 
   Arena::~Arena()
+  { Platform::freeMemory(data, capacity); }
+
+  void Arena::initialize(size_t initialSize)
   {
-    Platform::freeMemory(data, capacity);
+    capacity = initialSize;
+    used = 0;
+    data = (char*) Platform::getMemory(capacity);
   }
 
   char* Arena::pushSize(size_t size)
   {
     if (used + size >= capacity)
     {
-      size_t newCapacity = (size_t) pow(2, ceil(log((double)capacity) / log(2)));
+      size_t newCapacity = capacity + size;
+      // get next pow2 larger than current capacity
+      newCapacity = (newCapacity >> 1) | newCapacity;
+      newCapacity = (newCapacity >> 2) | newCapacity;
+      newCapacity = (newCapacity >> 4) | newCapacity;
+      newCapacity = (newCapacity >> 8) | newCapacity;
+      newCapacity = (newCapacity >> 16) | newCapacity;
+      newCapacity = (newCapacity >> 32) | newCapacity;
+      newCapacity++;
+
       data = (char*) Platform::resizeMemory(data, newCapacity);
       capacity = newCapacity;
     }

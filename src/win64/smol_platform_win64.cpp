@@ -194,6 +194,14 @@ namespace smol
     return true;
   }
 
+  void Platform::getWindowSize(Window* window, int* width, int* height)
+  {
+    RECT rect;
+    GetClientRect(window->handle, &rect);
+    if(width) *width = rect.right;
+    if(height) *height = rect.bottom;
+  }
+
   Window* Platform::createWindow(int width, int height, const char* title)
   {
     const char* smolWindowClass = "SMOL_WINDOW_CLASS";

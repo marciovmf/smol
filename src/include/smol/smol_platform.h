@@ -41,7 +41,8 @@ namespace smol
     static void clearWindowCloseFlag(Window* window);
     static void destroyWindow(Window* window);
     static bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
-   
+    static void getWindowSize(Window* window, int* width, int* height);
+ 
     // Dynamic module handling
     static Module* loadModule(const char* path);
     static bool unloadModule(Module* module);

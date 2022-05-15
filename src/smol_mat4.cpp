@@ -1,7 +1,9 @@
 #include <smol/smol.h>
 #include <smol/smol_log.h>
 #include <smol/smol_mat4.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
+#undef _USE_MATH_DEFINES
 
 namespace smol
 {
@@ -35,24 +37,42 @@ namespace smol
     return m;
   }
 
-  Mat4 Mat4::initRotation(float x, float y, float z, float angle)
+  Mat4 Mat4::initRotation(float x, float y, float z)
   {
-    const float c = (float) cos(angle);
-    const float s = (float) sin(angle);
-    const float oneMinusC = 1 - c;
+    const double toRad = (M_PI/180.0);
 
-    Mat4 m = Mat4::initIdentity();
-    m.e[0][0] = x * x * oneMinusC + c;
-    m.e[1][0] = x * y * oneMinusC + z * s;
-    m.e[2][0] = x * z * oneMinusC - y * s;
-    m.e[0][1] = y * x * oneMinusC - z * s;
-    m.e[1][1] = y * y * oneMinusC + c;
-    m.e[2][1] = y * z * oneMinusC + x * s;
-    m.e[0][2] = z * x * oneMinusC + y * s;
-    m.e[1][2] = z * y * oneMinusC - x * s;
-    m.e[2][2] = z * z * oneMinusC + c;
+    const double angleX = x * toRad;
+    const double angleY = y * toRad;
+    const double angleZ = z * toRad;
 
-    return m;
+    const double cx = cos(angleX);
+    const double cy = cos(angleY);
+    const double cz = cos(angleZ);
+
+    const double sx = sin(angleX);
+    const double sy = sin(angleY);
+    const double sz = sin(angleZ);
+
+    // Right-hand rotation matrices
+    Mat4 xRot = Mat4::initIdentity();
+    xRot.e[1][1] = (float)(cx);
+    xRot.e[1][2] = (float)(sx);
+    xRot.e[2][1] = (float)(-sx);
+    xRot.e[2][2] = (float)(cx);
+
+    Mat4 yRot = Mat4::initIdentity();
+    yRot.e[0][0] = (float)(cy);
+    yRot.e[0][2] = (float)(-sy);
+    yRot.e[2][0] = (float)(sy);
+    yRot.e[2][2] = (float)(cy);
+    
+    Mat4 zRot = Mat4::initIdentity();
+    zRot.e[0][0] = (float)(cy);
+    zRot.e[0][1] = (float)(sy);
+    zRot.e[1][0] = (float)(-sy);
+    zRot.e[1][1] = (float)(cy);
+
+    return Mat4::mul(zRot, Mat4::mul(yRot, xRot));
   }
 
   Mat4 Mat4::mul(const Mat4& a, const Mat4& b)
@@ -80,6 +100,8 @@ namespace smol
     SMOL_ASSERT(zFar > 0.0f, "zFar must be positive.",0);
     SMOL_ASSERT(zFar > zNear, "zFar must be larger than zNear.",0);
 
+    fov = (float) (fov * (M_PI/180.0));
+
     const float tanHalfFov = (float) tan(fov/2);
     Mat4 m = Mat4::initIdentity();
     m.e[0][0] = 1 / (aspect * tanHalfFov);
@@ -87,6 +109,7 @@ namespace smol
     m.e[2][2] = - (zFar + zNear) / (zFar - zNear);
     m.e[2][3] = -1;
     m.e[3][2] =  - (2 * zFar * zNear) / (zFar - zNear);
+    m.e[3][3] = 0.0f;
     return m;
   }
 
@@ -99,7 +122,6 @@ namespace smol
     m.e[3][0] = - (right + left) / (right - left);
     m.e[3][1] = - (top + bottom) / (top - bottom);
     m.e[3][2] = - (zFar + zNear) / (zFar - zNear);
-    m.e[3][3] = 1;
     return m;
   }
 

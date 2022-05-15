@@ -1,88 +1,34 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_renderer.h>
+#include <smol/smol_mesh_data.h>
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h>
 #undef SMOL_GL_DEFINE_EXTERN
 
 
-#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
-#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
-
 namespace smol
 {
+
+  const size_t SpriteBatcher::positionsSize = 4 * sizeof(Vector3);
+  const size_t SpriteBatcher::colorsSize = 4 * sizeof(Color);
+  const size_t SpriteBatcher::uvsSize = 4 * sizeof(Vector2);
+  const size_t SpriteBatcher::indicesSize = 6 * sizeof(unsigned int);
+  const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
+
   const Handle<SceneNode> Scene::ROOT = INVALID_HANDLE(SceneNode);
 
-  Transform::Transform():
-    position({.0f, .0f, .0f}), rotation(.0f, .0f, .0f),
-    scale({1.0f, 1.0f, 1.0f}), angle(0.0f), dirty(false)
-    { }
-
-  const Mat4& Transform::getMatrix() const
-  {
-    return  model; 
-  }
-
-  void Transform::setPosition(float x, float y, float z) 
-  { 
-    position.x = x;
-    position.y = y;
-    position.z = z;
-    dirty = true;
-  }
-
-  void Transform::setScale(float x, float y, float z)
-  { 
-    scale.x = x;
-    scale.y = y;
-    scale.z = z;
-    dirty = true;
-  }
-
-  void Transform::setRotation(float x, float y, float z, float angle) 
-  {
-    rotation.x = x;
-    rotation.y = y;
-    rotation.z = z;
-    this->angle = angle;
-    dirty = true;
-  };
-
-  const Vector3& Transform::getPosition() const { return position; }
-
-  const Vector3& Transform::getScale() const { return scale; }
-
-  void Transform::update()
-  {
-    if(dirty)
-    {
-      // scale
-      Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-      Mat4 transformed = Mat4::mul(scaleMatrix, Mat4::initIdentity());
-
-      // rotation
-      Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z, angle);
-      transformed = Mat4::mul(rotationMatrix, transformed);
-
-      // translation
-      Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
-      transformed = Mat4::mul(translationMatrix, transformed);
-
-      model = transformed;
-      dirty = false;
-    }
-  }
 
   Scene::Scene():
-    shaders(32), textures(64), materials(32), meshes(32), renderables(32),
-    nodes(128), clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 
+    batchers(8), renderKeys((size_t)255), renderKeysSorted((size_t)255),
+    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
-    Image* img = AssetManager::createCheckersImage(800, 600, 16);
+    Image* img = AssetManager::createCheckersImage(800, 600, 32);
     defaultTexture = createTexture(*img);
     AssetManager::unloadImage(img);
-
 
     const char* defaultVShader =
       "#version 330 core\n\
@@ -97,10 +43,26 @@ namespace smol
       out vec4 fragColor;\n\
       uniform sampler2D mainTex;\n\
       in vec2 uv;\n\
-      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0, .0, 1.0, 1.0);}";
+      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
 
     defaultShader = createShaderFromSource(defaultVShader, defaultFShader, nullptr);
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
+  }
+
+  void Scene::setNodeActive(Handle<SceneNode> handle, bool status)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node) return;
+    node->active = status;
+    node->dirty = true;
+  }
+
+  bool Scene::isNodeActive(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node) return false;
+
+    return node->active;
   }
 
 
@@ -129,6 +91,9 @@ namespace smol
   Handle<Texture> Scene::createTexture(const Image& image)
   {
     Texture texture;
+    texture.width = image.width;
+    texture.height = image.height;
+
     GLenum textureFormat = GL_RGBA;
     GLenum textureType = GL_UNSIGNED_BYTE;
 
@@ -142,6 +107,7 @@ namespace smol
       textureFormat = GL_RGB;
       textureType = GL_UNSIGNED_SHORT_5_6_5;
     }
+
 
     glGenTextures(1, &texture.textureObject);
     glBindTexture(GL_TEXTURE_2D, texture.textureObject);
@@ -182,10 +148,13 @@ namespace smol
     Handle<Material> handle = materials.reserve();
     Material* material = materials.lookup(handle);
 
-    material->shader = shader;
-    material->diffuseTextureCount = diffuseTextureCount;
-    size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
-    memcpy(material->textureDiffuse, diffuseTextures, copySize);
+    if (diffuseTextureCount)
+    {
+      size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
+      material->shader = shader;
+      material->diffuseTextureCount = diffuseTextureCount;
+      memcpy(material->textureDiffuse, diffuseTextures, copySize);
+    }
     return handle;
   }
 
@@ -206,104 +175,243 @@ namespace smol
   //  Mesh resource handling 
   // ##################################################################
 
-  Handle<Mesh> Scene::createMesh(Primitive primitive,
-      Vector3* vertices, size_t verticesArraySize,
-      unsigned int* indices, size_t indicesArraySize,
-      Vector3* color , size_t colorArraySize,
-      Vector2* uv0, size_t uv0ArraySize,
-      Vector2* uv1, size_t uv1ArraySize,
-      Vector3* normals, size_t normalsArraySize)
+  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
+  {
+    const size_t numPositions = meshData->numPositions;
+    const size_t numIndices = meshData->numIndices;
+    const size_t vec3BufferSize = numPositions * sizeof(Vector3);
+
+    return createMesh(dynamic,
+        Primitive::TRIANGLE,
+        meshData->positions, meshData->numPositions,
+        meshData->indices, meshData->numIndices,
+        meshData->colors, meshData->uv0, meshData->uv1, meshData->normals);
+  }
+
+  Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
+      const Vector3* vertices, int numVertices,
+      const unsigned int* indices, int numIndices,
+      const Color* color,
+      const Vector2* uv0,
+      const Vector2* uv1,
+      const Vector3* normals)
   {
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
-
-    int primitiveMultiplier;
+    mesh->dynamic = dynamic;
 
     if (primitive == Primitive::TRIANGLE)
     {
       mesh->glPrimitive = GL_TRIANGLES;
-      primitiveMultiplier = 3;
     }
     else if (primitive == Primitive::LINE)
     {
       mesh->glPrimitive = GL_LINES;
-      primitiveMultiplier = 2;
     }
     else if (primitive == Primitive::POINT)
     {
       mesh->glPrimitive = GL_POINTS;
-      primitiveMultiplier = 1;
     }
     else
     {
       debugLogWarning("Unknown primitive. Defaulting to TRIANGLE.");
       mesh->glPrimitive = GL_TRIANGLES;
-      primitiveMultiplier = 3;
     }
 
     // VAO
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
+    GLenum bufferHint = dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
-    if (verticesArraySize)
+    if (numVertices)
     {
+      mesh->numVertices = numVertices;
+      mesh->verticesArraySize = numVertices * sizeof(Vector3);
+
       glGenBuffers(1, &mesh->vboPosition);
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
-      glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_POSITION_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+      glBufferData(GL_ARRAY_BUFFER, mesh->verticesArraySize, vertices, bufferHint);
+      glVertexAttribPointer(Mesh::POSITION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-      mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
-      mesh->numPrimitives = mesh->numVertices * primitiveMultiplier;
-      glEnableVertexAttribArray(SMOL_POSITION_ATTRIB_LOCATION);
-    }
-
-    mesh->vboColor = 0;
-    if(colorArraySize)
-    {
-      glGenBuffers(1, &mesh->vboColor);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
-      glBufferData(GL_ARRAY_BUFFER, colorArraySize, color, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_COLOR_ATTRIB_LOCATION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-      glEnableVertexAttribArray(SMOL_COLOR_ATTRIB_LOCATION);
-    }
-    mesh->vboUV0 = 0;
-    if(uv0ArraySize)
-    {
-      glGenBuffers(1, &mesh->vboUV0);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
-      glBufferData(GL_ARRAY_BUFFER, uv0ArraySize, uv0, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_UV0_ATTRIB_LOCATION, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-      glEnableVertexAttribArray(SMOL_UV0_ATTRIB_LOCATION);
-    }
-
-    mesh->vboUV1 = 0;
-    if(uv1ArraySize)
-    {
-      glGenBuffers(1, &mesh->vboUV1);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
-      glBufferData(GL_ARRAY_BUFFER, uv1ArraySize, uv1, GL_STATIC_DRAW);
-      glVertexAttribPointer(SMOL_UV1_ATTRIB_LOCATION, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glEnableVertexAttribArray(SMOL_UV1_ATTRIB_LOCATION);
+      glEnableVertexAttribArray(Mesh::POSITION);
     }
 
     mesh->ibo = 0;
-    if (indicesArraySize)
+    if (numIndices)
     {
+      mesh->numIndices = numIndices;
+      mesh->indicesArraySize = numIndices * sizeof(unsigned int);
+
       glGenBuffers(1, &mesh->ibo);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indicesArraySize, indices, bufferHint);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
 
-      mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
+    mesh->vboColor = 0;
+    if(color)
+    {
+      glGenBuffers(1, &mesh->vboColor);
+      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
+      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Color), color, bufferHint);
+      glVertexAttribPointer(Mesh::COLOR, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      glEnableVertexAttribArray(Mesh::COLOR);
+    }
+    mesh->vboUV0 = 0;
+    if(uv0)
+    {
+      glGenBuffers(1, &mesh->vboUV0);
+      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
+      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Vector2), uv0, bufferHint);
+      glVertexAttribPointer(Mesh::UV0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      glEnableVertexAttribArray(Mesh::UV0);
+    }
+
+    mesh->vboUV1 = 0;
+    if(uv1)
+    {
+      glGenBuffers(1, &mesh->vboUV1);
+      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
+      glBufferData(GL_ARRAY_BUFFER,  mesh->numVertices * sizeof(Vector2), uv1, bufferHint);
+      glVertexAttribPointer(Mesh::UV1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      glEnableVertexAttribArray(Mesh::UV1);
     }
 
     glBindVertexArray(0);
     return handle;
+  }
+
+  void Scene::updateMesh(Handle<Mesh> handle,
+      const Vector3* vertices, int numVertices,
+      const unsigned int* indices, int numIndices,
+      const Color* color,
+      const Vector2* uv0,
+      const Vector2* uv1,
+      const Vector3* normals)
+  {
+
+    Mesh* mesh = meshes.lookup(handle);
+    if (!mesh->dynamic)
+    {
+      Log::warning("Unable to update a static mesh");
+      return;
+    }
+
+    bool resizeBuffers = false;
+
+    if (vertices)
+    {
+      size_t verticesArraySize = numVertices * sizeof(Vector3);
+
+      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
+      if (verticesArraySize > mesh->verticesArraySize)
+      {
+        resizeBuffers = true;
+        mesh->verticesArraySize = verticesArraySize;
+        glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, GL_DYNAMIC_DRAW);
+      }
+      else
+      {
+        glBufferSubData(GL_ARRAY_BUFFER, 0, verticesArraySize, vertices);
+      }
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
+    }
+
+    if (indices)
+    {
+      if (!mesh->ibo)
+      {
+        Log::warning("Unable to update indices for mesh created without index buffer.");
+      }
+      else
+      {
+        size_t indicesArraySize = numIndices * sizeof(unsigned int);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+        if (indicesArraySize > mesh->indicesArraySize)
+        {
+          mesh->indicesArraySize = indicesArraySize;
+          glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesArraySize, indices);
+        }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
+      }
+    }
+
+    if(color)
+    {
+      if (!mesh->vboColor)
+      {
+        Log::warning("Unable to update color for mesh created without color buffer.");
+      }
+      else
+      {
+        size_t size =  mesh->numVertices * sizeof(Color);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
+        if (resizeBuffers)
+        {
+          glBufferData(GL_ARRAY_BUFFER, size, color, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, color);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
+
+    if(uv0)
+    {
+      if (!mesh->vboUV0)
+      {
+        Log::warning("Unable to update UV0 for mesh created without UV0 buffer.");
+      }
+      else
+      {
+        size_t size = mesh->numVertices * sizeof(Vector2);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
+        if(resizeBuffers)
+        {
+          glBufferData(GL_ARRAY_BUFFER, size, uv0, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, uv0);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
+
+    if(uv1)
+    {
+      if (!mesh->vboUV1)
+      {
+        Log::warning("Unable to update UV1 for mesh created without UV1 buffer.");
+      }
+      else
+      {
+        size_t size = mesh->numVertices * sizeof(Vector2);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
+        if(resizeBuffers)
+        {
+          glBufferData(GL_ARRAY_BUFFER, size, uv1, GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, uv1);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+      }
+    }
   }
 
   void Scene::destroyMesh(Mesh* mesh)
@@ -313,8 +421,7 @@ namespace smol
 
     if (mesh->ibo) buffers[numBuffers++] = mesh->ibo;
     if (mesh->vboPosition) buffers[numBuffers++] = mesh->vboPosition;
-    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
-    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboPosition;
+    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboNormal;
     if (mesh->vboUV0) buffers[numBuffers++] = mesh->vboUV0;
     if (mesh->vboUV1) buffers[numBuffers++] = mesh->vboUV1;
 
@@ -359,6 +466,45 @@ namespace smol
     else
     {
       renderables.remove(handle);
+    }
+  }
+
+  // ##################################################################
+  //  SpriteBatcher handling 
+  // ##################################################################
+  Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
+  {
+    Handle<SpriteBatcher> handle = batchers.reserve();
+    SpriteBatcher* batcher =  batchers.lookup(handle);
+    batcher->arena.initialize(capacity * SpriteBatcher::totalSpriteSize + 1);
+
+    // It doesn't matter the contents of memory. Nothing is read from this pointer. It's just necessary to create a valid MeshData;
+    char* memory = batcher->arena.pushSize(capacity * SpriteBatcher::totalSpriteSize);
+    MeshData meshData((Vector3*)memory, capacity, 
+        (unsigned int*)memory, capacity * 6,
+        (Color*) memory, nullptr,
+        (Vector2*) memory, nullptr);
+    Handle<Renderable> renderable = createRenderable(material, createMesh(true, &meshData));
+
+    batcher->renderable = renderable;
+    batcher->spriteCount = 0;
+    batcher->spriteCapacity = capacity;
+    batcher->dirty = false;
+
+    return handle;
+  }
+
+  void Scene::destroySpriteBatcher(Handle<SpriteBatcher> handle)
+  {
+    SpriteBatcher* batcher = batchers.lookup(handle);
+    if(!batcher)
+    {
+      warnInvalidHandle("SpriteBatcher");
+    }
+    else
+    {
+      destroyRenderable(batcher->renderable);
+      batchers.remove(handle);
     }
   }
 
@@ -500,12 +646,11 @@ namespace smol
   //  Node resource handling 
   // ##################################################################
 
-  Handle<SceneNode> Scene::createNode(
+  Handle<SceneNode> Scene::createMeshNode(
       Handle<Renderable> renderable,
       Vector3& position,
       Vector3& scale,
       Vector3& rotationAxis,
-      float rotationAngle,
       Handle<SceneNode> parent)
   {
     Handle<SceneNode> handle = nodes.reserve();
@@ -514,11 +659,47 @@ namespace smol
     node->type = SceneNode::MESH;
     node->parent = parent;
     node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z, rotationAngle);
+    node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z);
     node->transform.setScale(scale.x, scale.y, scale.z);
     node->transform.update();
 
     node->meshNode.renderable = renderable;
+
+    return handle;
+  }
+
+  Handle<SceneNode> Scene::createSpriteNode(
+      Handle<SpriteBatcher> batcher,
+      Rect& rect,
+      Vector3& position,
+      float width,
+      float height,
+      const Color& color,
+      int angle,
+      Handle<SceneNode> parent)
+  {
+    Handle<SceneNode> handle = nodes.reserve();
+    SceneNode* node = nodes.lookup(handle);
+
+    node->type = SceneNode::SPRITE;
+    node->parent = parent;
+    node->transform.setPosition(position.x, position.y, position.z);
+    node->transform.setRotation(0.0f, 0.0f, 1.0f);
+    node->transform.setScale(1.0f, 1.0f, 1.0f);
+    node->transform.update();
+    node->spriteNode.rect = rect;
+    node->spriteNode.batcher = batcher;
+    node->spriteNode.width = width;
+    node->spriteNode.height = height;
+    node->spriteNode.angle = angle;
+    node->spriteNode.color = color;
+
+    SpriteBatcher* batcherPtr = batchers.lookup(batcher);
+    if (batcherPtr)
+    {
+      batcherPtr->spriteCount++;
+      batcherPtr->dirty = true;
+    }
 
     return handle;
   }
@@ -529,6 +710,8 @@ namespace smol
     SceneNode* newNode = nodes.lookup(newHandle);
     SceneNode* original = nodes.lookup(handle);
     memcpy(newNode, original, sizeof(SceneNode));
+
+    //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
     return newHandle;
   }
 }

@@ -6,20 +6,20 @@
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_mat4.h>
+#include <smol/smol_transform.h>
+#include <smol/smol_color.h>
 
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
 #undef SMOL_GL_DEFINE_EXTERN
 
-#define SMOL_POSITION_ATTRIB_LOCATION   0
-#define SMOL_UV0_ATTRIB_LOCATION        1
-#define SMOL_UV1_ATTRIB_LOCATION        2
-#define SMOL_NORMAL_ATTRIB_LOCATION     3
-#define SMOL_COLOR_ATTRIB_LOCATION      4
+#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
+#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
 
 namespace smol
 {
   struct Image;
+  struct MeshData;
 
   enum RenderQueue : char
   {
@@ -37,8 +37,21 @@ namespace smol
     POINT
   };
 
+  struct SMOL_ENGINE_API Rect
+  {
+    int x, y, w, h;
+  };
+
+  struct SMOL_ENGINE_API Rectf
+  {
+    float x, y, w, h;
+  };
+
+
   struct SMOL_ENGINE_API Texture
   {
+    int width;
+    int height;
     GLuint textureObject;
   };
 
@@ -63,6 +76,17 @@ namespace smol
 
   struct SMOL_ENGINE_API Mesh
   {
+    enum Attribute
+    {
+      //Don't change these values. They're referenced from the shader
+      POSITION = 0,
+      UV0 = 1,
+      UV1 = 2,
+      NORMAL = 3,
+      COLOR = 4,
+      INDEX // this one does not point to an attribute buffer
+    };
+    bool dynamic;
     GLuint glPrimitive;
     GLuint vao;
     GLuint ibo;
@@ -71,10 +95,10 @@ namespace smol
     GLuint vboUV0;
     GLuint vboUV1;
     GLuint vboColor;
-
+    size_t verticesArraySize;
+    size_t indicesArraySize;
     unsigned int numIndices;
     unsigned int numVertices;
-    unsigned int numPrimitives;
   };
 
   struct SMOL_ENGINE_API Renderable
@@ -83,25 +107,21 @@ namespace smol
     Handle<Mesh> mesh;
   };
 
-  class SMOL_ENGINE_API Transform
+  struct SMOL_ENGINE_API SpriteBatcher
   {
-    Vector3 position;
-    Vector3 rotation;
-    Vector3 scale;
-    float angle;
-    bool dirty;
-    Mat4 model;
+    static const size_t positionsSize;
+    static const size_t indicesSize;
+    static const size_t colorsSize;
+    static const size_t uvsSize;
+    static const size_t totalSpriteSize;
 
-    public:
-    Transform::Transform();
-    void update();
-    const Mat4& getMatrix() const;
-    void setPosition(float x, float y, float z);
-    void setScale(float x, float y, float z);
-    void setRotation(float x, float y, float z, float angle);
-    const Vector3& getPosition() const;
-    const Vector3& getScale() const;
+    Handle<Renderable> renderable;
+    Arena arena;
+    int spriteCount;
+    int spriteCapacity;
+    bool dirty;
   };
+
 
   struct EmptySceneNode { };
 
@@ -112,19 +132,25 @@ namespace smol
 
   struct SpriteSceneNode
   {
-    float x, y, w, h;
-    smol::Renderable& renderable;
+    Handle<SpriteBatcher> batcher;
+    Rect rect;
+    float width;
+    float height;
+    Color color;
+    int angle;
   };
 
   struct SceneNode
   {
     enum SceneNodeType : char
     {
-      EMPTY,
+      EMPTY = 0,
       MESH,
-      SPRITE
+      SPRITE,
     };
 
+    bool active = true;
+    bool dirty = true; // changed this frame
     SceneNodeType type;
     Transform transform;
     Handle<SceneNode> parent;
@@ -143,6 +169,7 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
+template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
 
 namespace smol
 {
@@ -161,17 +188,24 @@ namespace smol
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
     smol::ResourceList<smol::SceneNode> nodes;
+    smol::ResourceList<smol::SpriteBatcher> batchers;
+    smol::Arena renderKeys;
+    smol::Arena renderKeysSorted;
     smol::Handle<smol::Texture> defaultTexture;
     smol::Handle<smol::ShaderProgram> defaultShader;
     smol::Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
     Mat4 projectionMatrix;
+    Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
 
     static const Handle<SceneNode> ROOT;
 
     Scene();
+
+    void setNodeActive(Handle<SceneNode> handle, bool status);
+    bool isNodeActive(Handle<SceneNode> handle);
 
     // Shaders
     Handle<ShaderProgram> Scene::createShader(const char* vsFilePath, const char* fsFilePath, const char* gsFilePath = nullptr);
@@ -191,13 +225,25 @@ namespace smol
     void destroyMaterial(Handle<Material> handle);
 
     // Meshes
-    Handle<Mesh> createMesh(Primitive primitive,
-        Vector3* vertices, size_t verticesArraySize,
-        unsigned int* indices, size_t indicesArraySize,
-        Vector3* color = nullptr, size_t colorArraySize = 0,
-        Vector2* uv0 = nullptr, size_t uv0ArraySize = 0,
-        Vector2* uv1 = nullptr, size_t uv1ArraySize = 0,
-        Vector3* normals = nullptr, size_t normalsArraySize = 0);
+
+    Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
+    Handle<Mesh> createMesh(bool dynamic,
+        Primitive primitive,
+        const Vector3* vertices, int numVertices,
+        const unsigned int* indices, int numIndices,
+        const Color* color = nullptr,
+        const Vector2* uv0 = nullptr,
+        const Vector2* uv1 = nullptr,
+        const Vector3* normals = nullptr);
+
+    void updateMesh(Handle<Mesh> handle,
+        const Vector3* vertices, int numVertices,
+        const unsigned int* indices, int numIndices,
+        const Color* color = nullptr,
+        const Vector2* uv0 = nullptr,
+        const Vector2* uv1 = nullptr,
+        const Vector3* normals = nullptr);
+
     void destroyMesh(Handle<Mesh> handle);
     void destroyMesh(Mesh* mesh);
 
@@ -206,15 +252,29 @@ namespace smol
     void destroyRenderable(Handle<Renderable> handle);
     void destroyRenderable(Renderable* renderable);
 
+    // Sprite Batcher
+    Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
+    void destroySpriteBatcher(Handle<SpriteBatcher> handle);
+
     // Scene Node
     //TODO(marcio): Implement createNode() for all node types
-    Handle<SceneNode> createNode(
+    Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
         Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
         Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
         Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
-        float rotationAngle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
+
+    Handle<SceneNode> createSpriteNode(
+        Handle<SpriteBatcher> batcher,
+        Rect& rect,
+        Vector3& position,
+        float width,
+        float height,
+        const Color& color = Color::WHITE,
+        int angle = 0,
+        Handle<SceneNode> parent = Scene::ROOT);
+
     Handle<SceneNode> destroyNode(Handle<SceneNode> handle);
     Handle<SceneNode> destroyNode(SceneNode* node);
     Handle<SceneNode> clone(Handle<SceneNode> handle);
