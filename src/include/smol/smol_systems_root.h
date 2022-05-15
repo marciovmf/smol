@@ -5,8 +5,12 @@
 
 namespace smol
 {
+  class Renderer;
+  struct Scene;
+
   struct SystemsRoot
   {
+    Renderer* renderer;
     Keyboard* keyboard; 
     Scene* loadedScene;    //TODO: Remove this. I just need some place to get a reference to the scene from the game side. This will probably be a scene manager in the future.
   };

@@ -66,6 +66,8 @@ namespace smol
       onGameStartCallback(&root);
 
       smol::Renderer renderer(*root.loadedScene, WIDTH, HEIGHT);
+      smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
+      root.renderer = &renderer;
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
