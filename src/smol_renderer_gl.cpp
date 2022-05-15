@@ -68,7 +68,6 @@ namespace smol
   {
     setScene(scene);
     resize(width, height);
-
     // set default value for attributes
     //glVertexAttrib3f(Mesh::COLOR, 1.0f, 0.0f, 1.0f);
   }
@@ -84,20 +83,22 @@ namespace smol
   }
 
 
-  Vector2 Renderer::getViewportSize()
+  Rect Renderer::getViewport()
   {
-    return Vector2((float)width, (float)height);
+    return viewport;
   }
 
   void Renderer::resize(int width, int height)
   {
-    this->width = width;
-    this->height = height;
+    this->viewport.w = width;
+    this->viewport.h = height;
+
+    glViewport(0, 0, width, height);
 
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-    scene->projectionMatrix = Mat4::perspective(120.0f, width/(float)height, 0.01f, 100.0f);
+    scene->projectionMatrix = Mat4::perspective(60.0f, width/(float)height, 0.01f, 100.0f);
     scene->projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -182,7 +183,7 @@ namespace smol
         uvRect.h = node.rect.h / (float) textureHeight;
 
         const Vector3& pos = transform.getPosition();
-        float posY = renderer->getViewportSize().y - pos.y;
+        float posY = renderer->getViewport().h - pos.y;
 
         {
           pVertex[0] = {pos.x,  posY, pos.z};                             // top left

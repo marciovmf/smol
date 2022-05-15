@@ -65,15 +65,31 @@ namespace smol
 
       onGameStartCallback(&root);
 
-      smol::Renderer renderer(*root.loadedScene, WIDTH, HEIGHT);
+      int lastWidth, lastHeight;
+      Platform::getWindowSize(window, &lastWidth, &lastHeight);
+
       smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
       root.renderer = &renderer;
+
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
         root.keyboard->update();
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         Platform::updateWindowEvents(window);
+
+        // check for resize.
+        //TODO(marcio): Make an event system so we get notified when this
+        //happens.
+        int windowWidth, windowHeight;
+        Platform::getWindowSize(window, &windowWidth, &windowHeight);
+        if (windowWidth != lastWidth || windowHeight != lastHeight)
+        {
+          lastWidth = windowWidth;
+          lastHeight = windowHeight;
+          renderer.resize(windowWidth, windowHeight);
+        }
+
         renderer.render();
       }
 
