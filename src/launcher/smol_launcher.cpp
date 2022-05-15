@@ -86,6 +86,8 @@ namespace smol
 
       // Initialize systems root
       smol::SystemsRoot root;
+      root.config = &config;
+
       root.keyboard = &smol::Keyboard();
       smol::Scene scene;
       root.loadedScene = &scene;
