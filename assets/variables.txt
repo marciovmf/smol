@@ -1,0 +1,5 @@
+# variables.txt
+
+window:         -1,
+  size:         {1080, 768},
+  caption:      "SMOL engine v0.1"
