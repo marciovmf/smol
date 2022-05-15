@@ -1,4 +1,6 @@
 #include <smol/smol_game.h>
+#include <smol/smol_renderer.h>
+#include <smol/smol_assetmanager.h>
 
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> node1;
@@ -34,10 +36,20 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   auto renderable = scene.createRenderable(material, mesh);
   auto renderable2 = scene.createRenderable(material2, mesh);
+  auto floor = scene.createRenderable(
+      scene.createMaterial(shader, &(scene.createTexture(*smol::AssetManager::createCheckersImage(600, 600, 100))) ,1),
+      scene.createMesh(false, &(smol::MeshData::getPrimitiveQuad()))
+      );
+
   batcher = scene.createSpriteBatcher(material);
 
-  //node1 = scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
-  //
+  scene.createMeshNode(floor, 
+      smol::Vector3{0.0f, -5.0f, -5.0f},
+      smol::Vector3{100.0f, 100.0f, 100.0f},
+      smol::Vector3{-90, 0.0f, 0.0f});
+
+  node1 = scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
+  
   node1 = scene.createSpriteNode(batcher,
       smol::Rect{120, 580, 710, 200},
       smol::Vector3{0.0f, 0.0f, 0.0f},
@@ -53,25 +65,24 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Vector3{400.0f, 200.0f, 0.0f},
       100.0f, 100.0f, smol::Color::BLUE);
 
-  node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3{0.0f, 0.0f, -2.0f},
+  scene.createMeshNode(renderable2, 
+      smol::Vector3{2.0f, 0.0f, -5.0f},
       smol::Vector3{0.3f, 0.3f, 0.3f});
 
   scene.createMeshNode(renderable2, 
-      smol::Vector3{-1.0f, 0.0f, -2.0f},
-      smol::Vector3{0.2f, 0.2f, 0.2f},
-      smol::Vector3{0.0f, 0.5f, 1.0f}, 30.0f);
+      smol::Vector3{-2.0f, 0.0f, -5.0f},
+      smol::Vector3{0.5f, 0.5f, 0.5f});
 
-  node3 = scene.createMeshNode(renderable2, 
-      smol::Vector3{1.6f, 0.0f, -4.0f},
-      smol::Vector3{0.2f, 0.2f, 0.2f},
-      smol::Vector3{0.5f, 1.0f, 0.0f}, 30.0f);
 
-  selectedNode = node2;
+  node3 = scene.createMeshNode(renderable2,
+      smol::Vector3{0.0f, 0.0f, -5.0f});
+
+  selectedNode = node3;
 }
 
-float angle = 0.0f;
+unsigned int angle = 0;
 bool once = true;
+
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
@@ -121,8 +132,10 @@ void onUpdate(float deltaTime)
     once = false;
     const int numHSprites = 20;
     const int numVSprites = 20;
-    float spriteWidth = 1080 /(float) numHSprites;
-    float spriteHeight = 768 /(float) numVSprites;
+    smol::Rect viewport =
+      root->renderer->getViewport();
+    float spriteWidth = viewport.w /(float) numHSprites;
+    float spriteHeight = viewport.h /(float) numVSprites;
 
     for (int x = 0; x < numHSprites; x++)
     {
@@ -202,13 +215,11 @@ void onUpdate(float deltaTime)
     scaleAmount = 1;
   }
 
-  smol::Transform* transform = scene.getTransform(selectedNode);
-
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
+    smol::Transform* transform = scene.getTransform(selectedNode);
     const float amount = 0.01f;
-    //const float moveAmount = selectedNode == node1 ? 1.0f : amount;
-    const float moveAmount = 1.0f;
+    const float moveAmount = selectedNode == node1 ? 1.0f : amount;
 
     const smol::Vector3& position = transform->getPosition();
     transform->setPosition(
@@ -224,10 +235,8 @@ void onUpdate(float deltaTime)
 
   }
 
-    transform = scene.getTransform(node3);
-    transform->setRotation(0.0f, 1.0f, 0.0f, angle);
-    angle+=0.05f;
-
+  smol::Transform* transform = scene.getTransform(node3);
+  transform->setRotation((float) ++angle, 30, -0.5f * angle);
 
 }
 
