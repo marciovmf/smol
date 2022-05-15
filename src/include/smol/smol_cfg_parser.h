@@ -3,6 +3,9 @@
 
 #include <smol/smol_engine.h>
 #include <smol/smol_arena.h>
+#include <smol/smol_vector2.h>
+#include <smol/smol_vector3.h>
+#include <smol/smol_vector4.h>
 
 #define SMOL_CONFIG_VAR_MAX_NAME_LEN 64
 
@@ -29,6 +32,13 @@ namespace smol
     int variableCount;
     ConfigVariable* variables;
     ConfigEntry* next;
+
+    float getVariableNumber(const char* name, float defaultValue = 1.0f);
+    Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f});
+    Vector3 getVariableVec3(const char* name, Vector3 defaultValue = {0.0f, 0.0f, 0.0f});
+    Vector2 getVariableVec2(const char* name, Vector2 defaultValue = {0.0f, 0.0f});
+    const char* getVariableString(const char* name, const char* defaultValue = nullptr);
+
   };
 
   struct SMOL_ENGINE_API Config

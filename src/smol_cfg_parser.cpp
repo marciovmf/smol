@@ -475,4 +475,72 @@ namespace smol
 
     return true;
   }
+
+
+  const char* typeToString(ConfigVariable::Type type)
+  {
+    char* typeName = "UNKNOWN";
+    switch (type)
+    {
+      case ConfigVariable::Type::STRING: typeName = "STRING"; break;
+      case ConfigVariable::Type::NUMBER: typeName = "NUNBER"; break;
+      case ConfigVariable::Type::VECTOR2: typeName = "VECTOR2"; break;
+      case ConfigVariable::Type::VECTOR3: typeName = "VECTOR3"; break;
+      case ConfigVariable::Type::VECTOR4: typeName = "VECTOR4"; break;
+    }
+    return typeName;
+  }
+
+  ConfigVariable* findVariable(ConfigEntry* entry, const char* name, ConfigVariable::Type type)
+  {
+    const size_t varNameLen = strlen(name);
+    ConfigVariable* result = nullptr;
+
+    for (int varIndex = 1; varIndex < entry->variableCount; varIndex++)
+    {
+      ConfigVariable* variable = &entry->variables[varIndex];
+      if (strncmp(variable->name, name, varNameLen) == 0)
+      {
+        if (variable->type != type)
+        {
+          Log::error("Requested variabe '%s' of type %s but found %s", name, typeToString(variable->type), typeToString(type));
+        }
+
+        result = variable;
+        break;
+      }
+    }
+
+    return result;
+  }
+
+  float ConfigEntry::getVariableNumber(const char* name, float defaultValue)
+  {
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::NUMBER);
+    return v ? v->numberValue : defaultValue;
+  }
+
+  Vector4 ConfigEntry::getVariableVec4(const char* name, Vector4 defaultValue)
+  {
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR4);
+    return v ? Vector4{v->vec4Value[0], v->vec4Value[1], v->vec4Value[2], v->vec4Value[3]} : defaultValue;
+  }
+
+  Vector3 ConfigEntry::getVariableVec3(const char* name, Vector3 defaultValue)
+  {
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR3);
+    return v ? Vector3{v->vec3Value[0], v->vec3Value[1], v->vec3Value[2]} : defaultValue;
+  }
+
+  Vector2 ConfigEntry::getVariableVec2(const char* name, Vector2 defaultValue)
+  {
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR2);
+    return v ? Vector2{v->vec3Value[0], v->vec3Value[1]} : defaultValue;
+  }
+
+  const char* ConfigEntry::getVariableString(const char* name, const char* defaultValue)
+  {
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::STRING);
+    return v ? v->stringValue : defaultValue;
+  }
 };
