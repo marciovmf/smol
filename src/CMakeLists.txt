@@ -77,11 +77,11 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/include/smol/smol_vector2.h
-  ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
-  ${SOURCE_PATH}/smol_cfg_parser.cpp
   ${SOURCE_PATH}/smol_vector2.cpp
   ${SOURCE_PATH}/include/smol/smol_vector3.h
   ${SOURCE_PATH}/smol_vector3.cpp
+  ${SOURCE_PATH}/include/smol/smol_vector4.h
+  ${SOURCE_PATH}/smol_vector4.cpp
   ${SOURCE_PATH}/include/smol/smol_mat4.h
   ${SOURCE_PATH}/smol_mat4.cpp
   ${SOURCE_PATH}/include/smol/smol_assetmanager.h
@@ -93,6 +93,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_renderer.h
   ${SOURCE_PATH}/smol_renderer_gl.cpp
   ${SOURCE_PATH}/include/smol/smol_scene.h
+  ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
+  ${SOURCE_PATH}/smol_cfg_parser.cpp
   ${SOURCE_PATH}/smol_scene.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
