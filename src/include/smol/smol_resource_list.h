@@ -7,6 +7,7 @@
 
 #define getSlotIndex(slotInfo) ((int)((char*) (slotInfo) - slots.data) / sizeof(SlotInfo))
 
+#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
 namespace smol
 {
   struct SlotInfo

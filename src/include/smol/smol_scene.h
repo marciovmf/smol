@@ -13,7 +13,6 @@
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
 #undef SMOL_GL_DEFINE_EXTERN
 
-#define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
 #define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
 
 namespace smol
