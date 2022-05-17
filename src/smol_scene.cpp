@@ -2,10 +2,7 @@
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_mesh_data.h>
-#define SMOL_GL_DEFINE_EXTERN
-#include <smol/smol_gl.h>
-#undef SMOL_GL_DEFINE_EXTERN
-
+#include <smol/smol_renderer.h>
 
 namespace smol
 {
@@ -22,8 +19,7 @@ namespace smol
   Scene::Scene():
     shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 
     batchers(8), renderKeys((size_t)255), renderKeysSorted((size_t)255),
-    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
-    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
+    clearColor(160/255.0f, 165/255.0f, 170/255.0f), clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
     Image* img = AssetManager::createCheckersImage(800, 600, 32);
@@ -90,36 +86,17 @@ namespace smol
 
   Handle<Texture> Scene::createTexture(const Image& image)
   {
-    Texture texture;
-    texture.width = image.width;
-    texture.height = image.height;
+    Handle<Texture> texture = textures.reserve();
+    Texture* texturePtr = textures.lookup(texture);
+    if (texturePtr && Renderer::createTextureFromImage(texturePtr, image))
+      return texture;
 
-    GLenum textureFormat = GL_RGBA;
-    GLenum textureType = GL_UNSIGNED_BYTE;
-
-    if (image.bitsPerPixel == 24)
-    {
-      textureFormat = GL_RGB;
-      textureType = GL_UNSIGNED_BYTE;
-    }
-    else if (image.bitsPerPixel == 16)
-    {
-      textureFormat = GL_RGB;
-      textureType = GL_UNSIGNED_SHORT_5_6_5;
-    }
-
-
-    glGenTextures(1, &texture.textureObject);
-    glBindTexture(GL_TEXTURE_2D, texture.textureObject);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    return textures.add(texture);
+    return INVALID_HANDLE(Texture);
   }
 
   void Scene::destroyTexture(Texture* texture)
   {
-    glDeleteTextures(1, &texture->textureObject);
+    Renderer::destroyTexture(texture);
   }
 
   void Scene::destroyTexture(Handle<Texture> handle)
@@ -198,220 +175,14 @@ namespace smol
   {
     Handle<Mesh> handle = meshes.reserve();
     Mesh* mesh = meshes.lookup(handle);
-    mesh->dynamic = dynamic;
-
-    if (primitive == Primitive::TRIANGLE)
-    {
-      mesh->glPrimitive = GL_TRIANGLES;
-    }
-    else if (primitive == Primitive::LINE)
-    {
-      mesh->glPrimitive = GL_LINES;
-    }
-    else if (primitive == Primitive::POINT)
-    {
-      mesh->glPrimitive = GL_POINTS;
-    }
-    else
-    {
-      debugLogWarning("Unknown primitive. Defaulting to TRIANGLE.");
-      mesh->glPrimitive = GL_TRIANGLES;
-    }
-
-    // VAO
-    glGenVertexArrays(1, &mesh->vao);
-    glBindVertexArray(mesh->vao);
-    GLenum bufferHint = dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
-
-    if (numVertices)
-    {
-      mesh->numVertices = numVertices;
-      mesh->verticesArraySize = numVertices * sizeof(Vector3);
-
-      glGenBuffers(1, &mesh->vboPosition);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
-      glBufferData(GL_ARRAY_BUFFER, mesh->verticesArraySize, vertices, bufferHint);
-      glVertexAttribPointer(Mesh::POSITION, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glEnableVertexAttribArray(Mesh::POSITION);
-    }
-
-    mesh->ibo = 0;
-    if (numIndices)
-    {
-      mesh->numIndices = numIndices;
-      mesh->indicesArraySize = numIndices * sizeof(unsigned int);
-
-      glGenBuffers(1, &mesh->ibo);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indicesArraySize, indices, bufferHint);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    }
-
-    mesh->vboColor = 0;
-    if(color)
-    {
-      glGenBuffers(1, &mesh->vboColor);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
-      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Color), color, bufferHint);
-      glVertexAttribPointer(Mesh::COLOR, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glEnableVertexAttribArray(Mesh::COLOR);
-    }
-    mesh->vboUV0 = 0;
-    if(uv0)
-    {
-      glGenBuffers(1, &mesh->vboUV0);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
-      glBufferData(GL_ARRAY_BUFFER, mesh->numVertices * sizeof(Vector2), uv0, bufferHint);
-      glVertexAttribPointer(Mesh::UV0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glEnableVertexAttribArray(Mesh::UV0);
-    }
-
-    mesh->vboUV1 = 0;
-    if(uv1)
-    {
-      glGenBuffers(1, &mesh->vboUV1);
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
-      glBufferData(GL_ARRAY_BUFFER,  mesh->numVertices * sizeof(Vector2), uv1, bufferHint);
-      glVertexAttribPointer(Mesh::UV1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glEnableVertexAttribArray(Mesh::UV1);
-    }
-
-    glBindVertexArray(0);
+    Renderer::createMesh(mesh, dynamic, primitive, vertices, numVertices, indices, numIndices, color, uv0, uv1, normals);
     return handle;
   }
 
-  void Scene::updateMesh(Handle<Mesh> handle,
-      const Vector3* vertices, int numVertices,
-      const unsigned int* indices, int numIndices,
-      const Color* color,
-      const Vector2* uv0,
-      const Vector2* uv1,
-      const Vector3* normals)
+  void Scene::updateMesh(Handle<Mesh> handle, MeshData* meshData)
   {
-
     Mesh* mesh = meshes.lookup(handle);
-    if (!mesh->dynamic)
-    {
-      Log::warning("Unable to update a static mesh");
-      return;
-    }
-
-    bool resizeBuffers = false;
-
-    if (vertices)
-    {
-      size_t verticesArraySize = numVertices * sizeof(Vector3);
-
-      glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
-      if (verticesArraySize > mesh->verticesArraySize)
-      {
-        resizeBuffers = true;
-        mesh->verticesArraySize = verticesArraySize;
-        glBufferData(GL_ARRAY_BUFFER, verticesArraySize, vertices, GL_DYNAMIC_DRAW);
-      }
-      else
-      {
-        glBufferSubData(GL_ARRAY_BUFFER, 0, verticesArraySize, vertices);
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
-    }
-
-    if (indices)
-    {
-      if (!mesh->ibo)
-      {
-        Log::warning("Unable to update indices for mesh created without index buffer.");
-      }
-      else
-      {
-        size_t indicesArraySize = numIndices * sizeof(unsigned int);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-        if (indicesArraySize > mesh->indicesArraySize)
-        {
-          mesh->indicesArraySize = indicesArraySize;
-          glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, indices, GL_DYNAMIC_DRAW);
-        }
-        else
-        {
-          glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesArraySize, indices);
-        }
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        mesh->numIndices = (unsigned int) (indicesArraySize / sizeof(unsigned int));
-      }
-    }
-
-    if(color)
-    {
-      if (!mesh->vboColor)
-      {
-        Log::warning("Unable to update color for mesh created without color buffer.");
-      }
-      else
-      {
-        size_t size =  mesh->numVertices * sizeof(Color);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
-        if (resizeBuffers)
-        {
-          glBufferData(GL_ARRAY_BUFFER, size, color, GL_DYNAMIC_DRAW);
-        }
-        else
-        {
-          glBufferSubData(GL_ARRAY_BUFFER, 0, size, color);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-      }
-    }
-
-    if(uv0)
-    {
-      if (!mesh->vboUV0)
-      {
-        Log::warning("Unable to update UV0 for mesh created without UV0 buffer.");
-      }
-      else
-      {
-        size_t size = mesh->numVertices * sizeof(Vector2);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
-        if(resizeBuffers)
-        {
-          glBufferData(GL_ARRAY_BUFFER, size, uv0, GL_DYNAMIC_DRAW);
-        }
-        else
-        {
-          glBufferSubData(GL_ARRAY_BUFFER, 0, size, uv0);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-      }
-    }
-
-    if(uv1)
-    {
-      if (!mesh->vboUV1)
-      {
-        Log::warning("Unable to update UV1 for mesh created without UV1 buffer.");
-      }
-      else
-      {
-        size_t size = mesh->numVertices * sizeof(Vector2);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
-        if(resizeBuffers)
-        {
-          glBufferData(GL_ARRAY_BUFFER, size, uv1, GL_DYNAMIC_DRAW);
-        }
-        else
-        {
-          glBufferSubData(GL_ARRAY_BUFFER, 0, size, uv1);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-      }
-    }
+    Renderer::updateMesh(mesh, meshData);
   }
 
   void Scene::destroyMesh(Mesh* mesh)
@@ -514,94 +285,9 @@ namespace smol
 
   Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource)
   {
-    //TODO(marcio): There must be a "default" shader we might use in case we fail to build a shader program.
-
     Handle<ShaderProgram> handle = shaders.reserve();
     ShaderProgram* shader = shaders.lookup(handle);
-    shader->valid = false;
-    shader->programId = 0;
-
-    GLint status;
-    const int errorLogSize = 1024;
-    GLsizei errorBufferLen = 0;
-    char errorBuffer[errorLogSize];
-
-    // vertex shader
-    GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vShader, 1, &vsSource, 0);
-    glCompileShader(vShader);
-    glGetShaderiv(vShader, GL_COMPILE_STATUS, &status);
-
-    if (! status)
-    {
-      glGetShaderInfoLog(vShader, errorLogSize, &errorBufferLen, errorBuffer);
-      smol::Log::error("Compiling VERTEX SHADER: %s\n", errorBuffer);
-      glDeleteShader(vShader);
-      return handle;
-    }
-
-    // fragment shader
-    GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fShader, 1, &fsSource, 0);
-    glCompileShader(fShader);
-    glGetShaderiv(fShader, GL_COMPILE_STATUS, &status);
-
-    if (! status)
-    {
-      glGetShaderInfoLog(fShader, errorLogSize, &errorBufferLen, errorBuffer);
-      smol::Log::error("Compiling FRAGMENT SHADER: %s\n", errorBuffer);
-      glDeleteShader(vShader);
-      glDeleteShader(fShader);
-      return handle;
-    }
-
-    // geometry shader
-    GLuint gShader = 0;
-
-    if (gsSource)
-    {
-      gShader = glCreateShader(GL_GEOMETRY_SHADER);
-      glShaderSource(gShader, 1, &gsSource, 0);
-      glCompileShader(gShader);
-      glGetShaderiv(gShader, GL_COMPILE_STATUS, &status);
-
-      if (! status)
-      {
-        glGetShaderInfoLog(fShader, errorLogSize, &errorBufferLen, errorBuffer);
-        smol::Log::error("Compiling FRAGMENT SHADER: %s\n", errorBuffer);
-        glDeleteShader(vShader);
-        glDeleteShader(fShader);
-        glDeleteShader(gShader);
-        return handle;
-      }
-    }
-
-    // shader program
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vShader);
-    glAttachShader(program, fShader);
-    if (gShader) glAttachShader(program, fShader);
-
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &status);
-
-    if (! status)
-    {
-      glGetProgramInfoLog(program, errorLogSize, &errorBufferLen, errorBuffer);
-      smol::Log::error("linking SHADER: %s\n", errorBuffer);
-      glDeleteShader(vShader);
-      glDeleteShader(fShader);
-      if (gShader) glDeleteShader(gShader);
-      glDeleteProgram(program);
-      return handle;
-    }
-
-    glDeleteShader(vShader);
-    glDeleteShader(fShader);
-    if (gShader) glDeleteShader(gShader);
-
-    shader->programId = program;
-    shader->valid = true;
+    Renderer::createShaderProgram(shader, vsSource, fsSource, gsSource);
     return handle;
   }
 
