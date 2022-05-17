@@ -67,10 +67,10 @@ namespace smol
     yRot.e[2][2] = (float)(cy);
     
     Mat4 zRot = Mat4::initIdentity();
-    zRot.e[0][0] = (float)(cy);
-    zRot.e[0][1] = (float)(sy);
-    zRot.e[1][0] = (float)(-sy);
-    zRot.e[1][1] = (float)(cy);
+    zRot.e[0][0] = (float)(cz);
+    zRot.e[0][1] = (float)(sz);
+    zRot.e[1][0] = (float)(-sz);
+    zRot.e[1][1] = (float)(cz);
 
     return Mat4::mul(zRot, Mat4::mul(yRot, xRot));
   }
