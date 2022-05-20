@@ -48,28 +48,23 @@ namespace smol
   void Scene::setNodeActive(Handle<SceneNode> handle, bool status)
   {
     SceneNode* node = nodes.lookup(handle);
-    if(!node) return;
     node->active = status;
-    node->dirty = true;
   }
 
   bool Scene::isNodeActive(Handle<SceneNode> handle)
   {
+    return true;
     SceneNode* node = nodes.lookup(handle);
-    if(!node) return false;
+    if(!node)
+      return true;
 
-    return node->active;
+    return isNodeActive(node->transform.getParent());
   }
 
-
-  Transform* Scene::getTransform(Handle<SceneNode> handle)
+  Transform* Scene::getTransform(Handle<SceneNode> node)
   {
-    SceneNode* sceneNode = nodes.lookup(handle);
-
-    if (!sceneNode)
-      return nullptr;
-
-    return &sceneNode->transform;
+    SceneNode* nodePtr = nodes.lookup(node);
+    return nodePtr ? &nodePtr->transform : nullptr;
   }
 
   // ##################################################################
@@ -187,17 +182,7 @@ namespace smol
 
   void Scene::destroyMesh(Mesh* mesh)
   {
-    GLuint buffers[SMOL_MAX_BUFFERS_PER_MESH];
-    int numBuffers = 0;
-
-    if (mesh->ibo) buffers[numBuffers++] = mesh->ibo;
-    if (mesh->vboPosition) buffers[numBuffers++] = mesh->vboPosition;
-    if (mesh->vboNormal) buffers[numBuffers++] = mesh->vboNormal;
-    if (mesh->vboUV0) buffers[numBuffers++] = mesh->vboUV0;
-    if (mesh->vboUV1) buffers[numBuffers++] = mesh->vboUV1;
-
-    glDeleteBuffers(numBuffers, (const GLuint*) buffers);
-    glDeleteVertexArrays(1, (const GLuint*) &mesh->vao);
+    Renderer::destroyMesh(mesh);
   }
 
   void Scene::destroyMesh(Handle<Mesh> handle)
@@ -300,7 +285,6 @@ namespace smol
     char* vertexSource = vsFilePath ? Platform::loadFileToBufferNullTerminated(vsFilePath) : nullptr;
     char* fragmentSource = fsFilePath ? Platform::loadFileToBufferNullTerminated(fsFilePath) : nullptr;
     char* geometrySource = gsFilePath ? Platform::loadFileToBufferNullTerminated(gsFilePath) : nullptr;
-
     Handle<ShaderProgram> handle = createShaderFromSource(vertexSource, fragmentSource, geometrySource);
 
     if (vertexSource) Platform::unloadFileBuffer(vertexSource);
@@ -311,7 +295,7 @@ namespace smol
 
   void Scene::destroyShader(ShaderProgram* program)
   {
-    glDeleteProgram(program->programId);
+    Renderer::destroyShaderProgram(program);
   }
 
   void Scene::destroyShader(Handle<ShaderProgram> handle)
@@ -336,21 +320,19 @@ namespace smol
       Handle<Renderable> renderable,
       Vector3& position,
       Vector3& scale,
-      Vector3& rotationAxis,
+      Vector3& rotation,
       Handle<SceneNode> parent)
   {
     Handle<SceneNode> handle = nodes.reserve();
     SceneNode* node = nodes.lookup(handle);
 
     node->type = SceneNode::MESH;
-    node->parent = parent;
-    node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z);
-    node->transform.setScale(scale.x, scale.y, scale.z);
-    node->transform.update();
-
+    node->transform.setParent(parent);
+    node->transform.setPosition(position);
+    node->transform.setRotation(rotation);
+    node->transform.setScale(scale);
+    node->transform.update(&nodes);
     node->meshNode.renderable = renderable;
-
     return handle;
   }
 
@@ -368,11 +350,11 @@ namespace smol
     SceneNode* node = nodes.lookup(handle);
 
     node->type = SceneNode::SPRITE;
-    node->parent = parent;
-    node->transform.setPosition(position.x, position.y, position.z);
+    node->transform.setParent(parent);
+    node->transform.setPosition(position);
     node->transform.setRotation(0.0f, 0.0f, 1.0f);
     node->transform.setScale(1.0f, 1.0f, 1.0f);
-    node->transform.update();
+    node->transform.update(&nodes);
     node->spriteNode.rect = rect;
     node->spriteNode.batcher = batcher;
     node->spriteNode.width = width;
@@ -400,8 +382,19 @@ namespace smol
     //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
     return newHandle;
   }
+
+  void Scene::destroyNode(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node)
+    {
+      return;
+    }
+
+    nodes.remove(handle);
+  }
+
 }
 
 #undef INVALID_HANDLE
 #undef warnInvalidHandle
-

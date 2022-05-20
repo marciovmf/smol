@@ -46,7 +46,6 @@ namespace smol
     float x, y, w, h;
   };
 
-
   struct SMOL_ENGINE_API Texture
   {
     int width;
@@ -121,7 +120,6 @@ namespace smol
     bool dirty;
   };
 
-
   struct EmptySceneNode { };
 
   struct MeshSceneNode
@@ -148,11 +146,12 @@ namespace smol
       SPRITE,
     };
 
+    //Handle<SceneNode> parent;
     bool active = true;
     bool dirty = true; // changed this frame
     SceneNodeType type;
     Transform transform;
-    Handle<SceneNode> parent;
+
 
     union
     {
@@ -203,8 +202,11 @@ namespace smol
 
     Scene();
 
+    // Node handling
     void setNodeActive(Handle<SceneNode> handle, bool status);
     bool isNodeActive(Handle<SceneNode> handle);
+    void setParent(Handle<SceneNode> node, Handle<SceneNode> parent);
+    Handle<SceneNode> getParent(Handle<SceneNode> parent);
 
     // Shaders
     Handle<ShaderProgram> Scene::createShader(const char* vsFilePath, const char* fsFilePath, const char* gsFilePath = nullptr);
@@ -224,7 +226,6 @@ namespace smol
     void destroyMaterial(Handle<Material> handle);
 
     // Meshes
-
     Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
@@ -255,7 +256,7 @@ namespace smol
         Handle<Renderable> renderable,
         Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
         Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
-        Vector3& rotationAxis = Vector3{0.0f, 0.0f, 0.0f},
+        Vector3& rotation = Vector3{0.0f, 0.0f, 0.0f},
         Handle<SceneNode> parent = Scene::ROOT);
 
     Handle<SceneNode> createSpriteNode(
@@ -268,8 +269,8 @@ namespace smol
         int angle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
-    Handle<SceneNode> destroyNode(Handle<SceneNode> handle);
-    Handle<SceneNode> destroyNode(SceneNode* node);
+    void destroyNode(Handle<SceneNode> handle);
+    void destroyNode(SceneNode* node);
     Handle<SceneNode> clone(Handle<SceneNode> handle);
 
     // misc

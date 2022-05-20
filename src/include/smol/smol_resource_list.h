@@ -8,6 +8,7 @@
 #define getSlotIndex(slotInfo) ((int)((char*) (slotInfo) - slots.data) / sizeof(SlotInfo))
 
 #define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
+
 namespace smol
 {
   struct SlotInfo
@@ -128,8 +129,13 @@ namespace smol
   template <typename T>
     T* ResourceList<T>::lookup(Handle<T> handle)
     {
-      SMOL_ASSERT(handle.slotIndex < slots.capacity, "Handle slot is out of bounds");
-      SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
+      //SMOL_ASSERT(handle.slotIndex < slots.capacity, "Handle slot is out of bounds");
+      //SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
+      if (handle.slotIndex >= slots.capacity || handle.slotIndex < 0)
+      {
+        //Log::warning("Attempting to lookup a Handle slot out of bounds");
+        return nullptr;
+      }
 
       SlotInfo* slotInfo = ((SlotInfo*) slots.data) + handle.slotIndex;
       T* resource = nullptr;
@@ -147,8 +153,15 @@ namespace smol
       // When deleting any resource (other than the last one) we actually
       // move the last resource to the place of the one being deleted
       // and fix the it's slot so it points to the correct resource index.
-      SMOL_ASSERT(handle.slotIndex < slots.capacity / sizeof(T), "Handle slot is out of bounds");
-      SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
+
+      //SMOL_ASSERT(handle.slotIndex < slots.capacity / sizeof(T), "Handle slot is out of bounds");
+      //SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
+      if (handle.slotIndex >= slots.capacity / sizeof(T) || handle.slotIndex < 0)
+      {
+        Log::warning("Attempting to remove a Handle slot out of bounds");
+        return;
+      }
+
       SlotInfo* slotOfLast = ((SlotInfo*) slots.data) + (resourceCount-1);
       SlotInfo* slotOfRemoved = ((SlotInfo*)  slots.data) + handle.slotIndex;
       ++slotOfRemoved->version;

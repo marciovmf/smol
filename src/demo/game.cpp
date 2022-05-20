@@ -48,9 +48,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Vector3{100.0f, 100.0f, 100.0f},
       smol::Vector3{-90, 0.0f, 0.0f});
 
-  node1 = scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
-  
-  node1 = scene.createSpriteNode(batcher,
+  scene.createSpriteNode(batcher,
       smol::Rect{120, 580, 710, 200},
       smol::Vector3{0.0f, 0.0f, 0.0f},
       350.0f, 100.0f, smol::Color::WHITE);
@@ -66,18 +64,20 @@ void onStart(smol::SystemsRoot* systemsRoot)
       100.0f, 100.0f, smol::Color::BLUE);
 
   scene.createMeshNode(renderable2, 
-      smol::Vector3{2.0f, 0.0f, -5.0f},
-      smol::Vector3{0.3f, 0.3f, 0.3f});
-
-  scene.createMeshNode(renderable2, 
       smol::Vector3{-2.0f, 0.0f, -5.0f},
       smol::Vector3{0.5f, 0.5f, 0.5f});
 
+  node1 = scene.createMeshNode(renderable2,
+      smol::Vector3{0.0f, 0.0f, -5.0f},
+      smol::Vector3{1.0f, 1.0f, 1.0f});
 
-  node3 = scene.createMeshNode(renderable2,
-      smol::Vector3{0.0f, 0.0f, -5.0f});
+  node2 = scene.createMeshNode(renderable2, 
+      smol::Vector3{0.0f, 3.0f, 0.0f},
+      smol::Vector3{1.0f, 1.0f, 1.0f},
+      smol::Vector3{0.0f, 0.0f, 0.0f},
+      node1);
 
-  selectedNode = node3;
+  selectedNode = node2;
 }
 
 unsigned int angle = 0;
@@ -121,10 +121,7 @@ void onUpdate(float deltaTime)
         break;
     }
 
-    scene.updateMesh(mesh,
-        m->positions, m->numPositions,
-        m->indices, m->numIndices,
-        m->colors, m->uv0, m->uv1, m->normals);
+    scene.updateMesh(mesh, (smol::MeshData*) m);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
@@ -167,8 +164,8 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
   {
-    //scene.clone(selectedNode);
-    scene.setNodeActive(selectedNode, !scene.isNodeActive(selectedNode));
+    scene.clone(selectedNode);
+    //scene.setNodeActive(selectedNode, !scene.isNodeActive(selectedNode));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB))
@@ -218,25 +215,31 @@ void onUpdate(float deltaTime)
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
     smol::Transform* transform = scene.getTransform(selectedNode);
-    const float amount = 0.01f;
-    const float moveAmount = selectedNode == node1 ? 1.0f : amount;
+    if (transform)
+    {
+      const float amount = 0.04f;
+      const float moveAmount = amount;// selectedNode == node1 ? 1.0f : amount;
 
-    const smol::Vector3& position = transform->getPosition();
-    transform->setPosition(
-        moveAmount * xDirection + position.x,
-        moveAmount * yDirection + position.y,
-        moveAmount * zDirection + position.z);
+      const smol::Vector3& position = transform->getPosition();
+      transform->setPosition(
+          moveAmount * xDirection + position.x,
+          moveAmount * yDirection + position.y,
+          moveAmount * zDirection + position.z);
 
-    const smol::Vector3& scale = transform->getScale();
-    transform->setScale(
-        amount * scaleAmount + scale.x,
-        amount * scaleAmount + scale.y,
-        amount * scaleAmount + scale.z);
-
+      const smol::Vector3& scale = transform->getScale();
+      transform->setScale(
+          amount * scaleAmount + scale.x,
+          amount * scaleAmount + scale.y,
+          amount * scaleAmount + scale.z);
+    }
   }
 
-  smol::Transform* transform = scene.getTransform(node3);
-  transform->setRotation((float) ++angle, 30, -0.5f * angle);
+  smol::Transform* transform = scene.getTransform(node1);
+  if (transform)
+  {
+    float a = (float) ++angle;
+    transform->setRotation(0, a, 0);
+  }
 
 }
 

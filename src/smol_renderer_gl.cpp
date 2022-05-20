@@ -620,13 +620,12 @@ namespace smol
 
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
-
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->dirty |= node->transform.update();
+      node->dirty |= node->transform.update(&scene.nodes);
       bool discard = false;
 
       switch(node->type)
