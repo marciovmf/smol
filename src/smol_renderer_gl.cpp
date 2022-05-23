@@ -5,6 +5,8 @@
 
 namespace smol
 {
+  ShaderProgram Renderer::defaultShader = {};
+
   //Radix sort 64bit values by the lower 32bit values.
   //param elements - pointer to 64bit integers to be sorted.
   //param elementCount - number of elements on elements array.
@@ -208,7 +210,32 @@ namespace smol
     outShader->programId = program;
     outShader->valid = true;
     return true;
+  }
 
+  ShaderProgram Renderer::getDefaultShaderProgram()
+  {
+    if (defaultShader.valid)
+    {
+      return defaultShader;
+    }
+
+    const char* defaultVShader =
+      "#version 330 core\n\
+      layout (location = 0) in vec3 vertPos;\n\
+      layout (location = 1) in vec2 vertUVIn;\n\
+      uniform mat4 proj;\n\
+      out vec2 uv;\n\
+      void main() { gl_Position = proj * vec4(vertPos, 1.0); uv = vertUVIn; }";
+
+    const char* defaultFShader =
+      "#version 330 core\n\
+      out vec4 fragColor;\n\
+      uniform sampler2D mainTex;\n\
+      in vec2 uv;\n\
+      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
+
+    createShaderProgram(&defaultShader, defaultVShader, defaultFShader, nullptr);
+    return defaultShader;
   }
 
   void Renderer::destroyShaderProgram(ShaderProgram* program)

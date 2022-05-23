@@ -6,7 +6,6 @@
 
 namespace smol
 {
-
   const size_t SpriteBatcher::positionsSize = 4 * sizeof(Vector3);
   const size_t SpriteBatcher::colorsSize = 4 * sizeof(Color);
   const size_t SpriteBatcher::uvsSize = 4 * sizeof(Vector2);
@@ -26,22 +25,10 @@ namespace smol
     defaultTexture = createTexture(*img);
     AssetManager::unloadImage(img);
 
-    const char* defaultVShader =
-      "#version 330 core\n\
-      layout (location = 0) in vec3 vertPos;\n\
-      layout (location = 1) in vec2 vertUVIn;\n\
-      uniform mat4 proj;\n\
-      out vec2 uv;\n\
-      void main() { gl_Position = proj * vec4(vertPos, 1.0); uv = vertUVIn; }";
+    // store the default shader program in the scene
+    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    defaultShader = shaders.add(program);
 
-    const char* defaultFShader =
-      "#version 330 core\n\
-      out vec4 fragColor;\n\
-      uniform sampler2D mainTex;\n\
-      in vec2 uv;\n\
-      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
-
-    defaultShader = createShaderFromSource(defaultVShader, defaultFShader, nullptr);
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
   }
 
