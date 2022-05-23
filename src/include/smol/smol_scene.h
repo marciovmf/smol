@@ -62,8 +62,8 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::Texture>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
+template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
 
 namespace smol
 {

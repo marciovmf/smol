@@ -113,11 +113,4 @@ namespace smol
   };
 }
 
-template class SMOL_ENGINE_API smol::ResourceList<smol::ShaderProgram>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Texture>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
-
 #endif  // SMOL_RENDERER_TYPES_H
