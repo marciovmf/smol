@@ -140,7 +140,7 @@ void onUpdate(float deltaTime)
       {
         scene.createSpriteNode(batcher, 
             smol::Rect{0, 0, 800, 800},
-            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.0f},
+            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.1f},
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
       }
