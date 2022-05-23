@@ -6,6 +6,8 @@
 #include <smol/smol_mat4.h>
 #include <smol/smol_resource_list.h>
 
+#define DEFAULT_PARENT_NODE (Handle<SceneNode>{(int) 0, (int) 0})
+
 namespace smol
 {
   struct SceneNode;
@@ -16,10 +18,15 @@ namespace smol
     Vector3 rotation;
     Vector3 scale;
     bool dirty;
-    Mat4 model;
     Handle<SceneNode> parent;
+    Mat4 model;
 
     public:
+    Transform(Vector3 position = Vector3{0.0f, 0.0f, 0.0f}, 
+        Vector3 rotation = Vector3{0.0f, 0.0f, 0.0f},
+        Vector3 scale = Vector3{1.0f, 1.0f, 1.0f}, 
+        Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+
     bool update(ResourceList<SceneNode>* nodes);
     const Mat4& getMatrix() const;
     void setPosition(float x, float y, float z);
@@ -28,12 +35,13 @@ namespace smol
     void setScale(Vector3& scale);
     void setRotation(float x, float y, float z);
     void setRotation(Vector3& rotation);
+
     void setParent(Handle<SceneNode> parent);
+    Handle<SceneNode> getParent();
 
     const Vector3& getPosition() const;
     const Vector3& getScale() const;
     const Vector3& getRotation() const;
-    const Handle<SceneNode> getParent();
     bool isDirty() const;
   };
 }

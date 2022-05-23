@@ -1,10 +1,18 @@
-#include <smol/smol_gl.h>
+
+#include <smol/smol_gl.h>             // must be included first
 #include <smol/smol_renderer.h>
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_mesh_data.h>
+#include <smol/smol_scene.h>
 
 namespace smol
 {
+  ShaderProgram Renderer::defaultShader = {};
+
+  //
+  // internal utility functions
+  //
+
   //Radix sort 64bit values by the lower 32bit values.
   //param elements - pointer to 64bit integers to be sorted.
   //param elementCount - number of elements on elements array.
@@ -66,12 +74,156 @@ namespace smol
     return (uint32) (key >> 32);
   }
 
+  // This function assumes a material is already bound
+  static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
+  {
+    Mesh* mesh = scene->meshes.lookup(renderable->mesh);
+
+    glBindVertexArray(mesh->vao);
+
+    if (mesh->ibo != 0)
+    {
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+      glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+    else
+    {
+      glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
+    }
+
+    glBindVertexArray(0);
+  }
+
+  static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList)
+  {
+    // do we need to copy node data into GPU buffers ?
+    if (batcher->dirty)
+    {
+      Renderable* renderable = scene->renderables.lookup(batcher->renderable);
+      Material* material = scene->materials.lookup(renderable->material);
+      if (!material) material = scene->materials.lookup(scene->defaultMaterial);
+
+      Texture* texture = (material->diffuseTextureCount > 0) ?
+        scene->textures.lookup(material->textureDiffuse[0]) :
+        scene->textures.lookup(scene->defaultTexture);
+
+      Mesh* mesh = scene->meshes.lookup(renderable->mesh);
+
+      const float textureWidth  = (float) texture->width;
+      const float textureHeight = (float) texture->height;
+      const size_t totalSize    = batcher->spriteCount * SpriteBatcher::totalSpriteSize;
+
+      batcher->arena.reset();
+      char* memory = batcher->arena.pushSize(totalSize);
+      Vector3* positions = (Vector3*)(memory);
+      Color* colors = (Color*)(positions + batcher->spriteCount * 4);
+      Vector2* uvs = (Vector2*)(colors + batcher->spriteCount * 4);
+      unsigned int* indices = (unsigned int*)(uvs + batcher->spriteCount * 4);
+
+      Vector3* pVertex = positions;
+      Color* pColors = colors;
+      Vector2* pUVs = uvs;
+      unsigned int* pIndices = indices;
+
+      const SceneNode* allNodes = scene->nodes.getArray();
+      int offset = 0;
+
+      for (int i = 0; i < batcher->spriteCount; i++)
+      {
+        uint64 key = ((uint64*)renderKeyList)[i];
+        SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+
+        //if (!sceneNode->active)
+        //  continue;
+
+        Transform& transform = sceneNode->transform;
+        SpriteSceneNode& node = sceneNode->spriteNode;
+
+        // convert UVs from pixels to 0~1 range
+        // pixel coords origin is at top left corner
+        Rectf uvRect;
+        uvRect.x = node.rect.x / (float) textureWidth;
+        uvRect.y = 1 - (node.rect.y /(float) textureHeight); 
+        uvRect.w = node.rect.w / (float) textureWidth;
+        uvRect.h = node.rect.h / (float) textureHeight;
+
+        const Vector3& pos = transform.getPosition();
+        float posY = renderer->getViewport().h - pos.y;
+
+        {
+          pVertex[0] = {pos.x,  posY, pos.z};                             // top left
+          pVertex[1] = {pos.x + node.width,  posY - node.height, pos.z};  // bottom right
+          pVertex[2] = {pos.x + node.width,  posY, pos.z};                // top right
+          pVertex[3] = {pos.x, posY - node.height, pos.z};                // bottom left
+          pVertex += 4;
+
+          pColors[0] = node.color;                                        // top left
+          pColors[1] = node.color;                                        // bottom right
+          pColors[2] = node.color;                                        // top right
+          pColors[3] = node.color;                                        // bottom left
+          pColors += 4;
+
+          pUVs[0] = {uvRect.x, uvRect.y};                                 // top left 
+          pUVs[1] = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};           // bottom right
+          pUVs[2] = {uvRect.x + uvRect.w, uvRect.y};                      // top right
+          pUVs[3] = {uvRect.x, uvRect.y - uvRect.h};                      // bottom left
+          pUVs += 4;
+
+          pIndices[0] = offset + 0;
+          pIndices[1] = offset + 1;
+          pIndices[2] = offset + 2;
+          pIndices[3] = offset + 0;
+          pIndices[4] = offset + 3;
+          pIndices[5] = offset + 1;
+          pIndices += 6;
+          offset += 4;
+        }
+      }
+
+      MeshData meshData(positions, 4 * batcher->spriteCount,
+          indices, 6 * batcher->spriteCount, colors, nullptr, uvs);
+
+      Renderer::updateMesh(mesh, &meshData);
+      batcher->dirty = false;
+    }
+
+    return batcher->spriteCount;
+  }
+
+  //
+  // Misc
+  //
+
   Renderer::Renderer(Scene& scene, int width, int height)
   {
     setScene(scene);
     resize(width, height);
-    // set default value for attributes
-    //glVertexAttrib3f(Mesh::COLOR, 1.0f, 0.0f, 1.0f);
+  }
+
+  Renderer::~Renderer()
+  {
+    int numMeshes = scene->meshes.count();
+    const Mesh* allMeshes = scene->meshes.getArray();
+    for (int i=0; i < numMeshes; i++) 
+    {
+      const Mesh* mesh = &allMeshes[i];
+      scene->destroyMesh((Mesh*) mesh);
+    }
+
+    int numTextures = scene->textures.count();
+    const Texture* allTextures = scene->textures.getArray();
+    for (int i=0; i < numTextures; i++) 
+    {
+      const Texture* texture = &allTextures[i];
+      destroyTexture((Texture*) texture);
+    }
+
+    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, tsprite batchers: %d, tscene nodes: %d.", 
+        numTextures, numMeshes,
+        scene->renderables.count(),
+        scene->batchers.count(),
+        scene->nodes.count());
   }
 
   void Renderer::setScene(Scene& scene)
@@ -88,6 +240,10 @@ namespace smol
   {
     return viewport;
   }
+
+  //
+  // Texture resources
+  //
 
   bool Renderer::createTextureFromImage(Texture* outTexture, const Image& image)
   {
@@ -120,6 +276,10 @@ namespace smol
   {
     glDeleteTextures(1, &texture->textureObject);
   }
+
+  //
+  // Shader resources
+  //
 
   bool Renderer::createShaderProgram(ShaderProgram* outShader, const char* vsSource, const char* fsSource, const char* gsSource)
   {
@@ -208,13 +368,42 @@ namespace smol
     outShader->programId = program;
     outShader->valid = true;
     return true;
+  }
 
+  ShaderProgram Renderer::getDefaultShaderProgram()
+  {
+    if (defaultShader.valid)
+    {
+      return defaultShader;
+    }
+
+    const char* defaultVShader =
+      "#version 330 core\n\
+      layout (location = 0) in vec3 vertPos;\n\
+      layout (location = 1) in vec2 vertUVIn;\n\
+      uniform mat4 proj;\n\
+      out vec2 uv;\n\
+      void main() { gl_Position = proj * vec4(vertPos, 1.0); uv = vertUVIn; }";
+
+    const char* defaultFShader =
+      "#version 330 core\n\
+      out vec4 fragColor;\n\
+      uniform sampler2D mainTex;\n\
+      in vec2 uv;\n\
+      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
+
+    createShaderProgram(&defaultShader, defaultVShader, defaultFShader, nullptr);
+    return defaultShader;
   }
 
   void Renderer::destroyShaderProgram(ShaderProgram* program)
   {
     glDeleteProgram(program->programId);
   }
+
+  //
+  // Mesh resources
+  //
 
   bool Renderer::createMesh(Mesh* outMesh,
       bool dynamic, Primitive primitive,
@@ -455,6 +644,10 @@ namespace smol
     glDeleteVertexArrays(1, (const GLuint*) &mesh->vao);
   }
 
+  //
+  // Render
+  //
+
   void Renderer::resize(int width, int height)
   {
     this->viewport.w = width;
@@ -473,123 +666,6 @@ namespace smol
     glDepthFunc(GL_LESS);  
     glEnable(GL_CULL_FACE); 
     glCullFace(GL_BACK);
-  }
-
-  // This function assumes a material is already bound
-  static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
-  {
-    Mesh* mesh = scene->meshes.lookup(renderable->mesh);
-
-    glBindVertexArray(mesh->vao);
-
-    if (mesh->ibo != 0)
-    {
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-      glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    }
-    else
-    {
-      glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
-    }
-
-    glBindVertexArray(0);
-  }
-
-  static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList)
-  {
-    // do we need to copy node data into GPU buffers ?
-    if (batcher->dirty)
-    {
-      Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material* material = scene->materials.lookup(renderable->material);
-      if (!material) material = scene->materials.lookup(scene->defaultMaterial);
-
-      Texture* texture = (material->diffuseTextureCount > 0) ?
-        scene->textures.lookup(material->textureDiffuse[0]) :
-        scene->textures.lookup(scene->defaultTexture);
-
-      Mesh* mesh = scene->meshes.lookup(renderable->mesh);
-
-      const float textureWidth  = (float) texture->width;
-      const float textureHeight = (float) texture->height;
-      const size_t totalSize    = batcher->spriteCount * SpriteBatcher::totalSpriteSize;
-
-      batcher->arena.reset();
-      char* memory = batcher->arena.pushSize(totalSize);
-      Vector3* positions = (Vector3*)(memory);
-      Color* colors = (Color*)(positions + batcher->spriteCount * 4);
-      Vector2* uvs = (Vector2*)(colors + batcher->spriteCount * 4);
-      unsigned int* indices = (unsigned int*)(uvs + batcher->spriteCount * 4);
-
-      Vector3* pVertex = positions;
-      Color* pColors = colors;
-      Vector2* pUVs = uvs;
-      unsigned int* pIndices = indices;
-
-      const SceneNode* allNodes = scene->nodes.getArray();
-      int offset = 0;
-
-      for (int i = 0; i < batcher->spriteCount; i++)
-      {
-        uint64 key = ((uint64*)renderKeyList)[i];
-        SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-
-        if (!sceneNode->active)
-          continue;
-
-        Transform& transform = sceneNode->transform;
-        SpriteSceneNode& node = sceneNode->spriteNode;
-
-        // convert UVs from pixels to 0~1 range
-        // pixel coords origin is at top left corner
-        Rectf uvRect;
-        uvRect.x = node.rect.x / (float) textureWidth;
-        uvRect.y = 1 - (node.rect.y /(float) textureHeight); 
-        uvRect.w = node.rect.w / (float) textureWidth;
-        uvRect.h = node.rect.h / (float) textureHeight;
-
-        const Vector3& pos = transform.getPosition();
-        float posY = renderer->getViewport().h - pos.y;
-
-        {
-          pVertex[0] = {pos.x,  posY, pos.z};                             // top left
-          pVertex[1] = {pos.x + node.width,  posY - node.height, pos.z};  // bottom right
-          pVertex[2] = {pos.x + node.width,  posY, pos.z};                // top right
-          pVertex[3] = {pos.x, posY - node.height, pos.z};                // bottom left
-          pVertex += 4;
-
-          pColors[0] = node.color;                                        // top left
-          pColors[1] = node.color;                                        // bottom right
-          pColors[2] = node.color;                                        // top right
-          pColors[3] = node.color;                                        // bottom left
-          pColors += 4;
-
-          pUVs[0] = {uvRect.x, uvRect.y};                                 // top left 
-          pUVs[1] = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};           // bottom right
-          pUVs[2] = {uvRect.x + uvRect.w, uvRect.y};                      // top right
-          pUVs[3] = {uvRect.x, uvRect.y - uvRect.h};                      // bottom left
-          pUVs += 4;
-
-          pIndices[0] = offset + 0;
-          pIndices[1] = offset + 1;
-          pIndices[2] = offset + 2;
-          pIndices[3] = offset + 0;
-          pIndices[4] = offset + 3;
-          pIndices[5] = offset + 1;
-          pIndices += 6;
-          offset += 4;
-        }
-      }
-
-      MeshData meshData(positions, 4 * batcher->spriteCount,
-          indices, 6 * batcher->spriteCount, colors, nullptr, uvs);
-
-      Renderer::updateMesh(mesh, &meshData);
-      batcher->dirty = false;
-    }
-
-    return batcher->spriteCount;
   }
 
   void Renderer::render()
@@ -638,8 +714,13 @@ namespace smol
           }
           break;
 
+        case SceneNode::ROOT:
+          discard = true;
+          break;;
+
         default:
-          if (!node->active)
+
+          if (!node->isActiveInHierarchy())
           {
             discard = true;
           }
@@ -762,30 +843,5 @@ namespace smol
       glActiveTexture(GL_TEXTURE0 + i);
       glBindTexture(GL_TEXTURE_2D, 0);
     }
-  }
-
-  Renderer::~Renderer()
-  {
-    int numMeshes = scene->meshes.count();
-    const Mesh* allMeshes = scene->meshes.getArray();
-    for (int i=0; i < numMeshes; i++) 
-    {
-      const Mesh* mesh = &allMeshes[i];
-      scene->destroyMesh((Mesh*) mesh);
-    }
-
-    int numTextures = scene->textures.count();
-    const Texture* allTextures = scene->textures.getArray();
-    for (int i=0; i < numTextures; i++) 
-    {
-      const Texture* texture = &allTextures[i];
-      destroyTexture((Texture*) texture);
-    }
-
-    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, tsprite batchers: %d, tscene nodes: %d.", 
-        numTextures, numMeshes,
-        scene->renderables.count(),
-        scene->batchers.count(),
-        scene->nodes.count());
   }
 }

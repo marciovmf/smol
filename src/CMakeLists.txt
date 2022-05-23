@@ -68,6 +68,7 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_renderer_types.h
   ${SOURCE_PATH}/include/smol/smol_resource_list.h
   ${SOURCE_PATH}/smol_keyboard.cpp
   ${SOURCE_PATH}/include/smol/smol_systems_root.h

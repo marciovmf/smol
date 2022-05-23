@@ -38,22 +38,28 @@ void onStart(smol::SystemsRoot* systemsRoot)
       );
 
   // meshes
+
   scene.createMeshNode(floor, 
       smol::Vector3{0.0f, -5.0f, -5.0f},
       smol::Vector3{100.0f, 100.0f, 100.0f},
       smol::Vector3{-90, 0.0f, 0.0f});
 
-  node1 = scene.createMeshNode(renderable2, smol::Vector3{0.0f, 0.0f, -5.0f});
+  // center cube
+  node1 = scene.createMeshNode(renderable2, smol::Vector3{0.0f, -1.0f, -10.0f});
 
+  // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3{0.0f, 3.0f, 0.0f},
+      smol::Vector3{0.0f, 1.0f, 0.0f},
+      smol::Vector3{0.8f, 0.8f, 0.8f},
       smol::Vector3{1.0f, 1.0f, 1.0f},
-      smol::Vector3{0.0f, 0.0f, 0.0f},
       node1);
 
+  // right cube
   scene.createMeshNode(renderable2, 
-      smol::Vector3{2.0f, 0.0f, -5.0f},
-      smol::Vector3{0.3f, 0.3f, 0.3f});
+      smol::Vector3{4.0f, 0.0f, -10.0f},
+      smol::Vector3{0.8f, 0.8f, 0.8f},
+      smol::Vector3{0.0f, 0.0f, 0.0f}
+      );
 
   // sprites
   scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
@@ -139,85 +145,49 @@ void onUpdate(float deltaTime)
       {
         scene.createSpriteNode(batcher, 
             smol::Rect{0, 0, 800, 800},
-            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.0f},
+            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.1f},
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
       }
     }
   }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_F5))
-  {
-    scene.destroyShader(shader);
+  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { scene.destroyShader(shader); }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F6)) { scene.destroyTexture(texture2); }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { scene.destroyMaterial(material2); }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_SPACE)) 
+  { 
+    bool active = scene.isNodeActive(selectedNode);
+    scene.setNodeActive(selectedNode, !active);
   }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_F6))
-  {
-    scene.destroyTexture(texture2);
-  }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_F7))
-  {
-    scene.destroyMaterial(material2);
-  }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_SPACE))
-  {
-    scene.clone(selectedNode);
-    //scene.setNodeActive(selectedNode, !scene.isNodeActive(selectedNode));
-  }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_TAB))
-  {
-    selectedNode = (selectedNode == node1) ? node2 : node1;
-  }
+  if (keyboard.getKeyDown(smol::KEYCODE_TAB)) { selectedNode = (selectedNode == node1) ? node2 : node1; }
 
   // left/right
-  if (keyboard.getKey(smol::KEYCODE_A))
-  {
-    xDirection = -1;
-  }
-  else if (keyboard.getKey(smol::KEYCODE_D))
-  {
-    xDirection = 1;
-  }
+  if (keyboard.getKey(smol::KEYCODE_A)) { xDirection = -1; }
+  else if (keyboard.getKey(smol::KEYCODE_D)) { xDirection = 1; }
 
   // up/down movement
-  if (keyboard.getKey(smol::KEYCODE_W))
-  {
-    yDirection = -1;
-  }
-  else if (keyboard.getKey(smol::KEYCODE_S))
-  {
-    yDirection = 1;
-  }
+  if (keyboard.getKey(smol::KEYCODE_W)) { yDirection = -1; }
+  else if (keyboard.getKey(smol::KEYCODE_S)) { yDirection = 1; }
 
   // back/forth movement
-  if (keyboard.getKey(smol::KEYCODE_Q))
-  {
-    zDirection = -1;
-  }
-  else if (keyboard.getKey(smol::KEYCODE_E))
-  {
-    zDirection = 1;
-  }
+  if (keyboard.getKey(smol::KEYCODE_Q)) { zDirection = -1; }
+  else if (keyboard.getKey(smol::KEYCODE_E)) { zDirection = 1; }
 
-  if (keyboard.getKey(smol::KEYCODE_J))
-  {
-    scaleAmount = -1;
-  }
-  if (keyboard.getKey(smol::KEYCODE_K))
-  {
-    scaleAmount = 1;
-  }
+  if (keyboard.getKey(smol::KEYCODE_J)) { scaleAmount = -1; }
+  if (keyboard.getKey(smol::KEYCODE_K)) { scaleAmount = 1; }
 
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
     smol::Transform* transform = scene.getTransform(selectedNode);
     if (transform)
     {
-    const float amount = 0.01f;
-    const float moveAmount = 0.4f;
+      const float amount = 0.01f;
+      const float moveAmount = 0.4f;
 
       const smol::Vector3& position = transform->getPosition();
       transform->setPosition(

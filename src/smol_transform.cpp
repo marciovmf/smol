@@ -5,6 +5,11 @@
 namespace smol
 {
 
+  Transform::Transform(Vector3 position, Vector3 rotation, Vector3 scale, Handle<SceneNode> parent)
+    : position(position), rotation(rotation), scale(scale), dirty(true), parent(parent)
+  {
+  }
+
   const Mat4& Transform::getMatrix() const
   {
     return model; 
@@ -58,16 +63,16 @@ namespace smol
     dirty = true;
   }
 
+  Handle<SceneNode> Transform::getParent()
+  {
+    return parent;
+  }
+
   const Vector3& Transform::getPosition() const { return position; }
 
   const Vector3& Transform::getScale() const { return scale; }
 
   const Vector3& Transform::getRotation() const { return rotation; }
-
-  const Handle<SceneNode> Transform::getParent()
-  {
-    return parent;
-  }
 
   bool Transform::isDirty() const { return dirty; }
 
@@ -76,7 +81,7 @@ namespace smol
     SceneNode* parentNode = nodes->lookup(parent);
     Mat4* parentMatrix = &(Mat4::initIdentity());
 
-    if(parentNode) 
+    if(parentNode && parentNode->type != SceneNode::ROOT) // Ignores ROOT node transform and assume it's Identity
     {
       if (parentNode->transform.update(nodes))
       {
@@ -98,7 +103,7 @@ namespace smol
     Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
     transformed = Mat4::mul(translationMatrix, transformed);
     model = Mat4::mul(*parentMatrix, transformed);
-    
+
     dirty = false;
     return true;
   }
