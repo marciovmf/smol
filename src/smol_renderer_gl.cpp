@@ -134,8 +134,8 @@ namespace smol
         uint64 key = ((uint64*)renderKeyList)[i];
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
 
-        if (!sceneNode->active)
-          continue;
+        //if (!sceneNode->active)
+        //  continue;
 
         Transform& transform = sceneNode->transform;
         SpriteSceneNode& node = sceneNode->spriteNode;
@@ -697,6 +697,7 @@ namespace smol
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
 
+
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
     for(int i = 0; i < numNodes; i++)
@@ -716,7 +717,7 @@ namespace smol
           break;
 
         default:
-          if (!node->active)
+          if (!node->isActiveInHierarchy())
           {
             discard = true;
           }

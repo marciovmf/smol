@@ -16,6 +16,7 @@ namespace smol
 {
   struct Image;
   struct MeshData;
+  struct Scene;
 
   struct EmptySceneNode { };
 
@@ -36,6 +37,7 @@ namespace smol
 
   struct SceneNode
   {
+    Scene& scene;
     enum SceneNodeType : char
     {
       EMPTY = 0,
@@ -54,6 +56,12 @@ namespace smol
       MeshSceneNode meshNode;
       SpriteSceneNode spriteNode;
     };
+
+    SceneNode(Scene* scene);
+    bool isActive();
+    bool isActiveInHierarchy();
+    void setActive(bool status);
+    void setParent(Handle<SceneNode> parent);
   };
 }
 
@@ -98,9 +106,6 @@ namespace smol
 
     Scene();
 
-    void setNodeActive(Handle<SceneNode> handle, bool status);
-    bool isNodeActive(Handle<SceneNode> handle);
-
     // Shaders
     Handle<ShaderProgram> Scene::createShader(const char* vsFilePath, const char* fsFilePath, const char* gsFilePath = nullptr);
     Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
@@ -108,22 +113,16 @@ namespace smol
     void destroyShader(ShaderProgram* program);
 
     //
-    // Textures
+    // Resources
     //
     Handle<Texture> Scene::createTexture(const char* bitmapPath); //TODO: Add texture filtering options here
     Handle<Texture> Scene::createTexture(const Image& image); //TODO: Add texture filtering options here
     void destroyTexture(Handle<Texture> handle);
     void destroyTexture(Texture* texture);
 
-    //
-    // Materials
-    //
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount);
     void destroyMaterial(Handle<Material> handle);
 
-    //
-    // Meshes
-    //
     Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
@@ -139,24 +138,24 @@ namespace smol
     void destroyMesh(Handle<Mesh> handle);
     void destroyMesh(Mesh* mesh);
 
-    //
-    // Renderables
-    //
     Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
     void destroyRenderable(Handle<Renderable> handle);
     void destroyRenderable(Renderable* renderable);
 
-    //
-    // Sprite Batcher
-    //
     Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
     void destroySpriteBatcher(Handle<SpriteBatcher> handle);
 
     //
-    // Scene Node
+    // Scene Node utility functions
     //
 
-    //TODO(marcio): Implement createNode() for all node types
+    void setNodeActive(Handle<SceneNode> handle, bool status);
+    bool isNodeActive(Handle<SceneNode> handle);
+    bool isNodeActiveInHierarchy(Handle<SceneNode> handle);
+
+    //
+    // Scene Node creation
+    //
     Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
         Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
@@ -181,6 +180,7 @@ namespace smol
     //
     // misc
     //
+    SceneNode* getNode(Handle<SceneNode> handle);
     Transform* getTransform(Handle<SceneNode> handle);
   };
 }

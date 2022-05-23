@@ -34,35 +34,79 @@ namespace smol
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
   }
 
+  //---------------------------------------------------------------------------
+  // SceneNode
+  //---------------------------------------------------------------------------
+  SceneNode::SceneNode(Scene* scene) : scene(*scene)
+  { }
+
+  bool SceneNode::isActive()
+  {
+    return active;
+  }
+
+  bool SceneNode::isActiveInHierarchy()
+  {
+    if (!active)
+      return false;
+
+    if (parent == Scene::ROOT)
+      return true;
+
+    SceneNode* parentPtr = scene.getNode(parent);
+    if (!parentPtr)
+      return false;
+    
+    return parentPtr->isActiveInHierarchy();
+  }
+
+  void SceneNode::setParent(Handle<SceneNode> parent)
+  {
+    if (!scene.getNode(parent))
+    {
+      Log::error("Trying to set parent of node with an invalid parent node handle");
+      this->parent = INVALID_HANDLE(SceneNode);
+      return;
+    }
+
+    this->parent = parent;
+  }
+
+  void SceneNode::setActive(bool status)
+  {
+    active = status;
+    dirty = true;
+  }
+
+
+  //---------------------------------------------------------------------------
+  // Scene
+  //---------------------------------------------------------------------------
+
   void Scene::setNodeActive(Handle<SceneNode> handle, bool status)
   {
     SceneNode* node = nodes.lookup(handle);
     if(!node) return;
-    node->active = status;
-    node->dirty = true;
+    node->setActive(status);
+  }
+
+  bool Scene::isNodeActiveInHierarchy(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node) return false;
+    return node->isActive();
   }
 
   bool Scene::isNodeActive(Handle<SceneNode> handle)
   {
     SceneNode* node = nodes.lookup(handle);
     if(!node) return false;
-
-    return node->active;
+    return node->isActiveInHierarchy();
   }
-
-  Transform* Scene::getTransform(Handle<SceneNode> handle)
-  {
-    SceneNode* sceneNode = nodes.lookup(handle);
-
-    if (!sceneNode)
-      return nullptr;
-
-    return &sceneNode->transform;
-  }
-
-  // ##################################################################
-  //  Texture resource handling 
-  // ##################################################################
+  
+  // 
+  // Resources: Textures, Materials, Meshes, Renderables
+  //
 
   Handle<Texture> Scene::createTexture(const char* path)
   {
@@ -101,10 +145,6 @@ namespace smol
     }
   }
 
-  // ##################################################################
-  //  Material resource handling 
-  // ##################################################################
-
   Handle<Material> Scene::createMaterial(Handle<ShaderProgram> shader,
       Handle<Texture>* diffuseTextures, int diffuseTextureCount)
   {
@@ -135,10 +175,6 @@ namespace smol
       materials.remove(handle);
     }
   }
-
-  // ##################################################################
-  //  Mesh resource handling 
-  // ##################################################################
 
   Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
   {
@@ -202,10 +238,6 @@ namespace smol
     }
   }
 
-  // ##################################################################
-  //  Renderable resource handling 
-  // ##################################################################
-
   Handle<Renderable> Scene::createRenderable(Handle<Material> material, Handle<Mesh> mesh)
   {
     Handle<Renderable> handle = renderables.reserve();
@@ -267,10 +299,6 @@ namespace smol
     }
   }
 
-  // ##################################################################
-  //  Shader resource handling 
-  // ##################################################################
-
   Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource)
   {
     Handle<ShaderProgram> handle = shaders.reserve();
@@ -316,10 +344,9 @@ namespace smol
     }
   }
 
-  // ##################################################################
-  //  Node resource handling 
-  // ##################################################################
-
+  //
+  // Scene Node utility functions
+  //
   Handle<SceneNode> Scene::createMeshNode(
       Handle<Renderable> renderable,
       Vector3& position,
@@ -327,11 +354,12 @@ namespace smol
       Vector3& rotationAxis,
       Handle<SceneNode> parent)
   {
-    Handle<SceneNode> handle = nodes.reserve();
+    Handle<SceneNode> handle = nodes.add(SceneNode(this));
     SceneNode* node = nodes.lookup(handle);
 
     node->type = SceneNode::MESH;
     node->parent = parent;
+    node->active = true;
     node->transform.setPosition(position.x, position.y, position.z);
     node->transform.setRotation(rotationAxis.x, rotationAxis.y, rotationAxis.z);
     node->transform.setScale(scale.x, scale.y, scale.z);
@@ -352,7 +380,7 @@ namespace smol
       int angle,
       Handle<SceneNode> parent)
   {
-    Handle<SceneNode> handle = nodes.reserve();
+    Handle<SceneNode> handle = nodes.add(SceneNode(this));
     SceneNode* node = nodes.lookup(handle);
 
     node->type = SceneNode::SPRITE;
@@ -387,6 +415,20 @@ namespace smol
 
     //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
     return newHandle;
+  }
+
+  SceneNode* Scene::getNode(Handle<SceneNode> handle)
+  {
+    return nodes.lookup(handle);
+  }
+
+  Transform* Scene::getTransform(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if (!node)
+      return nullptr;
+
+    return &node->transform;
   }
 }
 
