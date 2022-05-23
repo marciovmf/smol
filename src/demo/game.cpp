@@ -5,15 +5,11 @@
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
-smol::Handle<smol::SceneNode> node3;
+smol::Handle<smol::SceneNode> sprite;
 smol::Handle<smol::SceneNode> selectedNode;
-
-smol::Handle<smol::Texture> texture;
 smol::Handle<smol::Texture> texture2;
 smol::Handle<smol::ShaderProgram> shader;
-smol::Handle<smol::Material> material;
 smol::Handle<smol::Material> material2;
-smol::Handle<smol::Material> materialTest;
 smol::Handle<smol::Mesh> mesh;
 smol::Handle<smol::SpriteBatcher> batcher;
 
@@ -27,11 +23,11 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   mesh = scene.createMesh(true, &(smol::MeshData::getPrimitiveCube()));
 
-  texture = scene.createTexture("assets\\smol32.bmp");
+  auto texture = scene.createTexture("assets\\smol32.bmp");
   texture2 = scene.createTexture("assets\\smol16.bmp");
 
   shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
-  material = scene.createMaterial(shader, &texture, 1);
+  auto material = scene.createMaterial(shader, &texture, 1);
   material2 = scene.createMaterial(shader, &texture2, 1);
 
   auto renderable = scene.createRenderable(material, mesh);
@@ -41,16 +37,31 @@ void onStart(smol::SystemsRoot* systemsRoot)
       scene.createMesh(false, &(smol::MeshData::getPrimitiveQuad()))
       );
 
-  batcher = scene.createSpriteBatcher(material);
-
+  // meshes
   scene.createMeshNode(floor, 
       smol::Vector3{0.0f, -5.0f, -5.0f},
       smol::Vector3{100.0f, 100.0f, 100.0f},
       smol::Vector3{-90, 0.0f, 0.0f});
 
-  scene.createSpriteNode(batcher,
-      smol::Rect{120, 580, 710, 200},
+  node1 = scene.createMeshNode(renderable2, smol::Vector3{0.0f, 0.0f, -5.0f});
+
+  node2 = scene.createMeshNode(renderable2, 
+      smol::Vector3{0.0f, 3.0f, 0.0f},
+      smol::Vector3{1.0f, 1.0f, 1.0f},
       smol::Vector3{0.0f, 0.0f, 0.0f},
+      node1);
+
+  scene.createMeshNode(renderable2, 
+      smol::Vector3{2.0f, 0.0f, -5.0f},
+      smol::Vector3{0.3f, 0.3f, 0.3f});
+
+  // sprites
+  scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
+
+  batcher = scene.createSpriteBatcher(material);
+  sprite = scene.createSpriteNode(batcher,
+      smol::Rect{120, 580, 710, 200},
+      smol::Vector3{1.0f, 1.0f, 0.0f},
       350.0f, 100.0f, smol::Color::WHITE);
 
   scene.createSpriteNode(batcher, 
@@ -62,31 +73,20 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Rect{0, 0, 800, 800},
       smol::Vector3{400.0f, 200.0f, 0.0f},
       100.0f, 100.0f, smol::Color::BLUE);
-
-  scene.createMeshNode(renderable2, 
-      smol::Vector3{-2.0f, 0.0f, -5.0f},
-      smol::Vector3{0.5f, 0.5f, 0.5f});
-
-  node1 = scene.createMeshNode(renderable2,
-      smol::Vector3{0.0f, 0.0f, -5.0f},
-      smol::Vector3{1.0f, 1.0f, 1.0f});
-
-  node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3{0.0f, 3.0f, 0.0f},
-      smol::Vector3{1.0f, 1.0f, 1.0f},
-      smol::Vector3{0.0f, 0.0f, 0.0f},
-      node1);
-
   selectedNode = node2;
 }
 
 unsigned int angle = 0;
 bool once = true;
 
+int spriteXDirection = 1;
+int spriteYDirection = 1;
+
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
   smol::Scene& scene = *(root->loadedScene);
+  smol::Renderer& renderer = *(root->renderer);
 
   int xDirection = 0;
   int yDirection = 0;
@@ -96,8 +96,7 @@ void onUpdate(float deltaTime)
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {
 
-    const smol::MeshData* m;
-
+    smol::MeshData* m;
     shape++;
     if (shape > 4)
       shape = 0;
@@ -105,23 +104,23 @@ void onUpdate(float deltaTime)
     switch(shape)
     {
       case 0:
-        m = &(smol::MeshData::getPrimitiveCylinder());
+        m = (smol::MeshData*) &(smol::MeshData::getPrimitiveCylinder());
         break;
       case 1:
-        m = &(smol::MeshData::getPrimitiveCube());
+        m = (smol::MeshData*) &(smol::MeshData::getPrimitiveSphere());
         break;
       case 2:
-        m = &(smol::MeshData::getPrimitiveSphere());
+        m = (smol::MeshData*) &(smol::MeshData::getPrimitiveCone());
         break;
       case 3:
-        m = &(smol::MeshData::getPrimitiveQuad());
+        m = (smol::MeshData*) &(smol::MeshData::getPrimitiveQuad());
         break;
       case 4:
-        m = &(smol::MeshData::getPrimitiveCone());
+        m = (smol::MeshData*) &(smol::MeshData::getPrimitiveCube());
         break;
     }
 
-    scene.updateMesh(mesh, (smol::MeshData*) m);
+    scene.updateMesh(mesh, m);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
@@ -217,8 +216,8 @@ void onUpdate(float deltaTime)
     smol::Transform* transform = scene.getTransform(selectedNode);
     if (transform)
     {
-      const float amount = 0.04f;
-      const float moveAmount = amount;// selectedNode == node1 ? 1.0f : amount;
+    const float amount = 0.01f;
+    const float moveAmount = 0.4f;
 
       const smol::Vector3& position = transform->getPosition();
       transform->setPosition(
@@ -241,6 +240,22 @@ void onUpdate(float deltaTime)
     transform->setRotation(0, a, 0);
   }
 
+  // bounce sprite across the screen borders
+  transform = scene.getTransform(sprite);
+
+  smol::Vector3& position = (smol::Vector3&) transform->getPosition();
+  smol::Rect viewport = (smol::Rect&) renderer.getViewport();
+
+  if (position.x + 250 > viewport.w || position.x < 0)
+    spriteXDirection *= -1;
+
+  if (position.y + 100 > viewport.h || position.y < 0)
+    spriteYDirection *= -1;
+
+  transform->setPosition(
+      position.x + (2 * spriteXDirection),
+      position.y + (2 * spriteYDirection),
+      position.z);
 }
 
 void onStop()
