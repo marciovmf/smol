@@ -1,8 +1,11 @@
+#include <smol/smol_scene.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_mesh_data.h>
-#include <smol/smol_renderer.h>
+#include <smol/smol_renderer_types.h>
+#include <smol/smol_vector3.h>
+#include <smol/smol_vector2.h>
 
 namespace smol
 {
@@ -13,7 +16,6 @@ namespace smol
   const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
 
   const Handle<SceneNode> Scene::ROOT = INVALID_HANDLE(SceneNode);
-
 
   Scene::Scene():
     shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 

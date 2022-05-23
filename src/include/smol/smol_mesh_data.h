@@ -1,12 +1,14 @@
-#ifndef SMOL_PRIMITIVE_MESHES_H
-#define SMOL_PRIMITIVE_MESHES_H
+#ifndef SMOL_MESH_DATA_H
+#define SMOL_MESH_DATA_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_scene.h>
 
 namespace smol
 {
   struct Color;
+  struct Vector3;
+  struct Vector2;
+
   struct SMOL_ENGINE_API MeshData
   {
     const unsigned int* indices;
@@ -35,4 +37,4 @@ namespace smol
 
 }
 
-#endif  // SMOL_PRIMITIVE_MESHES_H
+#endif  //SMOL_MESH_DATA_H

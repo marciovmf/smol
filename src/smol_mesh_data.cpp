@@ -1,9 +1,7 @@
-#ifndef SMOL_MESH_DATA_H
-#define SMOL_MESH_DATA_H
-
 #include <smol/smol_mesh_data.h>
-#include <smol/smol_scene.h>
-
+#include <smol/smol_vector2.h>
+#include <smol/smol_vector3.h>
+#include <smol/smol_color.h>
 
 namespace smol
 {
@@ -7415,7 +7413,6 @@ namespace smol
     {0.0f, 0.0f},   // bottom left
   };
 
-
   MeshData::MeshData(Vector3* positions, int numPositions,
       unsigned int* indices,
       int numIndices,
@@ -7426,7 +7423,6 @@ namespace smol
     :positions(positions), indices(indices), normals(normals), colors(colors), uv0(uv0), uv1(uv1), numPositions(numPositions), numIndices(numIndices)
   {
   }
-
 
   const MeshData MeshData::getPrimitiveCube()
   {
@@ -7470,5 +7466,3 @@ namespace smol
     return quad;
   }
 }
-
-#endif  // SMOL_MESH_DATA_H

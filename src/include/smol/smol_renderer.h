@@ -2,10 +2,17 @@
 #define SMOL_RENDERER_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_scene.h>
+#include <smol/smol_renderer_types.h>
 
 namespace smol
 {
+  struct Scene;
+  struct Vector2;
+  struct Vector3;
+  struct Color;
+  struct Image;
+  struct MeshData;
+
   class SMOL_ENGINE_API Renderer
   {
     Scene* scene;
@@ -13,12 +20,20 @@ namespace smol
     static ShaderProgram defaultShader;
 
     public:
+
+    //
+    // Misc
+    //
     Renderer (Scene& scene, int width, int height);
+    ~Renderer();
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
+    Rect getViewport();
+    
+    //
+    // Render
+    //
     void resize(int width, int height);   // Resizes the necessary resources to accomodathe the required dimentions.
     void render();                        // Called once per frame to render the scene.
-    ~Renderer();
-    Rect getViewport();
 
     //
     // Texture resources
