@@ -1,25 +1,28 @@
-#ifndef SMOL_PRIMITIVE_MESHES_H
-#define SMOL_PRIMITIVE_MESHES_H
+#ifndef SMOL_MESH_DATA_H
+#define SMOL_MESH_DATA_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_scene.h>
 
 namespace smol
 {
+  struct Color;
+  struct Vector3;
+  struct Vector2;
+
   struct SMOL_ENGINE_API MeshData
   {
     const unsigned int* indices;
     const Vector3* positions;
     const Vector3* normals;
-    const Vector3* colors;
+    const Color* colors;
     const Vector2* uv0;
     const Vector2* uv1;
-    const size_t numPositions;
-    const size_t numIndices;
+    const int numPositions;
+    const int numIndices;
 
-    MeshData(Vector3* positions, size_t numPositions,
-        unsigned int* indices = nullptr, size_t numIndices = 0,
-        Vector3* colors = nullptr,
+    MeshData(Vector3* positions, int numPositions,
+        unsigned int* indices = nullptr, int numIndices = 0,
+        Color* colors = nullptr,
         Vector3* normals = nullptr, 
         Vector2* uv0 = nullptr, 
         Vector2* uv1 = nullptr);
@@ -34,4 +37,4 @@ namespace smol
 
 }
 
-#endif  // SMOL_PRIMITIVE_MESHES_H
+#endif  //SMOL_MESH_DATA_H

@@ -7,6 +7,8 @@
 #include <smol/smol_assetmanager.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_systems_root.h>
+#include <smol/smol_cfg_parser.h>
+#include <smol/smol_color.h>
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -24,15 +26,41 @@
 #endif
 #endif
 
+#define SMOL_VARIABLES_FILE ((const char*) "assets/variables.txt")
+
 namespace smol
 {
   namespace launcher
   {
+    struct WindowVariables
+    {
+      Vector2 size;
+      const char* caption;
+    }; 
+
     int smolMain(int argc, char** argv)
     {
       smol::Log::verbosity(SMOL_LOGLEVEL);
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
+
+      // parse variables file
+      WindowVariables windowVariables;
+      Config config(SMOL_VARIABLES_FILE);
+      ConfigEntry* entry = config.entries;
+
+      for (int i = 0; i < config.entryCount; i++)
+      {
+        if (strncmp(entry->variables[0].name ,"window", strlen("window")) == 0)
+        {
+          // Window variables
+          windowVariables.size = entry->getVariableVec2("size");
+          windowVariables.caption = entry->getVariableString("caption");
+        }
+
+        entry = entry->next;
+      }
+
 
       if (!Platform::initOpenGL(3, 2))
         return 1;
@@ -53,25 +81,44 @@ namespace smol
         return 1;
       }
 
-      const int WIDTH = 1024;
-      const int HEIGHT = 576;
-      smol::Window* window = Platform::createWindow(WIDTH, HEIGHT, (const char*)"Smol Engine");
+      smol::Window* window = Platform::createWindow((int) windowVariables.size.x,
+          (int) windowVariables.size.y, windowVariables.caption);
 
       // Initialize systems root
       smol::SystemsRoot root;
+      root.config = &config;
+
       root.keyboard = &smol::Keyboard();
       smol::Scene scene;
       root.loadedScene = &scene;
 
       onGameStartCallback(&root);
 
-      smol::Renderer renderer(*root.loadedScene, WIDTH, HEIGHT);
+      int lastWidth, lastHeight;
+      Platform::getWindowSize(window, &lastWidth, &lastHeight);
+
+      smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
+      root.renderer = &renderer;
+
       while(! Platform::getWindowCloseFlag(window))
       {
         bool update = false;
         root.keyboard->update();
         onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
         Platform::updateWindowEvents(window);
+
+        // check for resize.
+        //TODO(marcio): Make an event system so we get notified when this
+        //happens.
+        int windowWidth, windowHeight;
+        Platform::getWindowSize(window, &windowWidth, &windowHeight);
+        if (windowWidth != lastWidth || windowHeight != lastHeight)
+        {
+          lastWidth = windowWidth;
+          lastHeight = windowHeight;
+          renderer.resize(windowWidth, windowHeight);
+        }
+
         renderer.render();
       }
 

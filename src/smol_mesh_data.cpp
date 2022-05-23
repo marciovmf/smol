@@ -1,9 +1,7 @@
-#ifndef SMOL_MESH_DATA_H
-#define SMOL_MESH_DATA_H
-
 #include <smol/smol_mesh_data.h>
-#include <smol/smol_scene.h>
-
+#include <smol/smol_vector2.h>
+#include <smol/smol_vector3.h>
+#include <smol/smol_color.h>
 
 namespace smol
 {
@@ -17,30 +15,30 @@ namespace smol
 
   smol::Vector3 positionsCube[] = 
   {
-    {-1.000001f,    1.000001f,       -1.000001f     },
-    {1.000001f,     1.000001f,       1.000001f      },
-    {1.000001f,     1.000001f,       -1.000001f     },
-    {1.000001f,     1.000001f,       1.000001f      },
-    {-1.000001f,    -1.000001f,      1.000001f      },
-    {1.000001f,     -1.000001f,      1.000001f      },
-    {-1.000001f,    1.000001f,       1.000001f      },
-    {-1.000001f,    -1.000001f,      -1.000001f     },
-    {-1.000001f,    -1.000001f,      1.000001f      },
-    {1.000001f,     -1.000001f,      -1.000001f     },
-    {-1.000001f,    -1.000001f,      1.000001f      },
-    {-1.000001f,    -1.000001f,      -1.000001f     },
-    {1.000001f,     1.000001f,       -1.000001f     },
-    {1.000001f,     -1.000001f,      1.000001f      },
-    {1.000001f,     -1.000001f,      -1.000001f     },
-    {-1.000001f,    1.000001f,       -1.000001f     },
-    {1.000001f,     -1.000001f,      -1.000001f     },
-    {-1.000001f,    -1.000001f,      -1.000001f     },
-    {-1.000001f,    1.000001f,       1.000001f      },
-    {-1.000001f,    1.000001f,       1.000001f      },
-    {-1.000001f,    1.000001f,       -1.000001f     },
-    {1.000001f,     -1.000001f,      1.000001f      },
-    {1.000001f,     1.000001f,       1.000001f      },
-    {1.000001f,     1.000001f,       -1.000001f     },
+    {-1.0f,    1.0f,       -1.0f     },
+    {1.0f,     1.0f,       1.0f      },
+    {1.0f,     1.0f,       -1.0f     },
+    {1.0f,     1.0f,       1.0f      },
+    {-1.0f,    -1.0f,      1.0f      },
+    {1.0f,     -1.0f,      1.0f      },
+    {-1.0f,    1.0f,       1.0f      },
+    {-1.0f,    -1.0f,      -1.0f     },
+    {-1.0f,    -1.0f,      1.0f      },
+    {1.0f,     -1.0f,      -1.0f     },
+    {-1.0f,    -1.0f,      1.0f      },
+    {-1.0f,    -1.0f,      -1.0f     },
+    {1.0f,     1.0f,       -1.0f     },
+    {1.0f,     -1.0f,      1.0f      },
+    {1.0f,     -1.0f,      -1.0f     },
+    {-1.0f,    1.0f,       -1.0f     },
+    {1.0f,     -1.0f,      -1.0f     },
+    {-1.0f,    -1.0f,      -1.0f     },
+    {-1.0f,    1.0f,       1.0f      },
+    {-1.0f,    1.0f,       1.0f      },
+    {-1.0f,    1.0f,       -1.0f     },
+    {1.0f,     -1.0f,      1.0f      },
+    {1.0f,     1.0f,       1.0f      },
+    {1.0f,     1.0f,       -1.0f     }
   };
 
   smol::Vector3 normalsCube[] = 
@@ -6385,7 +6383,6 @@ namespace smol
   //
   // Cone
   //
-
   unsigned int indicesCone[] = 
   {
     0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,92,99,100,100,101,92,101,102,92,102,103,104,103,105,104,105,106,104,104,107,108,108,109,110,110,111,90,111,112,90,112,113,90,90,114,115,115,116,90,116,117,90,117,118,91,118,119,91,119,120,91,91,121,122,122,123,124,124,125,92,125,126,92,126,127,92,104,108,110,91,122,124,92,102,104,104,110,92,110,90,92,90,117,91,91,124,92,
@@ -7386,7 +7383,6 @@ namespace smol
   };
 
 
-
   //
   // Quad
   //
@@ -7411,15 +7407,15 @@ namespace smol
   smol::Vector2 uv0Quad[] =
   {
     {0.0f, 1.0f},   // top left 
-    {1.0f, 0.0f},  // bottom right
-    {1.0f, 1.0f},  // top right
-    {0.0f, 0.0f},  // bottom left
+    {1.0f, 0.0f},   // bottom right
+    {1.0f, 1.0f},   // top right
+    {0.0f, 0.0f},   // bottom left
   };
 
-
-  MeshData::MeshData(Vector3* positions, size_t numPositions,
-      unsigned int* indices, size_t numIndices,
-      Vector3* colors,
+  MeshData::MeshData(Vector3* positions, int numPositions,
+      unsigned int* indices,
+      int numIndices,
+      Color* colors,
       Vector3* normals,
       Vector2* uv0,
       Vector2* uv1)
@@ -7427,11 +7423,10 @@ namespace smol
   {
   }
 
-
   const MeshData MeshData::getPrimitiveCube()
   {
     MeshData cube(positionsCube, sizeof(positionsCube) / sizeof(Vector3),
-        indicesCube, sizeof(indicesCube), nullptr, normalsCube, uv0Cube);
+        indicesCube, sizeof(indicesCube) / sizeof(unsigned int), nullptr, normalsCube, uv0Cube);
     return cube;
   }
 
@@ -7445,14 +7440,14 @@ namespace smol
   const MeshData MeshData::getPrimitiveSphere()
   {
     MeshData sphere(positionsSphere, sizeof(positionsSphere) / sizeof(Vector3),
-        indicesSphere, sizeof(indicesSphere), nullptr, normalsSphere, uv0Sphere);
+        indicesSphere, sizeof(indicesSphere) / sizeof(unsigned int), nullptr, normalsSphere, uv0Sphere);
     return sphere;
   }
 
   const MeshData MeshData::getPrimitiveCone()
   {
     MeshData cone(positionsCone, sizeof(positionsCone) / sizeof(Vector3),
-        indicesCone, sizeof(indicesCone), nullptr, normalsCone, uv0Cone);
+        indicesCone, sizeof(indicesCone) / sizeof(unsigned int), nullptr, normalsCone, uv0Cone);
     return cone;
   }
 
@@ -7466,9 +7461,7 @@ namespace smol
   const MeshData MeshData::getPrimitiveQuad()
   {
     MeshData quad(positionsQuad, sizeof(positionsQuad) / sizeof(Vector3),
-        indicesQuad, sizeof(indicesQuad), nullptr, normalsQuad, uv0Quad);
+        indicesQuad, sizeof(indicesQuad) / sizeof(unsigned int), nullptr, normalsQuad, uv0Quad);
     return quad;
   }
 }
-
-#endif  // SMOL_MESH_DATA_H
