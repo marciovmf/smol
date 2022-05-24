@@ -186,14 +186,13 @@ void onUpdate(float deltaTime)
     smol::Transform* transform = scene.getTransform(selectedNode);
     if (transform)
     {
-      const float amount = 0.01f;
-      const float moveAmount = 0.4f;
+      const float amount = 3.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();
       transform->setPosition(
-          moveAmount * xDirection + position.x,
-          moveAmount * yDirection + position.y,
-          moveAmount * zDirection + position.z);
+          amount * xDirection + position.x,
+          amount * yDirection + position.y,
+          amount * zDirection + position.z);
 
       const smol::Vector3& scale = transform->getScale();
       transform->setScale(
@@ -206,7 +205,7 @@ void onUpdate(float deltaTime)
   smol::Transform* transform = scene.getTransform(node1);
   if (transform)
   {
-    float a = (float) ++angle;
+    float a = transform->getRotation().y + 30 * deltaTime;
     transform->setRotation(0, a, 0);
   }
 
@@ -223,8 +222,8 @@ void onUpdate(float deltaTime)
     spriteYDirection *= -1;
 
   transform->setPosition(
-      position.x + (2 * spriteXDirection),
-      position.y + (2 * spriteYDirection),
+      position.x + (100 * spriteXDirection) * deltaTime,
+      position.y + (100 * spriteYDirection) * deltaTime,
       position.z);
 }
 

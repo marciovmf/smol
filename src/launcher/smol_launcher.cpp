@@ -100,11 +100,17 @@ namespace smol
       smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
       root.renderer = &renderer;
 
+      uint64 startTime = 0;
+      uint64 endTime = 0;
+
       while(! Platform::getWindowCloseFlag(window))
       {
+        float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
+        startTime = Platform::getTicks();
+
         bool update = false;
         root.keyboard->update();
-        onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
+        onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 
         // check for resize.
@@ -120,6 +126,7 @@ namespace smol
         }
 
         renderer.render();
+        endTime = Platform::getTicks();
       }
 
       onGameStopCallback();
