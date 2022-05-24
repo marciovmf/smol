@@ -61,6 +61,11 @@ namespace smol
     static void* getMemory(size_t size);
     static void* resizeMemory(void* memory, size_t);
     static void freeMemory(void* memory, size_t);
+
+    // Time
+    static uint64 getTicks();   // return number of ticks since platform startup
+    static float getMillisecondsBetweenTicks(uint64 start, uint64 end);
+
   };
 } 
 

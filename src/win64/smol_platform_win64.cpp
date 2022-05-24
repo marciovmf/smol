@@ -15,6 +15,9 @@ namespace smol
   {
     char binaryPath[MAX_PATH];
     KeyboardState keyboardState = {};
+    // timer data
+    LARGE_INTEGER ticksPerSecond;
+    LARGE_INTEGER ticksSinceEngineStartup;
     
     PlatformInternal():
       keyboardState({})
@@ -24,10 +27,13 @@ namespace smol
       char* truncatePos = strrchr(binaryPath, '\\');
       if(truncatePos) *truncatePos = 0;
 
-
       //Change the working directory to the binary location
       smol::Log::info("Running from %s", binaryPath);
       SetCurrentDirectory(binaryPath);
+
+      // 
+      QueryPerformanceFrequency(&ticksPerSecond);
+      QueryPerformanceCounter(&ticksSinceEngineStartup);
     }
   }; 
 
@@ -473,5 +479,27 @@ namespace smol
     void* Platform::resizeMemory(void* memory, size_t size)
     {
       return realloc(memory, size);
+    }
+
+
+    uint64 Platform::getTicks()
+    {
+      LARGE_INTEGER value;
+      QueryPerformanceCounter(&value);
+      return value.QuadPart;
+    }
+
+    float Platform::getMillisecondsBetweenTicks(uint64 start, uint64 end)
+    {
+      end -= internal.ticksSinceEngineStartup.QuadPart;
+      start -= internal.ticksSinceEngineStartup.QuadPart;
+
+      float deltaTime = ((end - start))/ (float)internal.ticksPerSecond.QuadPart;
+#ifdef _SMOL_DEBUG_ 
+      // if we stopped on a breakpoint, make things behave more naturally
+      if ( deltaTime > 1.0f)
+        deltaTime = 0.016f;
+#endif
+      return deltaTime;
     }
 } 
