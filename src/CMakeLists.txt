@@ -68,11 +68,14 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_point.h
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
   ${SOURCE_PATH}/include/smol/smol_resource_list.h
-  ${SOURCE_PATH}/smol_keyboard.cpp
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
+  ${SOURCE_PATH}/smol_keyboard.cpp
+  ${SOURCE_PATH}/include/smol/smol_mouse.h
+  ${SOURCE_PATH}/smol_mouse.cpp
   ${SOURCE_PATH}/include/smol/smol_engine.h
   ${SOURCE_PATH}/include/smol/smol_version.h
   ${SOURCE_PATH}/include/smol/smol.h
