@@ -1,11 +1,13 @@
 #include <smol/smol_game.h>
 #include <smol/smol_renderer.h>
+#include <smol/smol_point.h>
 #include <smol/smol_assetmanager.h>
 
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
-smol::Handle<smol::SceneNode> sprite;
+smol::Handle<smol::SceneNode> sprite1;
+smol::Handle<smol::SceneNode> sprite2;
 smol::Handle<smol::SceneNode> selectedNode;
 smol::Handle<smol::Texture> texture2;
 smol::Handle<smol::ShaderProgram> shader;
@@ -65,12 +67,12 @@ void onStart(smol::SystemsRoot* systemsRoot)
   scene.createMeshNode(renderable, smol::Vector3{0.0f, 0.0f, 0.0f});
 
   batcher = scene.createSpriteBatcher(material);
-  sprite = scene.createSpriteNode(batcher,
+  sprite1 = scene.createSpriteNode(batcher,
       smol::Rect{120, 580, 710, 200},
       smol::Vector3{1.0f, 1.0f, 0.0f},
       350.0f, 100.0f, smol::Color::WHITE);
 
-  scene.createSpriteNode(batcher, 
+  sprite2 = scene.createSpriteNode(batcher, 
       smol::Rect{0, 0, 800, 800},
       smol::Vector3{200.0f, 200.0f, 0.0f},
       100.0f, 100.0f, smol::Color::GREEN);
@@ -91,6 +93,7 @@ int spriteYDirection = 1;
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = *root->keyboard;
+  smol::Mouse& mouse = *root->mouse;
   smol::Scene& scene = *(root->loadedScene);
   smol::Renderer& renderer = *(root->renderer);
 
@@ -98,10 +101,15 @@ void onUpdate(float deltaTime)
   int yDirection = 0;
   int zDirection = 0;
   int scaleAmount = 0;
+  if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
+  {
+    smol::Point2 p = mouse.getCursorPosition();
+    smol::Transform* transform = scene.getTransform(sprite2);
+    transform->setPosition((float) p.x, (float) p.y, 0.2f);
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {
-
     smol::MeshData* m;
     shape++;
     if (shape > 4)
@@ -151,6 +159,7 @@ void onUpdate(float deltaTime)
       }
     }
   }
+
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { scene.destroyShader(shader); }
 
@@ -209,8 +218,8 @@ void onUpdate(float deltaTime)
     transform->setRotation(0, a, 0);
   }
 
-  // bounce sprite across the screen borders
-  transform = scene.getTransform(sprite);
+  // bounce sprite1 across the screen borders
+  transform = scene.getTransform(sprite1);
 
   smol::Vector3& position = (smol::Vector3&) transform->getPosition();
   smol::Rect viewport = (smol::Rect&) renderer.getViewport();

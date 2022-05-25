@@ -14,13 +14,14 @@ namespace smol
   struct PlatformInternal
   {
     char binaryPath[MAX_PATH];
-    KeyboardState keyboardState = {};
+    KeyboardState keyboardState;
+    MouseState mouseState;
     // timer data
     LARGE_INTEGER ticksPerSecond;
     LARGE_INTEGER ticksSinceEngineStartup;
     
     PlatformInternal():
-      keyboardState({})
+      keyboardState({}), mouseState({})
     {
       // Get binary location
       int len = GetModuleFileName(NULL, binaryPath, MAX_PATH);
@@ -31,7 +32,6 @@ namespace smol
       smol::Log::info("Running from %s", binaryPath);
       SetCurrentDirectory(binaryPath);
 
-      // 
       QueryPerformanceFrequency(&ticksPerSecond);
       QueryPerformanceCounter(&ticksSinceEngineStartup);
     }
@@ -97,6 +97,47 @@ namespace smol
           int state = (((isDown ^ wasDown) << 1) | isDown);
           short vkCode = (short) wParam;
           internal.keyboardState.key[vkCode] = (unsigned char) state;
+        }
+        break;
+
+      case WM_MOUSEWHEEL:
+        internal.mouseState.wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+        break;
+
+      case WM_MOUSEMOVE:
+      case WM_MBUTTONDOWN:
+      case WM_MBUTTONUP:
+        {
+          unsigned char& buttonLeft   = internal.mouseState.button[0];
+          unsigned char& buttonRight  = internal.mouseState.button[1];
+          unsigned char& buttonMiddle = internal.mouseState.button[2];
+          unsigned char& buttonExtra1 = internal.mouseState.button[3];
+          unsigned char& buttonExtra2 = internal.mouseState.button[4];
+          unsigned char isDown, wasDown;
+          
+          isDown        = (unsigned char) ((wParam & MK_LBUTTON) > 0);
+          wasDown       = buttonLeft;
+          buttonLeft    = (((isDown ^ wasDown) << 1) | isDown);
+
+          isDown        = (unsigned char) ((wParam & MK_RBUTTON) > 0);
+          wasDown       = buttonRight;
+          buttonRight   = (((isDown ^ wasDown) << 1) | isDown);
+
+          isDown        = (unsigned char) ((wParam & MK_MBUTTON) > 0);
+          wasDown       = buttonMiddle;
+          buttonMiddle  = (((isDown ^ wasDown) << 1) | isDown);
+
+          isDown        = (unsigned char) ((wParam & MK_XBUTTON1) > 0);
+          wasDown       = buttonExtra1;
+          buttonExtra1  = (((isDown ^ wasDown) << 1) | isDown);
+
+          isDown        = (unsigned char) ((wParam & MK_XBUTTON2) > 0);
+          wasDown       = buttonExtra2;
+          buttonExtra2  = (((isDown ^ wasDown) << 1) | isDown);
+
+          // update cursor position
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam); 
+          internal.mouseState.cursor.y = GET_Y_LPARAM(lParam);
         }
         break;
 
@@ -328,11 +369,20 @@ namespace smol
     }
 
 
-    // clean up changed bit for keyboard state
+    // clean up changed bit for keyboard keys
     for(int keyCode = 0; keyCode < smol::KeyboardState::MAX_KEYS; keyCode++)
     {
       internal.keyboardState.key[keyCode] &= ~smol::KeyboardState::CHANGED_THIS_FRAME_BIT;
     }
+
+    // clean up changed bit for mouse buttons
+    for(int button = 0; button < smol::MouseState::MAX_BUTTONS; button++)
+    {
+      internal.mouseState.button[button] &= ~smol::MouseState::CHANGED_THIS_FRAME_BIT;
+    }
+
+    // reset wheel delta
+    internal.mouseState.wheelDelta = 0;
 
     while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
     {
@@ -408,98 +458,122 @@ namespace smol
     return (const unsigned char*)&internal.keyboardState;
   }
 
-    char* Platform::loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset)
+  const MouseState* Platform::getMouseState()
+  {
+    return &internal.mouseState;
+  }
+
+  const Point2& Platform::getCursorPosition()
+  {
+    return internal.mouseState.cursor;
+  }
+
+  void Platform::captureCursor(Window* window)
+  {
+    SetCapture(window->handle);
+  }
+
+  void Platform::releaseCursor(Window* window)
+  {
+    ReleaseCapture();
+  }
+
+  void Platform::showCursor(bool status)
+  {
+    ShowCursor(status);
+  }
+
+  char* Platform::loadFileToBuffer(const char* fileName, size_t* loadedFileSize, size_t extraBytes, size_t offset)
+  {
+    FILE* fd = fopen(fileName, "rb");
+
+    if (! fd)
     {
-      FILE* fd = fopen(fileName, "rb");
-    
-      if (! fd)
-      {
-        smol::Log::error("Could not open file '%s'", fileName);
-        return nullptr;
-      }
+      smol::Log::error("Could not open file '%s'", fileName);
+      return nullptr;
+    }
 
-      fseek(fd, 0, SEEK_END);
-      size_t fileSize = ftell(fd);
-      fseek(fd, 0, SEEK_SET);
+    fseek(fd, 0, SEEK_END);
+    size_t fileSize = ftell(fd);
+    fseek(fd, 0, SEEK_SET);
 
-      const size_t totalBufferSize = fileSize + extraBytes;
+    const size_t totalBufferSize = fileSize + extraBytes;
+    //TODO(marcio): Use our custom memory manager here
+    char* buffer = new char[totalBufferSize];
+    if(! fread(buffer + offset, fileSize, 1, fd))
+    {
+      smol::Log::error("Failed to read from file '%s'", fileName);
       //TODO(marcio): Use our custom memory manager here
-      char* buffer = new char[totalBufferSize];
-      if(! fread(buffer + offset, fileSize, 1, fd))
-      {
-        smol::Log::error("Failed to read from file '%s'", fileName);
-        //TODO(marcio): Use our custom memory manager here
-        delete[] buffer;
-        buffer = nullptr;
-      }
-
-      if (loadedFileSize)
-        *loadedFileSize = fileSize;
-    
-      fclose(fd);
-      return buffer;
+      delete[] buffer;
+      buffer = nullptr;
     }
 
-    char* Platform::loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize)
-    {
-      size_t bufferSize;
-      char* buffer = Platform::loadFileToBuffer(fileName, &bufferSize, 1, 0);
-      
-      if (fileSize) *fileSize = bufferSize;
-      if (buffer)
-        buffer[bufferSize] = 0;
-      return buffer;
-    }
+    if (loadedFileSize)
+      *loadedFileSize = fileSize;
 
-    void Platform::unloadFileBuffer(const char* fileBuffer)
-    {
-      //TODO(marcio): Use our custom memory manager here
-      delete[] fileBuffer;
-    }
+    fclose(fd);
+    return buffer;
+  }
 
-    const char* Platform::getBinaryPath()
-    {
-      return internal.binaryPath;
-    }
+  char* Platform::loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize)
+  {
+    size_t bufferSize;
+    char* buffer = Platform::loadFileToBuffer(fileName, &bufferSize, 1, 0);
 
-    void* Platform::getMemory(size_t size)
-    {
-      //TODO(marcio): Add metadata on allocated blocks in debug mode
-      //TODO(marcio): Make possible to allocate aligned memory
-      return malloc(size);
-    }
+    if (fileSize) *fileSize = bufferSize;
+    if (buffer)
+      buffer[bufferSize] = 0;
+    return buffer;
+  }
 
-    void Platform::freeMemory(void* memory, size_t size)
-    {
-      //TODO(marceio): Confirm the memory block is the correct size when we are doing memory management.
-      //TODO(marcio): Make sure passed address is not affected by alignment
-      free(memory);
-    }
+  void Platform::unloadFileBuffer(const char* fileBuffer)
+  {
+    //TODO(marcio): Use our custom memory manager here
+    delete[] fileBuffer;
+  }
 
-    void* Platform::resizeMemory(void* memory, size_t size)
-    {
-      return realloc(memory, size);
-    }
+  const char* Platform::getBinaryPath()
+  {
+    return internal.binaryPath;
+  }
 
+  void* Platform::getMemory(size_t size)
+  {
+    //TODO(marcio): Add metadata on allocated blocks in debug mode
+    //TODO(marcio): Make possible to allocate aligned memory
+    return malloc(size);
+  }
 
-    uint64 Platform::getTicks()
-    {
-      LARGE_INTEGER value;
-      QueryPerformanceCounter(&value);
-      return value.QuadPart;
-    }
+  void Platform::freeMemory(void* memory, size_t size)
+  {
+    //TODO(marceio): Confirm the memory block is the correct size when we are doing memory management.
+    //TODO(marcio): Make sure passed address is not affected by alignment
+    free(memory);
+  }
 
-    float Platform::getMillisecondsBetweenTicks(uint64 start, uint64 end)
-    {
-      end -= internal.ticksSinceEngineStartup.QuadPart;
-      start -= internal.ticksSinceEngineStartup.QuadPart;
+  void* Platform::resizeMemory(void* memory, size_t size)
+  {
+    return realloc(memory, size);
+  }
 
-      float deltaTime = ((end - start))/ (float)internal.ticksPerSecond.QuadPart;
+  uint64 Platform::getTicks()
+  {
+    LARGE_INTEGER value;
+    QueryPerformanceCounter(&value);
+    return value.QuadPart;
+  }
+
+  float Platform::getMillisecondsBetweenTicks(uint64 start, uint64 end)
+  {
+    end -= internal.ticksSinceEngineStartup.QuadPart;
+    start -= internal.ticksSinceEngineStartup.QuadPart;
+
+    float deltaTime = ((end - start))/ (float)internal.ticksPerSecond.QuadPart;
 #ifdef _SMOL_DEBUG_ 
-      // if we stopped on a breakpoint, make things behave more naturally
-      if ( deltaTime > 1.0f)
-        deltaTime = 0.016f;
+    // if we stopped on a breakpoint, make things behave more naturally
+    if ( deltaTime > 1.0f)
+      deltaTime = 0.016f;
 #endif
-      return deltaTime;
-    }
+    return deltaTime;
+  }
 } 
