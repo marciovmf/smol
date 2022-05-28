@@ -3,6 +3,7 @@
 
 #ifdef SMOL_PLATFORM_WINDOWS
 #include <windows.h>
+#include <windowsx.h>
 #endif
 
 #ifdef SMOL_PLATFORM_WINDOWS
@@ -14,6 +15,8 @@
 #else
 #define SMOL_PLATFORM_API
 #endif // SMOL_PLATFORM_WINDOWS
+
+#include <smol/smol_point.h>
 
 namespace smol
 {
@@ -31,6 +34,21 @@ namespace smol
 
     unsigned char key[MAX_KEYS];
   };
+
+  struct MouseState
+  {
+    enum
+    {
+      PRESSED_BIT = 1,
+      CHANGED_THIS_FRAME_BIT = 1 << 1,
+      MAX_BUTTONS = 5
+    };
+
+    int wheelDelta;
+    Point2 cursor;
+    unsigned char button[MAX_BUTTONS];
+  };
+
 
   struct SMOL_PLATFORM_API Platform final
   {
@@ -50,6 +68,12 @@ namespace smol
 
     // Keyboard handling
     static const unsigned char* getKeyboardState();
+    // Mouse handling
+    static const MouseState* getMouseState();
+    static const Point2& getCursorPosition();
+    static void captureCursor(Window* window);
+    static void releaseCursor(Window* window);
+    static void showCursor(bool status);
    
     // Basic file handling
     static char* loadFileToBuffer(const char* fileName, size_t* loadedFileSize=nullptr, size_t extraBytes=0, size_t offset=0);
@@ -61,6 +85,11 @@ namespace smol
     static void* getMemory(size_t size);
     static void* resizeMemory(void* memory, size_t);
     static void freeMemory(void* memory, size_t);
+
+    // Time
+    static uint64 getTicks();   // return number of ticks since platform startup
+    static float getMillisecondsBetweenTicks(uint64 start, uint64 end);
+
   };
 } 
 

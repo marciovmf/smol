@@ -50,6 +50,7 @@ namespace smol
 
     Config(size_t initialArenaSize);
     Config(const char* path, size_t initialArenaSize = MEGABYTE(1));
+    ~Config();
     bool load(const char* path);
   };
 }

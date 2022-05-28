@@ -32,11 +32,18 @@ namespace smol
 {
   namespace launcher
   {
+
     struct WindowVariables
     {
       Vector2 size;
       const char* caption;
     }; 
+
+    struct SystemVariables
+    {
+      bool showCursor;
+      bool captureCursor;
+    };
 
     int smolMain(int argc, char** argv)
     {
@@ -45,17 +52,25 @@ namespace smol
         smol::Log::toFile(SMOL_LOGFILE);
 
       // parse variables file
+      SystemVariables systemVariables;
       WindowVariables windowVariables;
       Config config(SMOL_VARIABLES_FILE);
       ConfigEntry* entry = config.entries;
 
       for (int i = 0; i < config.entryCount; i++)
       {
-        if (strncmp(entry->variables[0].name ,"window", strlen("window")) == 0)
+        if (strncmp(entry->variables[0].name ,"window", 6) == 0)
         {
           // Window variables
           windowVariables.size = entry->getVariableVec2("size");
           windowVariables.caption = entry->getVariableString("caption");
+        }
+
+        if (strncmp(entry->variables[0].name ,"system", 6) == 0)
+        {
+          // system variables
+          systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
+          systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
         }
 
         entry = entry->next;
@@ -84,11 +99,17 @@ namespace smol
       smol::Window* window = Platform::createWindow((int) windowVariables.size.x,
           (int) windowVariables.size.y, windowVariables.caption);
 
+      Platform::showCursor(systemVariables.showCursor);
+
+        if (systemVariables.captureCursor)
+          Platform::captureCursor(window);
+
       // Initialize systems root
       smol::SystemsRoot root;
       root.config = &config;
 
       root.keyboard = &smol::Keyboard();
+      root.mouse = &smol::Mouse();
       smol::Scene scene;
       root.loadedScene = &scene;
 
@@ -100,11 +121,18 @@ namespace smol
       smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
       root.renderer = &renderer;
 
+      uint64 startTime = 0;
+      uint64 endTime = 0;
+
       while(! Platform::getWindowCloseFlag(window))
       {
+        float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
+        startTime = Platform::getTicks();
+
         bool update = false;
         root.keyboard->update();
-        onGameUpdateCallback(0.0f); //TODO(marcio): calculate delta time!
+        root.mouse->update();
+        onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 
         // check for resize.
@@ -120,6 +148,7 @@ namespace smol
         }
 
         renderer.render();
+        endTime = Platform::getTicks();
       }
 
       onGameStopCallback();

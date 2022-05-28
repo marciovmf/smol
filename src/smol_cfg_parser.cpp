@@ -476,6 +476,10 @@ namespace smol
     return true;
   }
 
+  Config::~Config ()
+  {
+    Platform::unloadFileBuffer(buffer);
+  }
 
   const char* typeToString(ConfigVariable::Type type)
   {
@@ -496,7 +500,7 @@ namespace smol
     const size_t varNameLen = strlen(name);
     ConfigVariable* result = nullptr;
 
-    for (int varIndex = 1; varIndex < entry->variableCount; varIndex++)
+    for (int varIndex = 0; varIndex < entry->variableCount; varIndex++)
     {
       ConfigVariable* variable = &entry->variables[varIndex];
       if (strncmp(variable->name, name, varNameLen) == 0)

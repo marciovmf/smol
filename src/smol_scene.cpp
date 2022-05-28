@@ -6,6 +6,7 @@
 #include <smol/smol_renderer_types.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector2.h>
+#include <smol/smol_cfg_parser.h>
 
 namespace smol
 {
@@ -310,20 +311,37 @@ namespace smol
     return handle;
   }
 
-  Handle<ShaderProgram> Scene::createShader(const char* vsFilePath,
-      const char* fsFilePath,
-      const char* gsFilePath)
+  Handle<ShaderProgram> Scene::createShader(const char* filePath)
   {
-    //TODO(marcio): There must be a "default" shader we might use in case we fail to build a shader program.
+    if (!filePath)
+    {
+      return INVALID_HANDLE(ShaderProgram);
+    }
 
-    char* vertexSource = vsFilePath ? Platform::loadFileToBufferNullTerminated(vsFilePath) : nullptr;
-    char* fragmentSource = fsFilePath ? Platform::loadFileToBufferNullTerminated(fsFilePath) : nullptr;
-    char* geometrySource = gsFilePath ? Platform::loadFileToBufferNullTerminated(gsFilePath) : nullptr;
-    Handle<ShaderProgram> handle = createShaderFromSource(vertexSource, fragmentSource, geometrySource);
+    Config config(filePath);
+    ConfigEntry* entry = config.entries;
 
-    if (vertexSource) Platform::unloadFileBuffer(vertexSource);
-    if (fragmentSource) Platform::unloadFileBuffer(fragmentSource);
-    if (geometrySource) Platform::unloadFileBuffer(geometrySource);
+    const char* STR_VERTEX_SHADER = "vertexShader";
+    const char* STR_FRAGMENT_SHADER = "fragmentShader";
+    const char* STR_GEOMETRY_SHADER = "geometryShader";
+
+    const char* vsSource = entry->getVariableString(STR_VERTEX_SHADER, nullptr);
+    const char* fsSource = entry->getVariableString(STR_FRAGMENT_SHADER, nullptr);
+    const char* gsSource = nullptr;
+
+    if (entry->variableCount == 3)
+      gsSource = entry->getVariableString(STR_GEOMETRY_SHADER, nullptr);
+
+    if (vsSource == nullptr || fsSource == nullptr)
+    {
+      Log::error("Invalid shader source file. First entry must be 'vertexShader', then 'fragmentShader', and an optional 'geometryShader'.");
+      return INVALID_HANDLE(ShaderProgram);
+    }
+
+    Handle<ShaderProgram> handle = shaders.reserve();
+    ShaderProgram* shader = shaders.lookup(handle);
+
+    Renderer::createShaderProgram(shader, vsSource, fsSource, gsSource);
     return handle;
   }
 
