@@ -28,7 +28,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
   auto texture = scene.createTexture("assets\\smol32.bmp");
   texture2 = scene.createTexture("assets\\smol16.bmp");
 
-  shader = scene.createShader("assets\\default.vs", "assets\\default.fs");
+  shader = scene.createShader("assets\\default.shader");
   auto material = scene.createMaterial(shader, &texture, 1);
   material2 = scene.createMaterial(shader, &texture2, 1);
 
