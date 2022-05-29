@@ -38,7 +38,12 @@ namespace smol
     //
     // Texture resources
     //
-    static bool createTextureFromImage(Texture* outTexture, const Image& image);
+    static bool createTexture(Texture* outTexture,
+        const Image& image,
+        Texture::Wrap wrap = Texture::Wrap::REPEAT, 
+        Texture::Filter filter = Texture::Filter::LINEAR,
+        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
+
     static void destroyTexture(Texture*);
 
     //

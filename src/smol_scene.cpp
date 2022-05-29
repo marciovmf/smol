@@ -134,7 +134,9 @@ namespace smol
   {
     Handle<Texture> texture = textures.reserve();
     Texture* texturePtr = textures.lookup(texture);
-    if (texturePtr && Renderer::createTextureFromImage(texturePtr, image))
+    bool success = Renderer::createTexture(texturePtr, image);
+
+    if (texturePtr && success)
       return texture;
 
     return INVALID_HANDLE(Texture);

@@ -41,6 +41,28 @@ namespace smol
 
   struct SMOL_ENGINE_API Texture
   {
+    enum Wrap
+    {
+      REPEAT            = 0,
+      REPEAT_MIRRORED   = 1,
+      CLAMP_TO_EDGE     = 2
+    };
+
+    enum Filter
+    {
+      LINEAR                  = 0,
+      NEAREST                 = 1
+    };
+
+    enum Mipmap
+    {
+      LINEAR_MIPMAP_LINEAR    = 0,
+      LINEAR_MIPMAP_NEAREST   = 1,
+      NEAREST_MIPMAP_LINEAR   = 2,
+      NEAREST_MIPMAP_NEAREST  = 3,
+      NO_MIPMAP               = 4
+    };
+
     int width;
     int height;
     GLuint textureObject;

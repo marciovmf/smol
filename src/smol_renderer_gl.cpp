@@ -245,7 +245,7 @@ namespace smol
   // Texture resources
   //
 
-  bool Renderer::createTextureFromImage(Texture* outTexture, const Image& image)
+  bool Renderer::createTexture(Texture* outTexture, const Image& image, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     outTexture->width = image.width;
     outTexture->height = image.height;
@@ -267,8 +267,64 @@ namespace smol
     glGenTextures(1, &outTexture->textureObject);
     glBindTexture(GL_TEXTURE_2D, outTexture->textureObject);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    GLuint mode;
+    switch (wrap)
+    {
+      case Texture::Wrap::REPEAT_MIRRORED:
+        mode = GL_MIRRORED_REPEAT;
+        break;
+      case Texture::Wrap::CLAMP_TO_EDGE:
+        mode = GL_CLAMP_TO_EDGE;
+        break;
+      case Texture::Wrap::REPEAT:
+      default:
+        mode = GL_REPEAT;
+        break;
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mode);
+
+    switch (filter)
+    {
+      case Texture::Filter::NEAREST:
+        mode = GL_NEAREST;
+        break;
+
+      case Texture::Filter::LINEAR:
+      default:
+        mode = GL_LINEAR;
+        break;
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mode);
+
+    if (mipmap == Texture::Mipmap::NO_MIPMAP)
+    {
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mode);
+    }
+    else
+    {
+      switch(mipmap)
+      {
+        case Texture::Mipmap::LINEAR_MIPMAP_NEAREST:
+          mode = GL_LINEAR_MIPMAP_NEAREST;
+          break;
+        case Texture::Mipmap::NEAREST_MIPMAP_LINEAR:
+          mode = GL_NEAREST_MIPMAP_LINEAR;
+          break;
+        case Texture::Mipmap::NEAREST_MIPMAP_NEAREST:
+          mode = GL_NEAREST_MIPMAP_NEAREST;
+          break;
+        case Texture::Mipmap::LINEAR_MIPMAP_LINEAR:
+        default:
+          mode = GL_LINEAR_MIPMAP_LINEAR;
+          break;
+      }
+      glGenerateMipmap(GL_TEXTURE_2D);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+
     return outTexture->textureObject != 0;
   }
 
