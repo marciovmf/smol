@@ -113,6 +113,15 @@ namespace smol
     //
     Handle<Texture> Scene::createTexture(const char* bitmapPath); //TODO: Add texture filtering options here
     Handle<Texture> Scene::createTexture(const Image& image); //TODO: Add texture filtering options here
+    Handle<Texture> Scene::createTexture(const char* path,
+        Texture::Wrap wrap = Texture::Wrap::REPEAT,
+        Texture::Filter filter = Texture::Filter::LINEAR,
+        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
+    
+    Handle<Texture> Scene::createTexture(const Image& image,
+        Texture::Wrap wrap = Texture::Wrap::REPEAT,
+        Texture::Filter filter = Texture::Filter::LINEAR,
+        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
     void destroyTexture(Handle<Texture> handle);
     void destroyTexture(Texture* texture);
 

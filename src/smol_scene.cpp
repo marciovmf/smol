@@ -123,6 +123,7 @@ namespace smol
   //
 
   Handle<Texture> Scene::createTexture(const char* path)
+  Handle<Texture> Scene::createTexture(const char* path, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     Image* image = AssetManager::loadImageBitmap(path);
     Handle<Texture> texture = createTexture(*image);
@@ -130,11 +131,11 @@ namespace smol
     return texture;
   }
 
-  Handle<Texture> Scene::createTexture(const Image& image)
+  Handle<Texture> Scene::createTexture(const Image& image, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     Handle<Texture> texture = textures.reserve();
     Texture* texturePtr = textures.lookup(texture);
-    bool success = Renderer::createTexture(texturePtr, image);
+    bool success = Renderer::createTexture(texturePtr, image, wrap, filter, mipmap);
 
     if (texturePtr && success)
       return texture;
