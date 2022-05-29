@@ -103,7 +103,7 @@ namespace smol
     Scene();
 
     // Shaders
-    Handle<ShaderProgram> Scene::createShader(const char* filePath);
+    Handle<ShaderProgram> Scene::loadShader(const char* filePath);
     Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
     void destroyShader(Handle<ShaderProgram> handle);
     void destroyShader(ShaderProgram* program);

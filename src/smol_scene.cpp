@@ -313,7 +313,7 @@ namespace smol
     return handle;
   }
 
-  Handle<ShaderProgram> Scene::createShader(const char* filePath)
+  Handle<ShaderProgram> Scene::loadShader(const char* filePath)
   {
     if (!filePath)
     {
