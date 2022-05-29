@@ -334,7 +334,7 @@ namespace smol
 
     if (vsSource == nullptr || fsSource == nullptr)
     {
-      Log::error("Invalid shader source file. First entry must be 'vertexShader', then 'fragmentShader', and an optional 'geometryShader'.");
+      Log::error("Invalid shader source file '%s'. First entry must be 'vertexShader', then 'fragmentShader', and an optional 'geometryShader'.", filePath);
       return INVALID_HANDLE(ShaderProgram);
     }
 
