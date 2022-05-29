@@ -204,6 +204,63 @@ namespace smol
     }
   }
 
+
+  Handle<Material> Scene::loadMaterial(const char* path)
+  {
+
+
+    if (!path)
+      return INVALID_HANDLE(Material);
+
+    Config config(path);
+    ConfigEntry* entry = config.entries;
+
+    if (!entry)
+      return INVALID_HANDLE(Material);
+
+    int numDiffuseTextures = 0;
+    Handle<Texture> diffuseTextures[SMOL_MATERIAL_MAX_TEXTURES];
+
+    const char* STR_SHADER = "shader";
+    const char* STR_DIFFUSE = "diffuse";
+    size_t STR_DIFFUSE_LEN = strlen("diffuse");
+
+    const char* shaderPath = entry->getVariableString(STR_SHADER, nullptr);
+    if (!shaderPath)
+    {
+      Log::error("Invalid material file '%s'. First entry must be 'shader'.", path);
+      return INVALID_HANDLE(Material);
+    }
+
+    //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
+    Handle<ShaderProgram> shader = loadShader(shaderPath);
+
+    // parse additional entries
+    for (int i = 1; i < entry->variableCount; i++)
+    {
+      ConfigVariable& variable = entry->variables[i];
+      if (strncmp(STR_DIFFUSE, variable.name, STR_DIFFUSE_LEN) == 0)
+      {
+        if (numDiffuseTextures >= SMOL_MATERIAL_MAX_TEXTURES)
+        {
+          Log::error("Material file '%s' exceeded the maximum of %d diffuse textures. The texture '%s' will be ignored.",
+              path, SMOL_MATERIAL_MAX_TEXTURES, variable.stringValue);
+        }
+        else
+        {
+          //TODO(marcio): We must be able to know if the required texture is already loaded. If it is we should use it instead of loading it again!
+          diffuseTextures[numDiffuseTextures++] = loadTexture(variable.stringValue);
+        }
+      }
+      else
+      {
+        //this is a shader parameter.
+      }
+    }
+
+    return createMaterial(shader, diffuseTextures, numDiffuseTextures);
+  }
+
   Handle<Material> Scene::createMaterial(Handle<ShaderProgram> shader,
       Handle<Texture>* diffuseTextures, int diffuseTextureCount)
   {

@@ -125,6 +125,8 @@ namespace smol
     void destroyTexture(Handle<Texture> handle);
     void destroyTexture(Texture* texture);
 
+   
+    Handle<Material> loadMaterial(const char* path);
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount);
     void destroyMaterial(Handle<Material> handle);
 
