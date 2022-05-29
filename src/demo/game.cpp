@@ -25,7 +25,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   mesh = scene.createMesh(true, &(smol::MeshData::getPrimitiveCube()));
 
-  auto texture = scene.createTexture("assets\\smol32.bmp");
+  auto texture = scene.loadTexture("assets\\smol.texture");
   texture2 = scene.createTexture("assets\\smol16.bmp");
 
   shader = scene.loadShader("assets\\default.shader");

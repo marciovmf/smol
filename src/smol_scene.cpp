@@ -122,7 +122,49 @@ namespace smol
   // Resources: Textures, Materials, Meshes, Renderables
   //
 
-  Handle<Texture> Scene::createTexture(const char* path)
+
+  Handle<Texture> Scene::loadTexture(const char* path)
+  {
+    if (!path)
+      return INVALID_HANDLE(Texture);
+
+    Config config(path);
+    ConfigEntry* entry = config.entries;
+
+    if (!entry)
+      return INVALID_HANDLE(Texture);
+
+    const char* STR_IMAGE = "image";
+    const char* STR_WRAP = "wrap";
+    const char* STR_FILTER = "filter";
+    const char* STR_MIPMAP = "mipmap";
+
+    const char* imagePath = entry->getVariableString(STR_IMAGE, nullptr);
+    unsigned int wrap = (unsigned int) entry->getVariableNumber(STR_WRAP, 0.0f);
+    unsigned int filter = (unsigned int) entry->getVariableNumber(STR_FILTER, 0.0f);
+    unsigned int mipmap = (unsigned int) entry->getVariableNumber(STR_MIPMAP, 0.0f);
+
+    if (wrap >= Texture::Wrap::MAX_WRAP_OPTIONS)
+    {
+      wrap = 0;
+      Log::error("Invalid wrap value in Texture file '%s'");
+    }
+
+    if (filter >= Texture::Filter::MAX_FILTER_OPTIONS)
+    {
+      filter = 0;
+      Log::error("Invalid filter value in Texture file '%s'");
+    }
+
+    if (mipmap >= Texture::Mipmap::MAX_MIPMAP_OPTIONS)
+    {
+      mipmap = 0;
+      Log::error("Invalid mipmap value in Texture file '%s'");
+    }
+
+    return createTexture(imagePath, (Texture::Wrap) wrap, (Texture::Filter) filter, (Texture::Mipmap) mipmap);
+  }
+
   Handle<Texture> Scene::createTexture(const char* path, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     Image* image = AssetManager::loadImageBitmap(path);

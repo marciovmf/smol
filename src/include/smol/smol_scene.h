@@ -111,8 +111,8 @@ namespace smol
     //
     // Resources
     //
-    Handle<Texture> Scene::createTexture(const char* bitmapPath); //TODO: Add texture filtering options here
-    Handle<Texture> Scene::createTexture(const Image& image); //TODO: Add texture filtering options here
+    Handle<Texture> Scene::loadTexture(const char* path); 
+    
     Handle<Texture> Scene::createTexture(const char* path,
         Texture::Wrap wrap = Texture::Wrap::REPEAT,
         Texture::Filter filter = Texture::Filter::LINEAR,
