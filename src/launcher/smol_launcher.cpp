@@ -9,6 +9,7 @@
 #include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
+#include <smol/smol_vector2.h>
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -43,6 +44,9 @@ namespace smol
     {
       bool showCursor;
       bool captureCursor;
+      int glVersionMajor;
+      int glVersionMinor;
+        
     };
 
     int smolMain(int argc, char** argv)
@@ -71,6 +75,10 @@ namespace smol
           // system variables
           systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
           systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
+          const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
+          Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
+          systemVariables.glVersionMajor = (int) glVersion.x;
+          systemVariables.glVersionMinor = (int) glVersion.y;
         }
 
         entry = entry->next;
