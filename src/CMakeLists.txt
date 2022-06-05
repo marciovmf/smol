@@ -74,6 +74,7 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
   ${SOURCE_PATH}/smol_keyboard.cpp
+  ${SOURCE_PATH}/include/smol/smol_hashmap.h
   ${SOURCE_PATH}/include/smol/smol_mouse.h
   ${SOURCE_PATH}/smol_mouse.cpp
   ${SOURCE_PATH}/include/smol/smol_engine.h
