@@ -11,9 +11,9 @@ namespace smol
 
   void Vector3::set(float x, float y, float z)
   {
-    x = x;
-    y = y;
-    z = z;
+    this->x = x;
+    this->y = y;
+    this->z = z;
   }
 
   Vector3& Vector3::sum(float f)

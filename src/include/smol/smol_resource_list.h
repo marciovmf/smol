@@ -63,7 +63,7 @@ namespace smol
       public:
       ResourceList(int initialCapacity);
       Handle<T> reserve();
-      Handle<T> add(T&);
+      Handle<T> add(const T&);
       T* lookup(Handle<T> handle);
       void remove(Handle<T> handle);
       void reset();
@@ -73,11 +73,12 @@ namespace smol
 
   template<typename T> 
     ResourceList<T>::ResourceList(int initialCapacity):
+      slots(Arena(sizeof(SlotInfo) * initialCapacity)),
+      resources(Arena(sizeof(T) * initialCapacity)),
       resourceCount(0),
       freeSlotListCount(0),
-      freeSlotListStart(-1),
-      slots(Arena(sizeof(SlotInfo) * initialCapacity)),
-      resources(Arena(sizeof(T) * initialCapacity)) { }
+      freeSlotListStart(-1)
+ { }
 
   template<typename T>
     inline int ResourceList<T>::count()
@@ -125,7 +126,7 @@ namespace smol
     }
 
   template<typename T>
-    Handle<T> ResourceList<T>::add(T& t)
+    Handle<T> ResourceList<T>::add(const T& t)
     {
       Handle<T> handle = reserve();
       T* resource = lookup(handle);
@@ -194,9 +195,9 @@ namespace smol
     {
       slots.reset();
       resources.reset();
-      int resourceCount = 0;
-      int freeSlitstCount = 0;
-      int freeSlitstStart = -1;
+      resourceCount = 0;
+      freeSlotListCount = 0;
+      freeSlotListStart = -1;
     }
 }
 

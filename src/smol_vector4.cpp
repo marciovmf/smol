@@ -11,10 +11,10 @@ namespace smol
 
   void Vector4::set(float x, float y, float z, float w)
   {
-    x = x;
-    y = y;
-    z = z;
-    w = w;
+    this->x = x;
+    this->y = y;
+    this->z = z;
+    this->w = w;
   }
 
   Vector4& Vector4::sum(float f)

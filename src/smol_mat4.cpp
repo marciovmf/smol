@@ -9,7 +9,7 @@ namespace smol
 {
   Mat4 Mat4::initIdentity()
   {
-    Mat4 m = {0};
+    Mat4 m = {};
     m.e[0][0] = m.e[1][1] = m.e[2][2] = m.e[3][3] = 1.0f;
     return m;
   }
@@ -147,7 +147,7 @@ namespace smol
     return t;
   }
 
-  Mat4& Mat4::mul(Mat4& other)
+  Mat4& Mat4::mul(const Mat4& other)
   {
     Mat4 result = Mat4::mul(*this, other);
     *this = result;

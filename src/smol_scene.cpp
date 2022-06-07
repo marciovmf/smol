@@ -31,10 +31,10 @@ namespace smol
     AssetManager::unloadImage(img);
 
     // Creates a ROOT node
-    Handle<SceneNode> root = nodes.add(SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
+    nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
 
     // store the default shader program in the scene
-    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    ShaderProgram program = Renderer::getDefaultShaderProgram();
     defaultShader = shaders.add(program);
 
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
@@ -44,7 +44,7 @@ namespace smol
   // SceneNode
   //---------------------------------------------------------------------------
   SceneNode::SceneNode(Scene* scene, SceneNodeType type, Handle<SceneNode> parent) 
-    : scene(*scene), type(type), active(true), dirty(true)
+    : scene(*scene), active(true), dirty(true), type(type)
   { 
     transform.setParent(parent);
   }
@@ -192,18 +192,24 @@ namespace smol
     }
   }
 
-  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
-  {
-    const size_t numPositions = meshData->numPositions;
-    const size_t numIndices = meshData->numIndices;
-    const size_t vec3BufferSize = numPositions * sizeof(Vector3);
 
+  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData& meshData)
+  {
     return createMesh(dynamic,
         Primitive::TRIANGLE,
-        meshData->positions, meshData->numPositions,
-        meshData->indices, meshData->numIndices,
-        meshData->colors, meshData->uv0, meshData->uv1, meshData->normals);
+        meshData.positions, meshData.numPositions,
+        meshData.indices, meshData.numIndices,
+        meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
   }
+
+  //Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
+  //{
+  //  return createMesh(dynamic,
+  //      Primitive::TRIANGLE,
+  //      meshData->positions, meshData->numPositions,
+  //      meshData->indices, meshData->numIndices,
+  //      meshData->colors, meshData->uv0, meshData->uv1, meshData->normals);
+  //}
 
   Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
       const Vector3* vertices, int numVertices,
@@ -281,7 +287,7 @@ namespace smol
         (unsigned int*)memory, capacity * 6,
         (Color*) memory, nullptr,
         (Vector2*) memory, nullptr);
-    Handle<Renderable> renderable = createRenderable(material, createMesh(true, &meshData));
+    Handle<Renderable> renderable = createRenderable(material, createMesh(true, meshData));
 
     batcher->renderable = renderable;
     batcher->spriteCount = 0;
@@ -371,9 +377,9 @@ namespace smol
   //
   Handle<SceneNode> Scene::createMeshNode(
       Handle<Renderable> renderable,
-      Vector3& position,
-      Vector3& scale,
-      Vector3& rotation,
+      const Vector3& position,
+      const Vector3& scale,
+      const Vector3& rotation,
       Handle<SceneNode> parent)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, parent));
@@ -390,8 +396,8 @@ namespace smol
 
   Handle<SceneNode> Scene::createSpriteNode(
       Handle<SpriteBatcher> batcher,
-      Rect& rect,
-      Vector3& position,
+      const Rect& rect,
+      const Vector3& position,
       float width,
       float height,
       const Color& color,

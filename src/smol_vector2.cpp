@@ -10,8 +10,8 @@ namespace smol
 
   void Vector2::set(float x, float y)
   {
-    x = x;
-    y = y;
+    this->x = x;
+    this->y = y;
   }
 
   Vector2& Vector2::sum(float f)

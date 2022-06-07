@@ -11,21 +11,24 @@ namespace smol
 
   struct SMOL_ENGINE_API MeshData
   {
-    const unsigned int* indices;
     const Vector3* positions;
+    const unsigned int* indices;
     const Vector3* normals;
     const Color* colors;
     const Vector2* uv0;
     const Vector2* uv1;
-    const int numPositions;
-    const int numIndices;
+    int numPositions;
+    int numIndices;
 
+    MeshData();
     MeshData(Vector3* positions, int numPositions,
         unsigned int* indices = nullptr, int numIndices = 0,
         Color* colors = nullptr,
         Vector3* normals = nullptr, 
         Vector2* uv0 = nullptr, 
         Vector2* uv1 = nullptr);
+
+    MeshData(const MeshData& other);
 
     static const MeshData getPrimitiveCube();
     static const MeshData getPrimitiveArrow();

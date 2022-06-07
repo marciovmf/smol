@@ -20,7 +20,7 @@ namespace smol
     static Vector3 mul(const Mat4& a, const Vector3& b);
 
     float e[4][4];
-    Mat4& mul(Mat4& other);
+    Mat4& mul(const Mat4& other);
     Mat4& transposed();
   };
 }

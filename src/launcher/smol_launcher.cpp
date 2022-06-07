@@ -112,22 +112,22 @@ namespace smol
         if (systemVariables.captureCursor)
           Platform::captureCursor(window);
 
-      // Initialize systems root
-      smol::SystemsRoot root;
-      root.config = &config;
-
-      root.keyboard = &smol::Keyboard();
-      root.mouse = &smol::Mouse();
-      smol::Scene scene;
-      root.loadedScene = &scene;
-
-      onGameStartCallback(&root);
-
       int lastWidth, lastHeight;
       Platform::getWindowSize(window, &lastWidth, &lastHeight);
+      smol::Scene scene;
+      smol::Renderer renderer(scene, lastWidth, lastHeight);
 
-      smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
-      root.renderer = &renderer;
+      smol::Keyboard keyboardSystem;
+      smol::Mouse mouseSystem;
+
+      // Initialize systems root
+      smol::SystemsRoot root(config,
+          renderer,
+          keyboardSystem,
+          mouseSystem, 
+          scene);
+
+      onGameStartCallback(&root);
 
       uint64 startTime = 0;
       uint64 endTime = 0;
@@ -137,9 +137,8 @@ namespace smol
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
 
-        bool update = false;
-        root.keyboard->update();
-        root.mouse->update();
+        root.keyboard.update();
+        root.mouse.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 

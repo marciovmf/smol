@@ -8,12 +8,12 @@ namespace smol
   static HMODULE opengl32Dll = GetModuleHandleA("OpenGL32.dll");
   static void* win32GetGLFunctionPtr(char* name)
   {
-      void* addr = GetProcAddress(opengl32Dll, name);
-      if(! addr) addr = wglGetProcAddress(name);
+      void* addr = (void*) GetProcAddress(opengl32Dll, name);
+      if(! addr) addr = (void*) wglGetProcAddress(name);
       return addr;
   }
 
-#define SMOL_GETGLPROC(param) win32GetGLFunctionPtr(#param)
+#define SMOL_GETGLPROC(param) win32GetGLFunctionPtr((char*)#param)
 
   void getOpenGLFunctionPointers()
   {
