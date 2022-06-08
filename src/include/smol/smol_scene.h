@@ -54,7 +54,7 @@ namespace smol
       SpriteSceneNode spriteNode;
     };
 
-    SceneNode(Scene* scene, SceneNodeType type, Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+    SceneNode(Scene* scene, SceneNodeType type, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
     bool isActive();
     bool isActiveInHierarchy();
     void setActive(bool status);
@@ -103,22 +103,22 @@ namespace smol
     Scene();
 
     // Shaders
-    Handle<ShaderProgram> Scene::loadShader(const char* filePath);
-    Handle<ShaderProgram> Scene::createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
+    Handle<ShaderProgram> loadShader(const char* filePath);
+    Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
     void destroyShader(Handle<ShaderProgram> handle);
     void destroyShader(ShaderProgram* program);
 
     //
     // Resources
     //
-    Handle<Texture> Scene::loadTexture(const char* path); 
+    Handle<Texture> loadTexture(const char* path); 
     
-    Handle<Texture> Scene::createTexture(const char* path,
+    Handle<Texture> createTexture(const char* path,
         Texture::Wrap wrap = Texture::Wrap::REPEAT,
         Texture::Filter filter = Texture::Filter::LINEAR,
         Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
     
-    Handle<Texture> Scene::createTexture(const Image& image,
+    Handle<Texture> createTexture(const Image& image,
         Texture::Wrap wrap = Texture::Wrap::REPEAT,
         Texture::Filter filter = Texture::Filter::LINEAR,
         Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
@@ -130,7 +130,8 @@ namespace smol
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount);
     void destroyMaterial(Handle<Material> handle);
 
-    Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
+    Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
+    //Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
         const Vector3* vertices, int numVertices,
@@ -165,15 +166,15 @@ namespace smol
     //
     Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
-        Vector3& position = Vector3{0.0f, 0.0f, 0.0f},
-        Vector3& scale = Vector3{1.0f, 1.0f, 1.0f},
-        Vector3& rotation = Vector3{0.0f, 0.0f, 0.0f},
+        const Vector3& position = (const Vector3) Vector3{0.0f, 0.0f, 0.0f},
+        const Vector3& scale = (const Vector3) Vector3{1.0f, 1.0f, 1.0f},
+        const Vector3& rotation = (const Vector3) Vector3{0.0f, 0.0f, 0.0f},
         Handle<SceneNode> parent = Scene::ROOT);
 
     Handle<SceneNode> createSpriteNode(
         Handle<SpriteBatcher> batcher,
-        Rect& rect,
-        Vector3& position,
+        const Rect& rect,
+        const Vector3& position,
         float width,
         float height,
         const Color& color = Color::WHITE,

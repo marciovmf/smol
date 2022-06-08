@@ -740,10 +740,10 @@ namespace smol
     {
       GLuint glClearFlags = 0;
 
-      if (scene.clearOperation && Scene::COLOR_BUFFER)
+      if (scene.clearOperation & Scene::COLOR_BUFFER)
         glClearFlags |= GL_COLOR_BUFFER_BIT;
 
-      if (scene.clearOperation && Scene::DEPTH_BUFFER)
+      if (scene.clearOperation & Scene::DEPTH_BUFFER)
         glClearFlags |= GL_DEPTH_BUFFER_BIT;
 
       glClearColor(scene.clearColor.x, scene.clearColor.y, scene.clearColor.z, 1.0f);

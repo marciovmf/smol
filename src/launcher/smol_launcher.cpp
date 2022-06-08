@@ -10,7 +10,6 @@
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
 #include <smol/smol_vector2.h>
-#include <smol/smol_hashmap.h>
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -50,80 +49,11 @@ namespace smol
         
     };
 
-    enum Colour
-    {
-      RED = 10,
-      GREEN = 55,
-      BLUE = 94,
-      FOO = 17
-    };
-
-    //uint64 colourToHash(Colour c)
-    //{
-    //  return smol::intToHash((int) c);
-    //}
-
     int smolMain(int argc, char** argv)
     {
       smol::Log::verbosity(SMOL_LOGLEVEL);
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
-
-      // Test hashmap ---------------------------------------------------------
-      {
-#if 1
-        {
-          smol::Hashmap<const char*, Vector3> map;
-          map.add("red", Vector3{1.0f, 0.0f, 0.0f});
-          map.add("green", Vector3{0.0f, 1.0f, 0.0f});
-          map.add("blue", Vector3{0.0f, 0.0f, 1.0f});
-
-          Vector3& green = map.get("green");
-          Log::info("GREEN is (%f, %f, %f)", green.x, green.y, green.z);
-
-          Vector3& red = map.get("red");
-          Log::info("RED is (%f, %f, %f)", red.x, red.y, red.z);
-
-          Vector3& blue = map.get("blue");
-          Log::info("BLUE is (%f, %f, %f)", blue.x, blue.y, blue.z);
-        }
-#endif
-        {
-          smol::Hashmap<Colour, Vector3, int, uint64 (*)(Colour)> map2(64, 0, smol::typeToHash<Colour>);
-          map2.add(Colour::RED,   Vector3{1.0f, 0.0f, 0.0f});
-          map2.add(Colour::GREEN, Vector3{0.0f, 1.0f, 0.0f});
-          map2.add(Colour::BLUE,  Vector3{0.0f, 0.0f, 1.0f});
-
-          if (map2.hasKey(Colour::GREEN))
-          {
-            Vector3& green = map2.get(Colour::GREEN);
-            Log::info("GREEN is (%f, %f, %f)", green.x, green.y, green.z);
-          }
-
-          if (map2.hasKey(Colour::RED))
-          {
-            Vector3& red = map2.get(Colour::RED);
-            Log::info("RED is (%f, %f, %f)", red.x, red.y, red.z);
-          }
-
-          if (map2.hasKey(Colour::BLUE))
-          {
-            Vector3& blue = map2.get(Colour::BLUE);
-            Log::info("BLUE is (%f, %f, %f)", blue.x, blue.y, blue.z);
-          }
-
-          if (map2.hasKey(Colour::FOO))
-          {
-            Vector3& foo = map2.get(Colour::FOO);
-            Log::info("FOO is (%f, %f, %f)", foo.x, foo.y, foo.z);
-          }
-
-        }
-
-        return 0;
-      }
-      // end test hashmap ----------------------------------------------------
-
 
       // parse variables file
       SystemVariables systemVariables;
@@ -182,22 +112,22 @@ namespace smol
       if (systemVariables.captureCursor)
         Platform::captureCursor(window);
 
-      // Initialize systems root
-      smol::SystemsRoot root;
-      root.config = &config;
-
-      root.keyboard = &smol::Keyboard();
-      root.mouse = &smol::Mouse();
-      smol::Scene scene;
-      root.loadedScene = &scene;
-
-      onGameStartCallback(&root);
-
       int lastWidth, lastHeight;
       Platform::getWindowSize(window, &lastWidth, &lastHeight);
+      smol::Scene scene;
+      smol::Renderer renderer(scene, lastWidth, lastHeight);
 
-      smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
-      root.renderer = &renderer;
+      smol::Keyboard keyboardSystem;
+      smol::Mouse mouseSystem;
+
+      // Initialize systems root
+      smol::SystemsRoot root(config,
+          renderer,
+          keyboardSystem,
+          mouseSystem, 
+          scene);
+
+      onGameStartCallback(&root);
 
       uint64 startTime = 0;
       uint64 endTime = 0;
@@ -207,9 +137,8 @@ namespace smol
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
 
-        bool update = false;
-        root.keyboard->update();
-        root.mouse->update();
+        root.keyboard.update();
+        root.mouse.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 

@@ -24,7 +24,7 @@ namespace smol
       keyboardState({}), mouseState({})
     {
       // Get binary location
-      int len = GetModuleFileName(NULL, binaryPath, MAX_PATH);
+      GetModuleFileName(NULL, binaryPath, MAX_PATH);
       char* truncatePos = strrchr(binaryPath, '\\');
       if(truncatePos) *truncatePos = 0;
 
@@ -444,7 +444,7 @@ namespace smol
 
   void* Platform::getFunctionFromModule(Module* module,  const char* function)
   {
-    void* addr = GetProcAddress(module->handle, function);
+    void* addr = (void*) GetProcAddress(module->handle, function);
     if (! addr)
     {
       smol::Log::error("Faild to fetch '%s' function pointer from module", function);

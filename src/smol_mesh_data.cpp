@@ -7412,6 +7412,8 @@ namespace smol
     {0.0f, 0.0f},   // bottom left
   };
 
+  MeshData::MeshData(){}
+
   MeshData::MeshData(Vector3* positions, int numPositions,
       unsigned int* indices,
       int numIndices,
@@ -7420,6 +7422,11 @@ namespace smol
       Vector2* uv0,
       Vector2* uv1)
     :positions(positions), indices(indices), normals(normals), colors(colors), uv0(uv0), uv1(uv1), numPositions(numPositions), numIndices(numIndices)
+  {
+  }
+
+  MeshData::MeshData(const MeshData& other)
+    :positions(other.positions), indices(other.indices), normals(other.normals), colors(other.colors), uv0(other.uv0), uv1(other.uv1), numPositions(other.numPositions), numIndices(other.numIndices)
   {
   }
 

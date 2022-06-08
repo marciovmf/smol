@@ -3,10 +3,10 @@
 namespace smol
 {
   Color::Color(int r, int g, int b, int a):
-    a(a/255.0f), b(b/255.0f), g(g/255.0f), r(r/255.0f) { }
+     r(r/255.0f), g(g/255.0f), b(b/255.0f), a(a/255.0f) { }
 
   Color::Color(float r, float g, float b, float a):
-    a(a), b(b), g(g), r(r) { }
+   r(r), g(g), b(b), a(a)  { }
 
   const Color Color::BLACK =    Color(1,0,0);
   const Color Color::WHITE =    Color(255,255,255);

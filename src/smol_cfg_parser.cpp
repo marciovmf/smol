@@ -237,46 +237,46 @@ namespace smol
 
   static void unexpectedTokenError(Token::Type type, Lexer& lexer)
   {
-    char* name;
+    const char* name;
 
     switch(type)
     {
       case Token::NUMBER:
-        name = "NUMBER";
+        name = (const char*) "NUMBER";
         break;
       case Token::IDENTIFIER:
-        name = "IDENTIFIER";
+        name = (const char*) "IDENTIFIER";
         break;
       case Token::STRING:
-        name = "STRING";
+        name = (const char*) "STRING";
         break;
       case Token::COMMA:
-        name = "COMMA";
+        name = (const char*) "COMMA";
         break;
       case Token::QUOTE:
-        name = "QUOTE";
+        name = (const char*) "QUOTE";
         break;
       case Token::BACKSLASH:
-        name = "BACKSLASH";
+        name = (const char*) "BACKSLASH";
         break;
       case Token::LINEBREAK:
-        name = "LINEBREAK";
+        name = (const char*) "LINEBREAK";
         break;
       case Token::COLON:
-        name = "COLON";
+        name = (const char*) "COLON";
         break;
       case Token::END_OF_FILE:
-        name = "END_OF_FILE";
+        name = (const char*) "END_OF_FILE";
         break;
       case Token::VECTOR_START:
-        name = "VECTOR_START";
+        name = (const char*) "VECTOR_START";
         break;
       case Token::VECTOR_END:
-        name = "VECTOR_END";
+        name = (const char*) "VECTOR_END";
         break;
       case Token::INVALID:
       default:
-        name = "character";
+        name = (const char*) "character";
         break;
     }
 
@@ -423,10 +423,10 @@ namespace smol
   }
 
   Config:: Config(size_t initialArenaSize):
-    arena(initialArenaSize), entryCount(0), buffer(nullptr), entries(nullptr) { }
+    arena(initialArenaSize), buffer(nullptr), entries(nullptr), entryCount(0) { }
 
   Config::Config(const char* path, size_t initialArenaSize):
-    arena(initialArenaSize), entryCount(0), buffer(nullptr), entries(nullptr)
+    arena(initialArenaSize), buffer(nullptr), entries(nullptr), entryCount(0)
   {
     load(path);
   }
@@ -486,14 +486,14 @@ namespace smol
 
   const char* typeToString(ConfigVariable::Type type)
   {
-    char* typeName = "UNKNOWN";
+    const char* typeName = (const char*) "UNKNOWN";
     switch (type)
     {
-      case ConfigVariable::Type::STRING: typeName = "STRING"; break;
-      case ConfigVariable::Type::NUMBER: typeName = "NUNBER"; break;
-      case ConfigVariable::Type::VECTOR2: typeName = "VECTOR2"; break;
-      case ConfigVariable::Type::VECTOR3: typeName = "VECTOR3"; break;
-      case ConfigVariable::Type::VECTOR4: typeName = "VECTOR4"; break;
+      case ConfigVariable::Type::STRING: typeName   = (const char*) "STRING"; break;
+      case ConfigVariable::Type::NUMBER: typeName   = (const char*) "NUNBER"; break;
+      case ConfigVariable::Type::VECTOR2: typeName  = (const char*) "VECTOR2"; break;
+      case ConfigVariable::Type::VECTOR3: typeName  = (const char*) "VECTOR3"; break;
+      case ConfigVariable::Type::VECTOR4: typeName  = (const char*) "VECTOR4"; break;
     }
     return typeName;
   }
