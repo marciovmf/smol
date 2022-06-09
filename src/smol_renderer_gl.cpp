@@ -236,6 +236,12 @@ namespace smol
     this->scene = &scene;
   }
 
+
+  Scene& Renderer::getLoadedScene()
+  {
+    return *scene;
+  }
+
   Rect Renderer::getViewport()
   {
     return viewport;

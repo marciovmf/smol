@@ -27,6 +27,7 @@ namespace smol
     Renderer (Scene& scene, int width, int height);
     ~Renderer();
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
+    Scene& getLoadedScene();
     Rect getViewport();
     
     //
