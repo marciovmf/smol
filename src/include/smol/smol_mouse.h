@@ -9,24 +9,27 @@ namespace smol
   struct MouseState;
 
   enum MouseButton : unsigned char
-         {
-           MOUSE_BUTTON_LEFT     = 0,
-           MOUSE_BUTTON_RIGHT    = 1,
-           MOUSE_BUTTON_MIDDLE   = 2,
-           MOUSE_BUTTON_EXTRA_0  = 3,
-           MOUSE_BUTTON_EXTRA_1  = 4
-         };
+  {
+    MOUSE_BUTTON_LEFT     = 0,
+    MOUSE_BUTTON_RIGHT    = 1,
+    MOUSE_BUTTON_MIDDLE   = 2,
+    MOUSE_BUTTON_EXTRA_0  = 3,
+    MOUSE_BUTTON_EXTRA_1  = 4
+  };
 
-         struct SMOL_ENGINE_API Mouse
-         {
-           const MouseState* mouseState = nullptr;
-
-           const Point2& getCursorPosition();
-           bool getButton(MouseButton button);
-           bool getButtonUp(MouseButton button);
-           bool getButtonDown(MouseButton button);
-           int getWheelDelta();
-           void update();
-         };
+  struct SMOL_ENGINE_API Mouse
+  {
+    Mouse();
+    const MouseState* mouseState = nullptr;
+    const Point2& getCursorPosition();
+    bool getButton(MouseButton button);
+    bool getButtonUp(MouseButton button);
+    bool getButtonDown(MouseButton button);
+    int getWheelDelta();
+    void update();
+    private:
+    Mouse(const Mouse& other);
+    Mouse& operator=(const Mouse& other);
+  };
 }
 #endif  // SMOL_MOUSE_H

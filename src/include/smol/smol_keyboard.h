@@ -131,10 +131,15 @@ namespace smol
   {
     const unsigned char* mKeyboardState = nullptr;
 
+    Keyboard();
     bool getKey(unsigned char keyCode);
     bool getKeyUp(unsigned char keyCode);
     bool getKeyDown(unsigned char keyCode);
     void update();
+
+    private:
+    Keyboard(const Keyboard& other);
+    Keyboard& operator=(const Keyboard& other);
   };
 
 }

@@ -3,6 +3,8 @@
 
 namespace smol
 {
+    Keyboard::Keyboard() { update(); }
+
     void Keyboard::update()
     {
       mKeyboardState = Platform::getKeyboardState();
