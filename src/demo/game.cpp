@@ -44,25 +44,25 @@ void onStart(smol::SystemsRoot* systemsRoot)
   // meshes
 
   scene.createMeshNode(floor, 
-      (const smol::Vector3) smol::Vector3{0.0f, -5.0f, -5.0f},
-      (const smol::Vector3) smol::Vector3{100.0f, 100.0f, 100.0f},
-      (const smol::Vector3) smol::Vector3{-90, 0.0f, 0.0f});
+      (const smol::Vector3) smol::Vector3(0.0f, -5.0f, -5.0f),
+      (const smol::Vector3) smol::Vector3(100.0f, 100.0f, 100.0f),
+      (const smol::Vector3) smol::Vector3(-90, 0.0f, 0.0f));
 
   // center cube
   node1 = scene.createMeshNode(renderable2, smol::Vector3{0.0f, -1.0f, -10.0f});
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3{0.0f, 1.0f, 0.0f},
-      smol::Vector3{0.8f, 0.8f, 0.8f},
-      smol::Vector3{1.0f, 1.0f, 1.0f},
+      smol::Vector3(0.0f, 1.0f, 0.0f),
+      smol::Vector3(0.8f, 0.8f, 0.8f),
+      smol::Vector3(1.0f, 1.0f, 1.0f),
       node1);
 
   // right cube
   scene.createMeshNode(renderable2, 
-      smol::Vector3{4.0f, 0.0f, -10.0f},
-      smol::Vector3{0.8f, 0.8f, 0.8f},
-      smol::Vector3{0.0f, 0.0f, 0.0f}
+      smol::Vector3(4.0f, 0.0f, -10.0f),
+      smol::Vector3(0.8f, 0.8f, 0.8f),
+      smol::Vector3(0.0f, 0.0f, 0.0f)
       );
 
   // sprites
@@ -70,19 +70,19 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   batcher = scene.createSpriteBatcher(material);
   sprite1 = scene.createSpriteNode(batcher,
-      (const smol::Rect&) smol::Rect{120, 580, 710, 200},
-      (const smol::Vector3&) smol::Vector3{1.0f, 1.0f, 0.0f},
+      (const smol::Rect&) smol::Rect(120, 580, 710, 200),
+      (const smol::Vector3&) smol::Vector3(1.0f, 1.0f, 0.0f),
       350.0f, 100.0f, 
       (const smol::Color) smol::Color::WHITE);
 
   sprite2 = scene.createSpriteNode(batcher, 
-      smol::Rect{0, 0, 800, 800},
-      smol::Vector3{200.0f, 200.0f, 0.0f},
+      smol::Rect(0, 0, 800, 800),
+      smol::Vector3(200.0f, 200.0f, 0.0f),
       100.0f, 100.0f, smol::Color::GREEN);
 
   scene.createSpriteNode(batcher, 
-      smol::Rect{0, 0, 800, 800},
-      smol::Vector3{400.0f, 200.0f, 0.0f},
+      smol::Rect(0, 0, 800, 800),
+      smol::Vector3(400.0f, 200.0f, 0.0f),
       100.0f, 100.0f, smol::Color::BLUE);
   selectedNode = node2;
 }

@@ -4,6 +4,7 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_resource_list.h>
 #include <smol/smol_color.h>
+#include <smol/smol_rect.h>
 
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
@@ -29,15 +30,6 @@ namespace smol
     POINT
   };
 
-  struct SMOL_ENGINE_API Rect
-  {
-    int x, y, w, h;
-  };
-
-  struct SMOL_ENGINE_API Rectf
-  {
-    float x, y, w, h;
-  };
 
   struct SMOL_ENGINE_API Texture
   {
