@@ -1,0 +1,3 @@
+# Material
+shader: "assets/default.shader",
+  diffuse: "assets/smol.texture"

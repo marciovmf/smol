@@ -103,7 +103,7 @@ namespace smol
     Scene();
 
     // Shaders
-    Handle<ShaderProgram> createShader(const char* filePath);
+    Handle<ShaderProgram> loadShader(const char* filePath);
     Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
     void destroyShader(Handle<ShaderProgram> handle);
     void destroyShader(ShaderProgram* program);
@@ -111,11 +111,22 @@ namespace smol
     //
     // Resources
     //
-    Handle<Texture> createTexture(const char* bitmapPath); //TODO: Add texture filtering options here
-    Handle<Texture> createTexture(const Image& image); //TODO: Add texture filtering options here
+    Handle<Texture> loadTexture(const char* path); 
+    
+    Handle<Texture> createTexture(const char* path,
+        Texture::Wrap wrap = Texture::Wrap::REPEAT,
+        Texture::Filter filter = Texture::Filter::LINEAR,
+        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
+    
+    Handle<Texture> createTexture(const Image& image,
+        Texture::Wrap wrap = Texture::Wrap::REPEAT,
+        Texture::Filter filter = Texture::Filter::LINEAR,
+        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
     void destroyTexture(Handle<Texture> handle);
     void destroyTexture(Texture* texture);
 
+   
+    Handle<Material> loadMaterial(const char* path);
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount);
     void destroyMaterial(Handle<Material> handle);
 

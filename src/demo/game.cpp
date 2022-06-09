@@ -26,12 +26,12 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
 
-  auto texture = scene.createTexture("assets\\smol32.bmp");
-  texture2 = scene.createTexture("assets\\smol16.bmp");
+  auto texture = scene.loadTexture("assets\\smol.texture");
 
-  shader = scene.createShader("assets\\default.shader");
+  shader = scene.loadShader("assets\\default.shader");
   auto material = scene.createMaterial(shader, &texture, 1);
-  material2 = scene.createMaterial(shader, &texture2, 1);
+
+  material2 = scene.loadMaterial("assets\\default.material");
 
   auto renderable = scene.createRenderable(material, mesh);
   auto renderable2 = scene.createRenderable(material2, mesh);
@@ -165,8 +165,6 @@ void onUpdate(float deltaTime)
 
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { scene.destroyShader(shader); }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_F6)) { scene.destroyTexture(texture2); }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F7)) { scene.destroyMaterial(material2); }
 

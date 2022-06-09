@@ -104,7 +104,10 @@ namespace smol
       Material* material = scene->materials.lookup(renderable->material);
       if (!material) material = scene->materials.lookup(scene->defaultMaterial);
 
-      Texture* texture = (material->diffuseTextureCount > 0) ?
+
+      Texture* texture =
+        (material->diffuseTextureCount > 0 
+         && material->textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
         scene->textures.lookup(material->textureDiffuse[0]) :
         scene->textures.lookup(scene->defaultTexture);
 
