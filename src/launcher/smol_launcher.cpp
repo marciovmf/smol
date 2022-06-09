@@ -109,8 +109,8 @@ namespace smol
 
       Platform::showCursor(systemVariables.showCursor);
 
-        if (systemVariables.captureCursor)
-          Platform::captureCursor(window);
+      if (systemVariables.captureCursor)
+        Platform::captureCursor(window);
 
       int lastWidth, lastHeight;
       Platform::getWindowSize(window, &lastWidth, &lastHeight);

@@ -435,6 +435,9 @@ namespace smol
   {
     size_t bufferSize;
     buffer = Platform::loadFileToBuffer(path, &bufferSize);
+    if (!buffer)
+      return false;
+
     Lexer lexer(buffer, bufferSize);
     bool hasErrors = false;
     ConfigEntry* previousEntry;
