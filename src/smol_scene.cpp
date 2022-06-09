@@ -289,7 +289,6 @@ namespace smol
     }
   }
 
-
   Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData& meshData)
   {
     return createMesh(dynamic,
@@ -298,15 +297,6 @@ namespace smol
         meshData.indices, meshData.numIndices,
         meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
   }
-
-  //Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
-  //{
-  //  return createMesh(dynamic,
-  //      Primitive::TRIANGLE,
-  //      meshData->positions, meshData->numPositions,
-  //      meshData->indices, meshData->numIndices,
-  //      meshData->colors, meshData->uv0, meshData->uv1, meshData->normals);
-  //}
 
   Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
       const Vector3* vertices, int numVertices,

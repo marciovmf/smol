@@ -131,7 +131,6 @@ namespace smol
     void destroyMaterial(Handle<Material> handle);
 
     Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
-    //Handle<Mesh> createMesh(bool dynamic, const MeshData* meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
         const Vector3* vertices, int numVertices,
