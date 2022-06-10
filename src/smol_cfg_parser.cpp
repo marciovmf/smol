@@ -477,10 +477,20 @@ namespace smol
 
     // Alocate the entry
     ConfigEntry* entry = (ConfigEntry*) arena.pushSize(sizeof(ConfigEntry));
+    entry->next = nullptr;
     entry->name = entryName;
     entry->hash = entryHash;
     entry->variableCount = variableCount;
     entry->variables = ((ConfigVariable*) entry) - variableCount;   // walk back N variables to find the first variable for this entry
+
+    // If this is NOT a named entry, the entry gets the name of the first variable
+    if (entry->name == nullptr && entry->variableCount > 0)
+    {
+      ConfigVariable* firstVariable = &(entry->variables[0]);
+      entry->name = firstVariable->name;
+      entry->hash = firstVariable->hash;
+    }
+
     *out = entry;
 
     return true;
@@ -588,26 +598,23 @@ namespace smol
     return result;
   }
 
-
-  ConfigEntry* Config::findEntry(const char *name)
+  ConfigEntry* Config::findEntry(const char *name, const ConfigEntry* start)
   {
     const size_t varNameLen = strlen(name);
     int64 requiredHash = stringToHash(name);
-    ConfigEntry* entry = entries;
+    ConfigEntry* entry = start ? start->next : entries;
 
-    for (int i=0; i < entryCount; i++)
+    while (entry)
     {
-      if (entry->hash == requiredHash && 
-          strncmp(entry->name, name, varNameLen) == 0)
+      if (entry->hash == requiredHash && (strncmp(entry->name, name, varNameLen) == 0))
       {
         return entry;
       }
-     entry = entry->next; 
+      entry = entry->next; 
     }
 
     return nullptr;
   }
-
 
   float ConfigEntry::getVariableNumber(const char* name, float defaultValue)
   {

@@ -53,7 +53,7 @@ namespace smol
 
     Config(size_t initialArenaSize);
     Config(const char* path, size_t initialArenaSize = MEGABYTE(1));
-    ConfigEntry* findEntry(const char *name);
+    ConfigEntry* findEntry(const char *name, const ConfigEntry* start = nullptr);
     ~Config();
     bool load(const char* path);
   };
