@@ -1,11 +1,11 @@
 # variables.txt
 
-system: -1,
+@system:
   showCursor: 0,
   captureCursor: 0,
   glVersion: {3, 3}
 
 
-window:         -1,
+@window:
   size:         {1080, 768},
   caption:      "SMOL engine v0.1"

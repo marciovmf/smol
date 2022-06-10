@@ -7,6 +7,36 @@
 
 namespace smol
 {
+
+  constexpr size_t strlen(const char* string)
+  {
+    const char* p = string;
+    while(*p)
+    {
+      ++p;
+    }
+
+    return p - string;
+  }
+
+  constexpr uint64 stringToHash(const char* str)
+  {
+    uint64 hash = 18459509;
+
+    for(; *str; ++str)
+    {
+      hash += *str;
+      hash += (hash << 10);
+      hash ^= (hash >> 6);
+    }
+
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+
+    return hash;
+  }
+
   struct Lexer
   {
     const char* data;
@@ -112,6 +142,7 @@ namespace smol
       END_OF_FILE,
       VECTOR_START,
       VECTOR_END,
+      AT_SIGN,
       INVALID
     };
 
@@ -187,6 +218,11 @@ namespace smol
       token.size = lexer.data - token.data;
       lexer.getc(); // to consume the closing quote
     }
+    else if (c == '@')
+    {
+      token.type = Token::AT_SIGN;
+      token.size = 1;
+    }
     else if (c == ',')
     {
       token.type = Token::COMMA;
@@ -241,6 +277,9 @@ namespace smol
 
     switch(type)
     {
+      case Token::AT_SIGN:
+        name = (const char*) "AT_SIGN";
+        break;
       case Token::NUMBER:
         name = (const char*) "NUMBER";
         break;
@@ -288,6 +327,8 @@ namespace smol
     smol::ConfigVariable var = {};
     bool done = false;
     int variableCount = 0;
+    int64 entryHash = 0;
+    const char* entryName = nullptr;
 
     lexer.skipWhiteSpaceAndLineBreak();
 
@@ -296,9 +337,20 @@ namespace smol
       Token tIdentifier;
       Token t;
       Token rValue;
+      bool isEntryName = false;
 
-      // VARNAME
-      if (!requireToken(lexer, Token::Type::IDENTIFIER, tIdentifier))
+      // VARNAME or @VARNAME
+      tIdentifier = getToken(lexer);
+      if (tIdentifier.type == Token::Type::AT_SIGN && variableCount == 0 && entryName == nullptr)
+      {
+        isEntryName = true;
+        if (!requireToken(lexer, Token::Type::IDENTIFIER, tIdentifier))
+        {
+          unexpectedTokenError(tIdentifier.type, lexer);
+          return false;
+        }
+      }
+      else if (tIdentifier.type != Token::Type::IDENTIFIER)
       {
         unexpectedTokenError(tIdentifier.type, lexer);
         return false;
@@ -316,6 +368,15 @@ namespace smol
       // to write over that part of the buffer.
       *((char*)tIdentifier.data + tIdentifier.size) = 0; 
       var.name = tIdentifier.data;
+      var.hash = stringToHash(var.name);
+
+      if (isEntryName)
+      {
+        entryName = var.name;
+        entryHash = stringToHash(var.name);
+        lexer.skipWhiteSpaceAndLineBreak();
+        continue;
+      }
 
       rValue = getToken(lexer);
 
@@ -406,6 +467,7 @@ namespace smol
         return false;
       }
 
+
       ConfigVariable* variable = (ConfigVariable*) arena.pushSize(sizeof(ConfigVariable));
       *variable = var;
       ++variableCount;
@@ -415,6 +477,8 @@ namespace smol
 
     // Alocate the entry
     ConfigEntry* entry = (ConfigEntry*) arena.pushSize(sizeof(ConfigEntry));
+    entry->name = entryName;
+    entry->hash = entryHash;
     entry->variableCount = variableCount;
     entry->variables = ((ConfigVariable*) entry) - variableCount;   // walk back N variables to find the first variable for this entry
     *out = entry;
@@ -502,11 +566,14 @@ namespace smol
   {
     const size_t varNameLen = strlen(name);
     ConfigVariable* result = nullptr;
+    int64 requiredHash = stringToHash(name);
 
     for (int varIndex = 0; varIndex < entry->variableCount; varIndex++)
     {
       ConfigVariable* variable = &entry->variables[varIndex];
-      if (strncmp(variable->name, name, varNameLen) == 0)
+
+      if (variable->hash == requiredHash && 
+          strncmp(variable->name, name, varNameLen) == 0)
       {
         if (variable->type != type)
         {
@@ -520,6 +587,27 @@ namespace smol
 
     return result;
   }
+
+
+  ConfigEntry* Config::findEntry(const char *name)
+  {
+    const size_t varNameLen = strlen(name);
+    int64 requiredHash = stringToHash(name);
+    ConfigEntry* entry = entries;
+
+    for (int i=0; i < entryCount; i++)
+    {
+      if (entry->hash == requiredHash && 
+          strncmp(entry->name, name, varNameLen) == 0)
+      {
+        return entry;
+      }
+     entry = entry->next; 
+    }
+
+    return nullptr;
+  }
+
 
   float ConfigEntry::getVariableNumber(const char* name, float defaultValue)
   {

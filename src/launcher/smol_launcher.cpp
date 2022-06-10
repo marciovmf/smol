@@ -59,29 +59,24 @@ namespace smol
       SystemVariables systemVariables;
       WindowVariables windowVariables;
       Config config(SMOL_VARIABLES_FILE);
-      ConfigEntry* entry = config.entries;
-
-      for (int i = 0; i < config.entryCount; i++)
+      ConfigEntry* entry;
+      entry = config.findEntry("window");
+      if (entry)
       {
-        if (strncmp(entry->variables[0].name ,"window", 6) == 0)
-        {
-          // Window variables
           windowVariables.size = entry->getVariableVec2("size");
           windowVariables.caption = entry->getVariableString("caption");
-        }
+      }
 
-        if (strncmp(entry->variables[0].name ,"system", 6) == 0)
-        {
-          // system variables
-          systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
-          systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
-          const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
-          Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
-          systemVariables.glVersionMajor = (int) glVersion.x;
-          systemVariables.glVersionMinor = (int) glVersion.y;
-        }
-
-        entry = entry->next;
+      entry = config.findEntry("system");
+      if(entry)
+      {
+        // system variables
+        systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
+        systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
+        const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
+        Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
+        systemVariables.glVersionMajor = (int) glVersion.x;
+        systemVariables.glVersionMinor = (int) glVersion.y;
       }
 
 

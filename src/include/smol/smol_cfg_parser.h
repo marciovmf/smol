@@ -16,6 +16,7 @@ namespace smol
     enum Type { STRING, NUMBER, VECTOR2, VECTOR3, VECTOR4 };
 
     const char* name;
+    int64 hash;
     Type type;
     union
     {
@@ -29,9 +30,11 @@ namespace smol
 
   struct SMOL_ENGINE_API ConfigEntry
   {
-    int variableCount;
+    uint32 variableCount;
     ConfigVariable* variables;
     ConfigEntry* next;
+    const char* name;
+    int64 hash;
 
     float getVariableNumber(const char* name, float defaultValue = 1.0f);
     Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f});
@@ -46,10 +49,11 @@ namespace smol
     smol::Arena arena;
     char* buffer;
     ConfigEntry* entries;
-    int entryCount;
+    uint32 entryCount;
 
     Config(size_t initialArenaSize);
     Config(const char* path, size_t initialArenaSize = MEGABYTE(1));
+    ConfigEntry* findEntry(const char *name);
     ~Config();
     bool load(const char* path);
   };
