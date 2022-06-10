@@ -5,7 +5,10 @@
   captureCursor: 0,
   glVersion: {3, 3}
 
-
 @window:
   size:         {1080, 768},
   caption:      "SMOL engine v0.1"
+
+@game:
+  numHSprites: 50,
+  numVSprites: 50

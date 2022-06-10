@@ -2,6 +2,7 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
 #include <smol/smol_assetmanager.h>
+#include <smol/smol_cfg_parser.h>
 #include <utility>
 
 smol::SystemsRoot* root;
@@ -143,8 +144,15 @@ void onUpdate(float deltaTime)
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
   {
     once = false;
-    const int numHSprites = 20;
-    const int numVSprites = 20;
+    int numHSprites = 20;
+    int numVSprites = 20;
+    smol::ConfigEntry* entry = root->config.findEntry("game");
+    if (entry)
+    {
+      numHSprites = (int) entry->getVariableNumber("numHSprites", (float) numHSprites);
+      numVSprites = (int) entry->getVariableNumber("numVSprites", (float) numVSprites);
+    }
+
     smol::Rect viewport =
       root->renderer.getViewport();
     float spriteWidth = viewport.w /(float) numHSprites;
