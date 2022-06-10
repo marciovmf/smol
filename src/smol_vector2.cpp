@@ -3,10 +3,10 @@
 
 namespace smol
 {
-  Vector2::Vector2(float x, float y):
+  inline Vector2::Vector2(float x, float y):
     x(x), y(y) {}
 
-  Vector2::Vector2(): x(0), y(0) {}
+  Vector2::Vector2() {}
 
   void Vector2::set(float x, float y)
   {
