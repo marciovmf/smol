@@ -46,7 +46,6 @@ namespace smol
       bool captureCursor;
       int glVersionMajor;
       int glVersionMinor;
-        
     };
 
     int smolMain(int argc, char** argv)
@@ -79,8 +78,7 @@ namespace smol
         systemVariables.glVersionMinor = (int) glVersion.y;
       }
 
-
-      if (!Platform::initOpenGL(3, 2))
+      if (!Platform::initOpenGL(systemVariables.glVersionMajor, systemVariables.glVersionMinor))
         return 1;
 
       smol::Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
