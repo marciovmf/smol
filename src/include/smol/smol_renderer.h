@@ -27,6 +27,7 @@ namespace smol
     Renderer (Scene& scene, int width, int height);
     ~Renderer();
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
+    Scene& getLoadedScene();
     Rect getViewport();
     
     //
@@ -38,7 +39,12 @@ namespace smol
     //
     // Texture resources
     //
-    static bool createTextureFromImage(Texture* outTexture, const Image& image);
+    static bool createTexture(Texture* outTexture,
+        const Image& image,
+        Texture::Wrap wrap = Texture::Wrap::REPEAT, 
+        Texture::Filter filter = Texture::Filter::LINEAR,
+        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
+
     static void destroyTexture(Texture*);
 
     //

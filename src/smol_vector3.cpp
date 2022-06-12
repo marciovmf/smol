@@ -4,16 +4,16 @@
 
 namespace smol
 {
-  Vector3::Vector3(float x, float y, float z):
+  inline Vector3::Vector3(float x, float y, float z):
     x(x), y(y), z(z) {}
 
-  Vector3::Vector3(): x(0), y(0), z(0) {}
+  Vector3::Vector3() {}
 
   void Vector3::set(float x, float y, float z)
   {
-    x = x;
-    y = y;
-    z = z;
+    this->x = x;
+    this->y = y;
+    this->z = z;
   }
 
   Vector3& Vector3::sum(float f)

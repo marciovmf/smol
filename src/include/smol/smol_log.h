@@ -14,13 +14,13 @@
 #else
 #define STRNOEXPAND(a) #a
 #define STR(a) STRNOEXPAND(a)
-#define SMOLCONTEXT STR(__FILE__) ## ":" ## STR(__LINE__)
-#define SMOLASSERTIONCONTEXT "Assertion failed at " ## __FILE__ ## ":" ## STR(__LINE__)
+#define SMOLCONTEXT STR(__FILE__) ":" STR(__LINE__)
+#define SMOLASSERTIONCONTEXT "Assertion failed at " __FILE__ ":" STR(__LINE__)
 #define debugLogError(fmt, ...) smol::Log::print(smol::Log::LogType::LOG_ERROR, SMOLCONTEXT, fmt, __VA_ARGS__)
 #define debugLogFatal(fmt, ...) smol::Log::print(smol::Log::LogType::LOG_FATAL, SMOLCONTEXT, fmt, __VA_ARGS__)
 #define debugLogInfo(fmt, ...) smol::Log::print(smol::Log::LogType::LOG_INFO, nullptr, fmt, __VA_ARGS__)
 #define debugLogWarning(fmt, ...) smol::Log::print(smol::Log::LogType::LOG_WARNING, SMOLCONTEXT, fmt, __VA_ARGS__)
-#define SMOL_ASSERT(condition, fmt, ...) do{ if (!(condition)) {smol::Log::print(smol::Log::LogType::LOG_FATAL, SMOLASSERTIONCONTEXT, fmt, __VA_ARGS__); *((int*)0) = 0;}} while(0)
+#define SMOL_ASSERT(condition, fmt, ...) do{ if (!(condition)) {smol::Log::print(smol::Log::LogType::LOG_FATAL, SMOLASSERTIONCONTEXT, fmt, __VA_ARGS__); *((volatile int*)0) = 0;}} while(0)
 #endif
 
 

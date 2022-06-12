@@ -30,7 +30,7 @@ namespace smol
     bool update(ResourceList<SceneNode>* nodes);
     const Mat4& getMatrix() const;
     void setPosition(float x, float y, float z);
-    void setPosition(Vector3& position);
+    void setPosition(const Vector3& position);
     void setScale(float x, float y, float z);
     void setScale(Vector3& scale);
     void setRotation(float x, float y, float z);

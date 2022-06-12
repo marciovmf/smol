@@ -23,7 +23,7 @@ namespace smol
     dirty = true;
   }
 
-  void Transform::setPosition(Vector3& position) 
+  void Transform::setPosition(const Vector3& position) 
   {
     this->position = position;
     dirty = true;
@@ -79,7 +79,7 @@ namespace smol
   bool Transform::update(ResourceList<SceneNode>* nodes)
   {
     SceneNode* parentNode = nodes->lookup(parent);
-    Mat4* parentMatrix = &(Mat4::initIdentity());
+    Mat4 parentMatrix = Mat4::initIdentity();
 
     if(parentNode && parentNode->type != SceneNode::ROOT) // Ignores ROOT node transform and assume it's Identity
     {
@@ -90,7 +90,7 @@ namespace smol
       }
 
       dirty = true;
-      parentMatrix = &parentNode->transform.model;
+      parentMatrix = parentNode->transform.model;
     }
 
     if(!dirty)
@@ -102,7 +102,7 @@ namespace smol
 
     Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
     transformed = Mat4::mul(translationMatrix, transformed);
-    model = Mat4::mul(*parentMatrix, transformed);
+    model = Mat4::mul(parentMatrix, transformed);
 
     dirty = false;
     return true;

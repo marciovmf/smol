@@ -9,6 +9,7 @@
 #include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
+#include <smol/smol_vector2.h>
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -43,6 +44,8 @@ namespace smol
     {
       bool showCursor;
       bool captureCursor;
+      int glVersionMajor;
+      int glVersionMinor;
     };
 
     int smolMain(int argc, char** argv)
@@ -55,29 +58,27 @@ namespace smol
       SystemVariables systemVariables;
       WindowVariables windowVariables;
       Config config(SMOL_VARIABLES_FILE);
-      ConfigEntry* entry = config.entries;
-
-      for (int i = 0; i < config.entryCount; i++)
+      ConfigEntry* entry;
+      entry = config.findEntry("window");
+      if (entry)
       {
-        if (strncmp(entry->variables[0].name ,"window", 6) == 0)
-        {
-          // Window variables
           windowVariables.size = entry->getVariableVec2("size");
           windowVariables.caption = entry->getVariableString("caption");
-        }
-
-        if (strncmp(entry->variables[0].name ,"system", 6) == 0)
-        {
-          // system variables
-          systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
-          systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
-        }
-
-        entry = entry->next;
       }
 
+      entry = config.findEntry("system");
+      if(entry)
+      {
+        // system variables
+        systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
+        systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
+        const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
+        Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
+        systemVariables.glVersionMajor = (int) glVersion.x;
+        systemVariables.glVersionMinor = (int) glVersion.y;
+      }
 
-      if (!Platform::initOpenGL(3, 2))
+      if (!Platform::initOpenGL(systemVariables.glVersionMajor, systemVariables.glVersionMinor))
         return 1;
 
       smol::Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
@@ -101,25 +102,25 @@ namespace smol
 
       Platform::showCursor(systemVariables.showCursor);
 
-        if (systemVariables.captureCursor)
-          Platform::captureCursor(window);
-
-      // Initialize systems root
-      smol::SystemsRoot root;
-      root.config = &config;
-
-      root.keyboard = &smol::Keyboard();
-      root.mouse = &smol::Mouse();
-      smol::Scene scene;
-      root.loadedScene = &scene;
-
-      onGameStartCallback(&root);
+      if (systemVariables.captureCursor)
+        Platform::captureCursor(window);
 
       int lastWidth, lastHeight;
       Platform::getWindowSize(window, &lastWidth, &lastHeight);
+      smol::Scene scene;
+      smol::Renderer renderer(scene, lastWidth, lastHeight);
 
-      smol::Renderer renderer(*root.loadedScene, lastWidth, lastHeight);
-      root.renderer = &renderer;
+      smol::Keyboard keyboardSystem;
+      smol::Mouse mouseSystem;
+
+      // Initialize systems root
+      smol::SystemsRoot root(config,
+          renderer,
+          keyboardSystem,
+          mouseSystem, 
+          scene);
+
+      onGameStartCallback(&root);
 
       uint64 startTime = 0;
       uint64 endTime = 0;
@@ -129,9 +130,8 @@ namespace smol
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
 
-        bool update = false;
-        root.keyboard->update();
-        root.mouse->update();
+        root.keyboard.update();
+        root.mouse.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 

@@ -4,6 +4,7 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_resource_list.h>
 #include <smol/smol_color.h>
+#include <smol/smol_rect.h>
 
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
@@ -29,18 +30,35 @@ namespace smol
     POINT
   };
 
-  struct SMOL_ENGINE_API Rect
-  {
-    int x, y, w, h;
-  };
-
-  struct SMOL_ENGINE_API Rectf
-  {
-    float x, y, w, h;
-  };
 
   struct SMOL_ENGINE_API Texture
   {
+    enum Wrap
+    {
+      REPEAT            = 0,
+      REPEAT_MIRRORED   = 1,
+      CLAMP_TO_EDGE     = 2,
+      MAX_WRAP_OPTIONS
+
+    };
+
+    enum Filter
+    {
+      LINEAR                  = 0,
+      NEAREST                 = 1,
+      MAX_FILTER_OPTIONS
+    };
+
+    enum Mipmap
+    {
+      LINEAR_MIPMAP_LINEAR    = 0,
+      LINEAR_MIPMAP_NEAREST   = 1,
+      NEAREST_MIPMAP_LINEAR   = 2,
+      NEAREST_MIPMAP_NEAREST  = 3,
+      NO_MIPMAP               = 4,
+      MAX_MIPMAP_OPTIONS
+    };
+
     int width;
     int height;
     GLuint textureObject;

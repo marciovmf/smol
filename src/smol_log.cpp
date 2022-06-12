@@ -65,26 +65,26 @@ namespace smol
 #else
     localtime_r(&longTime, &localTime);
 #endif
-    char* tag;
+    const char* tag;
     bool shouldFlush = true;
     switch (type)
     {
       case Log::LogType::LOG_FATAL:
-        tag = "FATAL";
+        tag = (const char*) "FATAL";
         break;
 
       case Log::LogType::LOG_ERROR:
-        tag = "ERROR";
+        tag = (const char*) "ERROR";
         break;
 
       case Log::LogType::LOG_WARNING:
-        tag = "WARNING";
+        tag = (const char*) "WARNING";
         shouldFlush = false;
         break;
 
       case Log::LogType::LOG_INFO:
       default:
-        tag = "INFO";
+        tag = (const char*) "INFO";
         shouldFlush = false;
         break;
     }

@@ -6,6 +6,8 @@
 #define ASSERT_UPDATED() SMOL_ASSERT(mouseState != nullptr, "MouseState is null. Be sure to call Mouse::update() at least once before querying mouse state.")
 namespace smol
 {
+  Mouse::Mouse() { update(); }
+
   const Point2& Mouse::getCursorPosition()
   {
     ASSERT_UPDATED();

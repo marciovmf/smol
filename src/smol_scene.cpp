@@ -31,10 +31,10 @@ namespace smol
     AssetManager::unloadImage(img);
 
     // Creates a ROOT node
-    Handle<SceneNode> root = nodes.add(SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
+    nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
 
     // store the default shader program in the scene
-    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    ShaderProgram program = Renderer::getDefaultShaderProgram();
     defaultShader = shaders.add(program);
 
     defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
@@ -44,7 +44,7 @@ namespace smol
   // SceneNode
   //---------------------------------------------------------------------------
   SceneNode::SceneNode(Scene* scene, SceneNodeType type, Handle<SceneNode> parent) 
-    : scene(*scene), type(type), active(true), dirty(true)
+    : scene(*scene), active(true), dirty(true), type(type)
   { 
     transform.setParent(parent);
   }
@@ -122,7 +122,50 @@ namespace smol
   // Resources: Textures, Materials, Meshes, Renderables
   //
 
-  Handle<Texture> Scene::createTexture(const char* path)
+
+  Handle<Texture> Scene::loadTexture(const char* path)
+  {
+    if (!path)
+      return INVALID_HANDLE(Texture);
+
+    Config config(path);
+    ConfigEntry* entry = config.entries;
+
+    if (!entry)
+      return INVALID_HANDLE(Texture);
+
+    const char* STR_IMAGE = "image";
+    const char* STR_WRAP = "wrap";
+    const char* STR_FILTER = "filter";
+    const char* STR_MIPMAP = "mipmap";
+
+    const char* imagePath = entry->getVariableString(STR_IMAGE, nullptr);
+    unsigned int wrap = (unsigned int) entry->getVariableNumber(STR_WRAP, 0.0f);
+    unsigned int filter = (unsigned int) entry->getVariableNumber(STR_FILTER, 0.0f);
+    unsigned int mipmap = (unsigned int) entry->getVariableNumber(STR_MIPMAP, 0.0f);
+
+    if (wrap >= Texture::Wrap::MAX_WRAP_OPTIONS)
+    {
+      wrap = 0;
+      Log::error("Invalid wrap value in Texture file '%s'");
+    }
+
+    if (filter >= Texture::Filter::MAX_FILTER_OPTIONS)
+    {
+      filter = 0;
+      Log::error("Invalid filter value in Texture file '%s'");
+    }
+
+    if (mipmap >= Texture::Mipmap::MAX_MIPMAP_OPTIONS)
+    {
+      mipmap = 0;
+      Log::error("Invalid mipmap value in Texture file '%s'");
+    }
+
+    return createTexture(imagePath, (Texture::Wrap) wrap, (Texture::Filter) filter, (Texture::Mipmap) mipmap);
+  }
+
+  Handle<Texture> Scene::createTexture(const char* path, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     Image* image = AssetManager::loadImageBitmap(path);
     Handle<Texture> texture = createTexture(*image);
@@ -130,11 +173,13 @@ namespace smol
     return texture;
   }
 
-  Handle<Texture> Scene::createTexture(const Image& image)
+  Handle<Texture> Scene::createTexture(const Image& image, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     Handle<Texture> texture = textures.reserve();
     Texture* texturePtr = textures.lookup(texture);
-    if (texturePtr && Renderer::createTextureFromImage(texturePtr, image))
+    bool success = Renderer::createTexture(texturePtr, image, wrap, filter, mipmap);
+
+    if (texturePtr && success)
       return texture;
 
     return INVALID_HANDLE(Texture);
@@ -157,6 +202,60 @@ namespace smol
       destroyTexture(texture);
       textures.remove(handle);
     }
+  }
+
+  Handle<Material> Scene::loadMaterial(const char* path)
+  {
+    if (!path)
+      return INVALID_HANDLE(Material);
+
+    Config config(path);
+    ConfigEntry* entry = config.entries;
+
+    if (!entry)
+      return INVALID_HANDLE(Material);
+
+    int numDiffuseTextures = 0;
+    Handle<Texture> diffuseTextures[SMOL_MATERIAL_MAX_TEXTURES];
+
+    const char* STR_SHADER = "shader";
+    const char* STR_DIFFUSE = "diffuse";
+    size_t STR_DIFFUSE_LEN = strlen("diffuse");
+
+    const char* shaderPath = entry->getVariableString(STR_SHADER, nullptr);
+    if (!shaderPath)
+    {
+      Log::error("Invalid material file '%s'. First entry must be 'shader'.", path);
+      return INVALID_HANDLE(Material);
+    }
+
+    //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
+    Handle<ShaderProgram> shader = loadShader(shaderPath);
+
+    // parse additional entries
+    for (uint32 i = 1; i < entry->variableCount; i++)
+    {
+      ConfigVariable& variable = entry->variables[i];
+      if (strncmp(STR_DIFFUSE, variable.name, STR_DIFFUSE_LEN) == 0)
+      {
+        if (numDiffuseTextures >= SMOL_MATERIAL_MAX_TEXTURES)
+        {
+          Log::error("Material file '%s' exceeded the maximum of %d diffuse textures. The texture '%s' will be ignored.",
+              path, SMOL_MATERIAL_MAX_TEXTURES, variable.stringValue);
+        }
+        else
+        {
+          //TODO(marcio): We must be able to know if the required texture is already loaded. If it is we should use it instead of loading it again!
+          diffuseTextures[numDiffuseTextures++] = loadTexture(variable.stringValue);
+        }
+      }
+      else
+      {
+        //this is a shader parameter.
+      }
+    }
+
+    return createMaterial(shader, diffuseTextures, numDiffuseTextures);
   }
 
   Handle<Material> Scene::createMaterial(Handle<ShaderProgram> shader,
@@ -190,17 +289,13 @@ namespace smol
     }
   }
 
-  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData* meshData)
+  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData& meshData)
   {
-    const size_t numPositions = meshData->numPositions;
-    const size_t numIndices = meshData->numIndices;
-    const size_t vec3BufferSize = numPositions * sizeof(Vector3);
-
     return createMesh(dynamic,
         Primitive::TRIANGLE,
-        meshData->positions, meshData->numPositions,
-        meshData->indices, meshData->numIndices,
-        meshData->colors, meshData->uv0, meshData->uv1, meshData->normals);
+        meshData.positions, meshData.numPositions,
+        meshData.indices, meshData.numIndices,
+        meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
   }
 
   Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
@@ -279,7 +374,7 @@ namespace smol
         (unsigned int*)memory, capacity * 6,
         (Color*) memory, nullptr,
         (Vector2*) memory, nullptr);
-    Handle<Renderable> renderable = createRenderable(material, createMesh(true, &meshData));
+    Handle<Renderable> renderable = createRenderable(material, createMesh(true, meshData));
 
     batcher->renderable = renderable;
     batcher->spriteCount = 0;
@@ -311,7 +406,7 @@ namespace smol
     return handle;
   }
 
-  Handle<ShaderProgram> Scene::createShader(const char* filePath)
+  Handle<ShaderProgram> Scene::loadShader(const char* filePath)
   {
     if (!filePath)
     {
@@ -334,7 +429,7 @@ namespace smol
 
     if (vsSource == nullptr || fsSource == nullptr)
     {
-      Log::error("Invalid shader source file. First entry must be 'vertexShader', then 'fragmentShader', and an optional 'geometryShader'.");
+      Log::error("Invalid shader source file '%s'. First entry must be 'vertexShader', then 'fragmentShader', and an optional 'geometryShader'.", filePath);
       return INVALID_HANDLE(ShaderProgram);
     }
 
@@ -369,9 +464,9 @@ namespace smol
   //
   Handle<SceneNode> Scene::createMeshNode(
       Handle<Renderable> renderable,
-      Vector3& position,
-      Vector3& scale,
-      Vector3& rotation,
+      const Vector3& position,
+      const Vector3& scale,
+      const Vector3& rotation,
       Handle<SceneNode> parent)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, parent));
@@ -388,8 +483,8 @@ namespace smol
 
   Handle<SceneNode> Scene::createSpriteNode(
       Handle<SpriteBatcher> batcher,
-      Rect& rect,
-      Vector3& position,
+      const Rect& rect,
+      const Vector3& position,
       float width,
       float height,
       const Color& color,

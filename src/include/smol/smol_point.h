@@ -15,4 +15,4 @@ namespace smol
     int z;
   };
 }
-#endif SMOL_POINT_H
+#endif //SMOL_POINT_H
