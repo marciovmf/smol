@@ -464,6 +464,8 @@ namespace smol
   void Renderer::destroyShaderProgram(ShaderProgram* program)
   {
     glDeleteProgram(program->programId);
+    program->programId = -1;
+    program->valid = false;
   }
 
   //
@@ -833,6 +835,7 @@ namespace smol
         currentMaterial = material;
         shader = scene.shaders.lookup(material->shader);
         if(shader)
+        if(shader && shader->valid)
         {
           // use WHITE as default color for vertex attribute when using a valid shader
           shaderProgramId = shader->programId;
