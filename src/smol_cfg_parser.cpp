@@ -578,7 +578,7 @@ namespace smol
     ConfigVariable* result = nullptr;
     int64 requiredHash = stringToHash(name);
 
-    for (int varIndex = 0; varIndex < entry->variableCount; varIndex++)
+    for (uint32 varIndex = 0; varIndex < entry->variableCount; varIndex++)
     {
       ConfigVariable* variable = &entry->variables[varIndex];
 

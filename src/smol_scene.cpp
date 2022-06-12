@@ -233,7 +233,7 @@ namespace smol
     Handle<ShaderProgram> shader = loadShader(shaderPath);
 
     // parse additional entries
-    for (int i = 1; i < entry->variableCount; i++)
+    for (uint32 i = 1; i < entry->variableCount; i++)
     {
       ConfigVariable& variable = entry->variables[i];
       if (strncmp(STR_DIFFUSE, variable.name, STR_DIFFUSE_LEN) == 0)
