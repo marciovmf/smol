@@ -74,6 +74,16 @@ namespace smol
     return (uint32) (key >> 32);
   }
 
+  static inline uint32 getMaterialIndexFromRenderKey(uint64 key)
+  {
+    return (uint32) (key >> 16);
+  }
+
+  static inline uint32 getNodeTypeFromRenderKey(uint64 key)
+  {
+    return (uint32) (key >> 8);
+  }
+
   // This function assumes a material is already bound
   static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
   {
@@ -816,7 +826,7 @@ namespace smol
     // ----------------------------------------------------------------------
     // Draw render keys
 
-    Material* currentMaterial = nullptr;
+    int currentMaterialIndex = - 1;
     ShaderProgram* shader = nullptr;
     GLuint shaderProgramId = 0; 
     GLuint uniformLocationProj = 0;
@@ -825,17 +835,19 @@ namespace smol
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+      SceneNode::SceneNodeType nodeType = (SceneNode::SceneNodeType) getNodeTypeFromRenderKey(key);
+      int materialIndex = getMaterialIndexFromRenderKey(key);
+
+      SMOL_ASSERT((nodeType == node->type), "Node Type does not match with render key node type");
 
       // Change material only if necessary
-      const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-      Material* material = scene.materials.lookup(renderable->material);
-      if (!material) material = (Material*) defaultMaterial;
-
-      if (currentMaterial != material)
+      if (currentMaterialIndex != materialIndex)
       {
-        currentMaterial = material;
+        currentMaterialIndex = materialIndex;
+        const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
+        Material* material = scene.materials.lookup(renderable->material);
+
         shader = scene.shaders.lookup(material->shader);
-        if(shader)
         if(shader && shader->valid)
         {
           // use WHITE as default color for vertex attribute when using a valid shader
