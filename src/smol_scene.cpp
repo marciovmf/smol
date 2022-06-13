@@ -264,7 +264,7 @@ namespace smol
           {
             // The sampler_2d is an index for the material's texture list
             uint32 textureIndex = (uint32) materialEntry->getVariableNumber(param.name);
-            if (textureIndex >= numDiffuseTextures)
+            if (textureIndex >= (uint32) numDiffuseTextures)
             {
               Log::error("Material parameter '%s' references an out of bounds texture index %d",
                   param.name, textureIndex);
@@ -334,7 +334,7 @@ namespace smol
         // for robustness, if the parameter is a texture and there are textures, we try to assing them as they apper
         if (materialParam.type == ShaderParameter::SAMPLER_2D && diffuseTextureCount)
         {
-          if (texturesAssigned >= diffuseTextureCount)
+          if (texturesAssigned >= (uint32) diffuseTextureCount)
             texturesAssigned = 0;
 
           materialParam.uintValue = texturesAssigned++;
