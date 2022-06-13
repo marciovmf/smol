@@ -35,8 +35,6 @@ void onStart(smol::SystemsRoot* systemsRoot)
   scene.getMaterial(checkersMaterial)
     ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
-
-#if 1
   // Manually create a material
   auto floorMaterial = scene.createMaterial(shader, &checkersTexture, 1);
   auto floor = scene.createRenderable(floorMaterial,
@@ -69,9 +67,6 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Vector3(0.8f, 0.8f, 0.8f),
       smol::Vector3(0.0f, 0.0f, 0.0f)
       );
-#endif
-
-#if 1
 
   // Create a grass field
   auto grassMaterial = scene.loadMaterial("assets/grass.material");
@@ -89,9 +84,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
         (const smol::Vector3) smol::Vector3(2.0f + randScale, 2.0f + randScale, 2.0f + randScale),
         (const smol::Vector3) smol::Vector3(0.0f, randAngle, 0.0f));
   }
-#endif
 
-#if 1
   // sprites
   auto texture = scene.loadTexture("assets/smol.texture");
   auto smolMaterial = scene.createMaterial(shader, &texture, 1);
@@ -115,7 +108,6 @@ void onStart(smol::SystemsRoot* systemsRoot)
       smol::Rect(0, 0, 800, 800),
       smol::Vector3(400.0f, 200.0f, 0.0f),
       100.0f, 100.0f, smol::Color::BLUE);
-#endif
 
   selectedNode = node2;
 }

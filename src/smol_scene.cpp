@@ -229,7 +229,7 @@ namespace smol
     //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
     Handle<ShaderProgram> shader = loadShader(shaderPath);
     int renderQueue = (int) materialEntry->getVariableNumber((const char*)"queue", (float) RenderQueue::QUEUE_OPAQUE);
-
+    
     const char* STR_TEXTURE = (const char*) "texture";
     ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
     while(textureEntry)

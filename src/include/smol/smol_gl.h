@@ -3,9 +3,9 @@
 
 #include <smol.h>
 #include <smol/gl/glcorearb.h>
-#include <smol/gl/wglext.h>
 
 #ifdef SMOL_PLATFORM_WINDOWS
+#include <smol/gl/wglext.h>
 #ifdef SMOL_ENGINE_IMPLEMENTATION
 #define SMOL_GL_API __declspec(dllexport)
 #else
