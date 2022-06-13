@@ -925,14 +925,12 @@ namespace smol
           break;
 
         default:
-
-          if (!node->isActiveInHierarchy())
-          {
-            discard = true;
-          }
+          discard = true;
           break;
       }
 
+      if (!discard && !node->isActiveInHierarchy())
+        discard = true;
 
       if (!renderable)
         discard = true;
@@ -1000,7 +998,7 @@ namespace smol
           switch(parameter.type)
           {
             case ShaderParameter::SAMPLER_2D:
-              if (parameter.uintValue < material->diffuseTextureCount)
+              if (parameter.uintValue < (uint32) material->diffuseTextureCount)
               {
                 int textureIndex = parameter.uintValue;
                 Handle<Texture> hTexture = material->textureDiffuse[textureIndex];

@@ -87,7 +87,7 @@ namespace smol
     GLuint location;
   };
 
-  struct MaterialParameter : public ShaderParameter
+  struct SMOL_ENGINE_API MaterialParameter : public ShaderParameter
   {
     union
     {
