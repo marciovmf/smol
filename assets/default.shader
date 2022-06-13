@@ -6,11 +6,13 @@ vertexShader:"
   layout (location = 3) in vec3 normalIn;
 
   uniform mat4 proj;
+  uniform vec4 color;
+
   out vec4 vertColor; 
   out vec2 uv;
   void main() {
     gl_Position = proj * vec4(vertPos, 1.0);
-    vertColor = colorIn;
+    vertColor = colorIn * color;
     uv = vertUVIn;
 }
 ",

@@ -5,6 +5,9 @@
 #include <smol/smol_resource_list.h>
 #include <smol/smol_color.h>
 #include <smol/smol_rect.h>
+#include <smol/smol_vector2.h>
+#include <smol/smol_vector3.h>
+#include <smol/smol_vector4.h>
 
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
@@ -39,7 +42,6 @@ namespace smol
       REPEAT_MIRRORED   = 1,
       CLAMP_TO_EDGE     = 2,
       MAX_WRAP_OPTIONS
-
     };
 
     enum Filter
@@ -64,11 +66,47 @@ namespace smol
     GLuint textureObject;
   };
 
+#define SMOL_MAX_SHADER_PARAMETER_NAME_LEN 64
+  struct ShaderParameter
+  {
+    public:
+    enum Type
+    {
+      SAMPLER_2D,
+      VECTOR2,
+      VECTOR3,
+      VECTOR4,
+      FLOAT,
+      INT,
+      UNSIGNED_INT,
+      INVALID
+    };
+
+    Type type;
+    char name[SMOL_MAX_SHADER_PARAMETER_NAME_LEN];
+    GLuint location;
+  };
+
+  struct MaterialParameter : public ShaderParameter
+  {
+    union
+    {
+      float floatValue;
+      Vector2 vec2Value;
+      Vector3 vec3Value;
+      Vector4 vec4Value;
+      int32 intValue;
+      uint32 uintValue;
+    };
+  };
+
+#define SMOL_MAX_SHADER_PARAMETERS 16
   struct SMOL_ENGINE_API ShaderProgram
   {
     bool valid;
     GLuint programId;
-    //TODO(marcio): store uniform locations here
+    ShaderParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
+    int parameterCount;
   };
 
 #define SMOL_MATERIAL_MAX_TEXTURES 6
@@ -79,6 +117,20 @@ namespace smol
     Handle<Texture> textureDiffuse[SMOL_MATERIAL_MAX_TEXTURES];
     int diffuseTextureCount;
     int renderQueue;
+    MaterialParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
+    int parameterCount;
+
+
+    Material* setSampler2D(const char* name, unsigned int value);
+    Material* setUint(const char* name, unsigned int value);
+    Material* setInt(const char* name, int value);
+    Material* setFloat(const char* name, float value);
+    Material* setVec2(const char* name, const Vector2& value);
+    Material* setVec3(const char* name, const Vector3& value);
+    Material* setVec4(const char* name, const Vector4& value);
+
+    private:
+    MaterialParameter* getParameter(const char* name, ShaderParameter::Type type);
     //TODO(marcio): Add more state relevant options here
   };
 
@@ -86,7 +138,7 @@ namespace smol
   {
     enum Attribute
     {
-      //Don't change these values. They're referenced from the shader
+      //Don't change these values. They're referenced from the shaders
       POSITION = 0,
       UV0 = 1,
       UV1 = 2,

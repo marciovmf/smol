@@ -23,7 +23,7 @@ namespace smol
     Handle<Renderable> renderable;
   };
 
-  struct SpriteSceneNode
+  struct SpriteSceneNode : public MeshSceneNode
   {
     Handle<SpriteBatcher> batcher;
     Rect rect;
@@ -127,8 +127,9 @@ namespace smol
 
    
     Handle<Material> loadMaterial(const char* path);
-    Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount);
+    Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE);
     void destroyMaterial(Handle<Material> handle);
+    Material* getMaterial(Handle<Material> handle);
 
     Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
     Handle<Mesh> createMesh(bool dynamic,

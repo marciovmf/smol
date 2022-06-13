@@ -7,6 +7,7 @@
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_cfg_parser.h>
+#include <string.h>
 
 namespace smol
 {
@@ -125,24 +126,23 @@ namespace smol
 
   Handle<Texture> Scene::loadTexture(const char* path)
   {
+    debugLogInfo("Loading texture %s", path);
     if (!path)
       return INVALID_HANDLE(Texture);
 
     Config config(path);
-    ConfigEntry* entry = config.entries;
+    ConfigEntry* entry = config.findEntry((const char*) "texture");
 
     if (!entry)
+    {
+      Log::error("Unable to load texture '%s'", path);
       return INVALID_HANDLE(Texture);
+    }
 
-    const char* STR_IMAGE = "image";
-    const char* STR_WRAP = "wrap";
-    const char* STR_FILTER = "filter";
-    const char* STR_MIPMAP = "mipmap";
-
-    const char* imagePath = entry->getVariableString(STR_IMAGE, nullptr);
-    unsigned int wrap = (unsigned int) entry->getVariableNumber(STR_WRAP, 0.0f);
-    unsigned int filter = (unsigned int) entry->getVariableNumber(STR_FILTER, 0.0f);
-    unsigned int mipmap = (unsigned int) entry->getVariableNumber(STR_MIPMAP, 0.0f);
+    const char* imagePath = entry->getVariableString((const char*) "image", nullptr);
+    unsigned int wrap = (unsigned int) entry->getVariableNumber((const char*) "wrap", 0.0f);
+    unsigned int filter = (unsigned int) entry->getVariableNumber((const char*) "filter", 0.0f);
+    unsigned int mipmap = (unsigned int) entry->getVariableNumber((const char*) "mipmap", 0.0f);
 
     if (wrap >= Texture::Wrap::MAX_WRAP_OPTIONS)
     {
@@ -168,7 +168,7 @@ namespace smol
   Handle<Texture> Scene::createTexture(const char* path, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
   {
     Image* image = AssetManager::loadImageBitmap(path);
-    Handle<Texture> texture = createTexture(*image);
+    Handle<Texture> texture = createTexture(*image, wrap, filter, mipmap);
     AssetManager::unloadImage(image);
     return texture;
   }
@@ -206,23 +206,20 @@ namespace smol
 
   Handle<Material> Scene::loadMaterial(const char* path)
   {
+    debugLogInfo("Loading material %s", path);
     if (!path)
       return INVALID_HANDLE(Material);
 
     Config config(path);
-    ConfigEntry* entry = config.entries;
+    ConfigEntry* materialEntry = config.findEntry((const char*)"material");
 
-    if (!entry)
+    if (!materialEntry)
       return INVALID_HANDLE(Material);
 
     int numDiffuseTextures = 0;
     Handle<Texture> diffuseTextures[SMOL_MATERIAL_MAX_TEXTURES];
 
-    const char* STR_SHADER = "shader";
-    const char* STR_DIFFUSE = "diffuse";
-    size_t STR_DIFFUSE_LEN = strlen("diffuse");
-
-    const char* shaderPath = entry->getVariableString(STR_SHADER, nullptr);
+    const char* shaderPath = materialEntry->getVariableString((const char*) "shader", nullptr);
     if (!shaderPath)
     {
       Log::error("Invalid material file '%s'. First entry must be 'shader'.", path);
@@ -231,49 +228,126 @@ namespace smol
 
     //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
     Handle<ShaderProgram> shader = loadShader(shaderPath);
+    int renderQueue = (int) materialEntry->getVariableNumber((const char*)"queue", (float) RenderQueue::QUEUE_OPAQUE);
 
-    // parse additional entries
-    for (int i = 1; i < entry->variableCount; i++)
+    const char* STR_TEXTURE = (const char*) "texture";
+    ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
+    while(textureEntry)
     {
-      ConfigVariable& variable = entry->variables[i];
-      if (strncmp(STR_DIFFUSE, variable.name, STR_DIFFUSE_LEN) == 0)
+      // Diffuse texture
+      const char* diffuseTexture = textureEntry->getVariableString((const char*) "diffuse");
+      if (diffuseTexture)
       {
         if (numDiffuseTextures >= SMOL_MATERIAL_MAX_TEXTURES)
         {
           Log::error("Material file '%s' exceeded the maximum of %d diffuse textures. The texture '%s' will be ignored.",
-              path, SMOL_MATERIAL_MAX_TEXTURES, variable.stringValue);
+              path, SMOL_MATERIAL_MAX_TEXTURES, diffuseTexture);
         }
         else
         {
-          //TODO(marcio): We must be able to know if the required texture is already loaded. If it is we should use it instead of loading it again!
-          diffuseTextures[numDiffuseTextures++] = loadTexture(variable.stringValue);
+          diffuseTextures[numDiffuseTextures++] = loadTexture(diffuseTexture);
         }
       }
-      else
+      textureEntry = config.findEntry(STR_TEXTURE, textureEntry);
+    }
+
+    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue);
+    Material* material = materials.lookup(handle);
+
+    //set values for material parameters
+    for(int i = 0; i < material->parameterCount; i++)
+    {
+      MaterialParameter& param = material->parameter[i];
+      switch(param.type)
       {
-        //this is a shader parameter.
+        case ShaderParameter::SAMPLER_2D:
+          {
+            // The sampler_2d is an index for the material's texture list
+            uint32 textureIndex = (uint32) materialEntry->getVariableNumber(param.name);
+            if (textureIndex >= numDiffuseTextures)
+            {
+              Log::error("Material parameter '%s' references an out of bounds texture index %d",
+                  param.name, textureIndex);
+              textureIndex = 0;
+            }
+            param.uintValue = textureIndex;
+          }
+          break;
+        case ShaderParameter::VECTOR2:
+          param.vec2Value = materialEntry->getVariableVec2(param.name);
+          break;
+        case ShaderParameter::VECTOR3:
+          param.vec3Value = materialEntry->getVariableVec3(param.name);
+          break;
+        case ShaderParameter::VECTOR4:
+          param.vec4Value = materialEntry->getVariableVec4(param.name);
+          break;
+        case ShaderParameter::FLOAT:
+          param.floatValue = materialEntry->getVariableNumber(param.name);
+          break;
+        case ShaderParameter::INT:
+          param.intValue = (int) materialEntry->getVariableNumber(param.name);
+          break;
+        case ShaderParameter::UNSIGNED_INT:
+          param.uintValue = (uint32) materialEntry->getVariableNumber(param.name);
+          break;
+        case ShaderParameter::INVALID:
+          break;
       }
     }
 
-    return createMaterial(shader, diffuseTextures, numDiffuseTextures);
+    return handle;
   }
 
   Handle<Material> Scene::createMaterial(Handle<ShaderProgram> shader,
-      Handle<Texture>* diffuseTextures, int diffuseTextureCount)
+      Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue)
   {
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
     Material* material = materials.lookup(handle);
+    memset(material, 0, sizeof(Material));
 
     if (diffuseTextureCount)
     {
       size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
+      material->renderQueue = renderQueue;
       material->shader = shader;
       material->diffuseTextureCount = diffuseTextureCount;
       memcpy(material->textureDiffuse, diffuseTextures, copySize);
     }
+
+    ShaderProgram* shaderPtr = shaders.lookup(shader);
+    if (shaderPtr)
+    {
+      material->parameterCount = shaderPtr->parameterCount;
+      uint32 texturesAssigned = 0;
+
+      for(int i = 0; i < shaderPtr->parameterCount; i++)
+      {
+        MaterialParameter& materialParam = material->parameter[i];
+        const ShaderParameter& shaderParam = shaderPtr->parameter[i];
+        //We copy sizeof(ShaderParameter) to the MaterialParameter so the values remain untouched.
+        //This is intentional since we memset(0) the whole material after allocating it.
+        memcpy(&materialParam, &shaderParam, sizeof(ShaderParameter));
+
+        // for robustness, if the parameter is a texture and there are textures, we try to assing them as they apper
+        if (materialParam.type == ShaderParameter::SAMPLER_2D && diffuseTextureCount)
+        {
+          if (texturesAssigned >= diffuseTextureCount)
+            texturesAssigned = 0;
+
+          materialParam.uintValue = texturesAssigned++;
+        }
+      }
+    }
+
     return handle;
+  }
+
+  Material* Scene::getMaterial(Handle<Material> handle)
+  {
+    return materials.lookup(handle);
   }
 
   void Scene::destroyMaterial(Handle<Material> handle)
@@ -341,8 +415,13 @@ namespace smol
   {
     Handle<Renderable> handle = renderables.reserve();
     Renderable* renderable = renderables.lookup(handle);
-    renderable->mesh = mesh;
+    if (!renderable)
+    {
+      return INVALID_HANDLE(Renderable);
+    }
+
     renderable->material = material;
+    renderable->mesh = mesh;
     return handle;
   }
 
@@ -506,9 +585,13 @@ namespace smol
     node->spriteNode.angle = angle;
     node->spriteNode.color = color;
 
+
     SpriteBatcher* batcherPtr = batchers.lookup(batcher);
     if (batcherPtr)
     {
+      // copy the renreable handle to the node level
+      node->spriteNode.renderable = batcherPtr->renderable;
+
       batcherPtr->spriteCount++;
       batcherPtr->dirty = true;
     }

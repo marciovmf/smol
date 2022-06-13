@@ -1,0 +1,10 @@
+# Material
+@material:
+  queue: 20,
+  shader: "assets/default.shader",
+  color: {.2, 1, .3, 1},
+  mainTex: 0 # index of the texture to use. This is a SAMPLER_2D uniform
+
+
+@texture: diffuse: "assets/grass_03.texture"
+

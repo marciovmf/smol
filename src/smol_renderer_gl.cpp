@@ -9,6 +9,78 @@ namespace smol
 {
   ShaderProgram Renderer::defaultShader = {};
 
+  MaterialParameter* Material::getParameter(const char* name, ShaderParameter::Type type)
+  {
+    //TODO(marcio): Hash these strings for faster search
+    for(int i=0; i < parameterCount; i++)
+    {
+      MaterialParameter& p = parameter[i];
+      if (strncmp(name, p.name, strlen(name)) == 0)
+      {
+        if (p.type != type)
+        {
+          debugLogError("Setting shader %X parameter '%s'. Expected a '%d' but found a '%d'.", this, name);
+          return nullptr;
+        }
+
+        return &p;
+      }
+    }
+
+    debugLogError("Setting shader %x parameter '%s'. Parameter not found", this, name);
+    return nullptr;
+  }
+
+  Material* Material::setSampler2D(const char* name, unsigned int value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::SAMPLER_2D);
+    if (param) param->uintValue = value;
+    return this;
+  }
+
+  Material* Material::setUint(const char* name, unsigned int value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::UNSIGNED_INT);
+    if (param) param->uintValue = value;
+    return this;
+  }
+
+  Material* Material::setInt(const char* name, int value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::INT);
+    if (param) param->intValue = value;
+    return this;
+  }
+
+  Material* Material::setFloat(const char* name, float value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::FLOAT);
+    if (param) param->floatValue = value;
+    return this;
+  }
+
+  Material* Material::setVec2(const char* name, const Vector2& value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR2);
+    if (param) param->vec2Value = value;
+    return this;
+  }
+
+  Material* Material::setVec3(const char* name, const Vector3& value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR3);
+    if (param) param->vec3Value = value;
+    return this;
+  }
+
+  Material* Material::setVec4(const char* name, const Vector4& value)
+  {
+    MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR4);
+    if (param) param->vec4Value = value;
+    return this;
+  }
+
+
   //
   // internal utility functions
   //
@@ -107,13 +179,12 @@ namespace smol
 
   static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList)
   {
-    // do we need to copy node data into GPU buffers ?
+    // do we need to update the data on the GPU ?
     if (batcher->dirty)
     {
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
       Material* material = scene->materials.lookup(renderable->material);
       if (!material) material = scene->materials.lookup(scene->defaultMaterial);
-
 
       Texture* texture =
         (material->diffuseTextureCount > 0 
@@ -146,9 +217,6 @@ namespace smol
       {
         uint64 key = ((uint64*)renderKeyList)[i];
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-
-        //if (!sceneNode->active)
-        //  continue;
 
         Transform& transform = sceneNode->transform;
         SpriteSceneNode& node = sceneNode->spriteNode;
@@ -232,7 +300,7 @@ namespace smol
       destroyTexture((Texture*) texture);
     }
 
-    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, tsprite batchers: %d, tscene nodes: %d.", 
+    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, sprite batchers: %d, scene nodes: %d.", 
         numTextures, numMeshes,
         scene->renderables.count(),
         scene->batchers.count(),
@@ -436,6 +504,59 @@ namespace smol
       glDeleteProgram(program);
       return false;
     }
+
+    // find uniforms
+    outShader->parameterCount = 0;
+    int uniformCount = 0;
+    glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &uniformCount);
+    if (uniformCount > SMOL_MAX_SHADER_PARAMETERS)
+    {
+      Log::error("shader declares too many (%d) parameters. Maximum supported by material files is %d",
+          uniformCount, SMOL_MAX_SHADER_PARAMETERS);
+    }
+
+    for (int i = 0; i < uniformCount && i < SMOL_MAX_SHADER_PARAMETERS; i++)
+    {
+      GLsizei length;
+      int size;
+      GLenum type;
+
+      ShaderParameter& parameter = outShader->parameter[outShader->parameterCount];
+
+      glGetActiveUniform(program, (GLuint)i, SMOL_MAX_SHADER_PARAMETER_NAME_LEN, &length, &size, &type, (GLchar*) &parameter.name);
+      switch(type)
+      {
+        case GL_SAMPLER_2D:
+          parameter.type = ShaderParameter::SAMPLER_2D;
+          break;
+        case GL_FLOAT:
+          parameter.type = ShaderParameter::FLOAT;
+          break;
+        case GL_FLOAT_VEC2:
+          parameter.type = ShaderParameter::VECTOR2;
+          break;
+        case GL_FLOAT_VEC3:
+          parameter.type = ShaderParameter::VECTOR3;
+          break;
+        case GL_FLOAT_VEC4:
+          parameter.type = ShaderParameter::VECTOR4;
+          break;
+        case GL_INT:
+          parameter.type = ShaderParameter::INT;
+          break;
+        case GL_UNSIGNED_INT:
+          parameter.type = ShaderParameter::UNSIGNED_INT;
+          break;
+        default:
+          //TODO(marcio): We just ignore unsupported types for now. Is there a better approach ?
+          continue;
+          break;
+      }
+
+      parameter.location = glGetUniformLocation(program, parameter.name);
+      outShader->parameterCount++;
+    }
+
 
     glDeleteShader(vShader);
     glDeleteShader(fShader);
@@ -780,11 +901,18 @@ namespace smol
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
       node->dirty |= node->transform.update(&scene.nodes);
+      Renderable* renderable = nullptr;
       bool discard = false;
 
       switch(node->type)
       {
+        case SceneNode::MESH:
+          renderable = scene.renderables.lookup(node->meshNode.renderable);
+          break;
+
         case SceneNode::SPRITE:
+          renderable = scene.renderables.lookup(node->spriteNode.renderable);
+
           if (node->dirty)
           {
             SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
@@ -794,7 +922,7 @@ namespace smol
 
         case SceneNode::ROOT:
           discard = true;
-          break;;
+          break;
 
         default:
 
@@ -805,7 +933,7 @@ namespace smol
           break;
       }
 
-      const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
+
       if (!renderable)
         discard = true;
 
@@ -861,19 +989,57 @@ namespace smol
           glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
         }
 
+        //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
         glUseProgram(shaderProgramId);
-
-        for (int textureIndex = 0; textureIndex < material->diffuseTextureCount; textureIndex++)
-        {
-          Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-          Texture* texture = scene.textures.lookup(hTexture);
-          glActiveTexture(GL_TEXTURE0 + textureIndex);
-          GLuint textureId = texture ? texture->textureObject : defaultTextureId;
-          glBindTexture(GL_TEXTURE_2D, textureId);
-        }
         uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
-      }
 
+        // Apply uniform values from the material
+        for (int i = 0; i < material->parameterCount; i++)
+        {
+          MaterialParameter& parameter = material->parameter[i];
+          switch(parameter.type)
+          {
+            case ShaderParameter::SAMPLER_2D:
+              if (parameter.uintValue < material->diffuseTextureCount)
+              {
+                int textureIndex = parameter.uintValue;
+                Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
+                Texture* texture = scene.textures.lookup(hTexture);
+                glActiveTexture(GL_TEXTURE0 + textureIndex);
+                GLuint textureId = texture ? texture->textureObject : defaultTextureId;
+                glBindTexture(GL_TEXTURE_2D, textureId);
+              }
+              break;
+            case ShaderParameter::FLOAT:
+              glUniform1f(parameter.location, parameter.floatValue);
+              break;
+
+            case ShaderParameter::VECTOR2:
+              glUniform2f(parameter.location, parameter.vec2Value.x, parameter.vec2Value.y);
+              break;
+
+            case ShaderParameter::VECTOR3:
+              glUniform3f(parameter.location, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
+              break;
+
+            case ShaderParameter::VECTOR4:
+              glUniform4f(parameter.location, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
+              break;
+
+            case ShaderParameter::INT:
+              glUniform1i(parameter.location, parameter.intValue);
+              break;
+
+            case ShaderParameter::UNSIGNED_INT:
+              glUniform1ui(parameter.location, parameter.uintValue);
+              break;
+
+            default:
+              continue;
+              break;
+          }
+        }
+      }
 
       //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
       //TODO(marcio): Change it so it updates ONCE per frame.
@@ -906,7 +1072,7 @@ namespace smol
         }
 
         //draw
-        Renderable* renderable = scene.renderables.lookup(batcher->renderable);
+        Renderable* renderable = scene.renderables.lookup(node->spriteNode.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
         i+=batcher->spriteCount - 1;
       }
