@@ -22,7 +22,7 @@ int shape = 0;
 
 void onStart(smol::SystemsRoot* systemsRoot)
 {
-  srand(time(0));
+  srand((uint32) time(0));
   smol::Log::info("Game started!");
   root = systemsRoot;
   smol::Scene& scene = root->loadedScene;
