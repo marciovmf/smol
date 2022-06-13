@@ -120,7 +120,6 @@ namespace smol
     MaterialParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
     int parameterCount;
 
-
     Material* setSampler2D(const char* name, unsigned int value);
     Material* setUint(const char* name, unsigned int value);
     Material* setInt(const char* name, int value);

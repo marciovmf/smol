@@ -935,10 +935,13 @@ namespace smol
       if (!renderable)
         discard = true;
 
+
       if(!discard)
       {
+        Material* materialPtr = scene.materials.lookup(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
-        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex), 0, i);
+        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
+            materialPtr->renderQueue, i);
       }
 
       node->dirty = false;
