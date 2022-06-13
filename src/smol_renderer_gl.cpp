@@ -156,6 +156,12 @@ namespace smol
     return (uint32) (key >> 8);
   }
 
+  static inline uint32 getQueueFromRenderKey(uint64 key)
+  {
+    return (uint32)((uint8)key);
+  }
+
+
   // This function assumes a material is already bound
   static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
   {
@@ -935,10 +941,13 @@ namespace smol
       if (!renderable)
         discard = true;
 
+
       if(!discard)
       {
+        Material* materialPtr = scene.materials.lookup(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
-        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex), 0, i);
+        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
+            materialPtr->renderQueue, i);
       }
 
       node->dirty = false;

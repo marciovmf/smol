@@ -1,8 +1,8 @@
 # Material
 @material:
   queue: 10,
-  shader: "assets/default.shader"
-  color: {1, 1, 1, .8},
+  shader: "assets/default.shader",
+  color: {1, 1, 1, 1},
   mainTex: 0
 
 @texture: diffuse: "assets/smol.texture"
