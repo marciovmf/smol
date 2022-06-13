@@ -2,5 +2,5 @@
 #Filter:  LINEAR = 0, NEAREST = 1
 #Mipmap:  LINEAR_MIPMAP_LINEAR = 0, LINEAR_MIPMAP_NEAREST = 1, NEAREST_MIPMAP_LINEAR = 2, NEAREST_MIPMAP_NEAREST = 3, NO_MIPMAP = 4
 
-image: "assets/smol32.bmp", wrap: 0, filter: 0, mipmap: 0
+@texture: image: "assets/smol32.bmp", wrap: 2, filter: 1, mipmap: 1
 
