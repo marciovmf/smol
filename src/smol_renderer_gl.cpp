@@ -156,6 +156,12 @@ namespace smol
     return (uint32) (key >> 8);
   }
 
+  static inline uint32 getQueueFromRenderKey(uint64 key)
+  {
+    return (uint32)((uint8)key);
+  }
+
+
   // This function assumes a material is already bound
   static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
   {

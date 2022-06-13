@@ -22,9 +22,14 @@ int shape = 0;
 
 void onStart(smol::SystemsRoot* systemsRoot)
 {
-  srand((uint32) time(0));
   smol::Log::info("Game started!");
   root = systemsRoot;
+
+  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  uint32 seed = 1655119152; //(uint32) time(0);
+  smol::Log::info("seed = %d", seed);
+  srand(seed);
+
   smol::Scene& scene = root->loadedScene;
 
   mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
@@ -52,7 +57,9 @@ void onStart(smol::SystemsRoot* systemsRoot)
       (const smol::Vector3) smol::Vector3(-90, 0.0f, 0.0f));
 
   // center cube
-  node1 = scene.createMeshNode(renderable2, smol::Vector3{0.0f, -1.0f, -10.0f});
+  node1 = scene.createMeshNode(renderable2,
+      smol::Vector3{0.0f, -1.0f, -15.0f},
+      smol::Vector3{2.0f, 2.0f, 2.0f});
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
@@ -63,24 +70,40 @@ void onStart(smol::SystemsRoot* systemsRoot)
 
   // right cube
   scene.createMeshNode(renderable2, 
-      smol::Vector3(4.0f, 0.0f, -10.0f),
+      smol::Vector3(4.0f, 3.0f, -10.0f),
       smol::Vector3(0.8f, 0.8f, 0.8f),
       smol::Vector3(0.0f, 0.0f, 0.0f)
       );
 
   // Create a grass field
-  auto grassMaterial = scene.loadMaterial("assets/grass.material");
-  auto grassRenderable = scene.createRenderable(grassMaterial, scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+   
+  auto grassRenderable1 = scene.createRenderable(
+      scene.loadMaterial("assets/grass_03.material"),
+      scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
-  for (int i =0; i < 500; i++)
+  auto grassRenderable2 = scene.createRenderable(
+      scene.loadMaterial("assets/grass_02.material"),
+      scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+
+  float minZ = -90.0f;
+  const int changeLimit = 3;
+  int nextChange = 0;
+
+  for (int i = 0; i < 5000; i++)
   {
     float randX = (rand() % 1000 - rand() % 1000) / 1000.0f;
-    float randZ = (rand() % 1000 - rand() % 1000) / 1000.0f;
-    float randAngle = (rand() % 30 - rand() % 30) / 30.0f;
-    float randScale = (rand() % 30 - rand() % 30) / 30.0f;
+    float randZ = minZ + ((rand() % 1000) / 1000.0f) * 0.5f;
+    minZ = randZ;
 
-    scene.createMeshNode(grassRenderable,
-        (const smol::Vector3) smol::Vector3(100 * randX, -2.0f, -40.0f - (40 * randZ)),
+    float randAngle = (rand() % 60 - rand() % 60) * 1.0f;
+    float randScale = (rand() % 30 - rand() % 30) / 30.0f;
+    randScale *= 1.5f;
+
+    nextChange = ++nextChange % changeLimit;
+
+    scene.createMeshNode(
+        (nextChange == 0) ? grassRenderable1 : grassRenderable2,
+        (const smol::Vector3) smol::Vector3(100 * randX, -2.0f, randZ),
         (const smol::Vector3) smol::Vector3(2.0f + randScale, 2.0f + randScale, 2.0f + randScale),
         (const smol::Vector3) smol::Vector3(0.0f, randAngle, 0.0f));
   }
