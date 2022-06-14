@@ -81,6 +81,45 @@ namespace smol
   }
 
 
+  // 
+  // CameraSceneNode
+  //
+
+  void Camera::setPerspective(float fov, float aspect, float zNear, float zFar)
+  {
+    this->type = Camera::PERSPECTIVE;
+    this->fov = fov;
+    this->aspect = aspect;
+    this->zNear = zNear;
+    this->zFar = zFar;
+    this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
+  }
+
+  void Camera::setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar)
+  {
+    this->type = Camera::ORTHOGRAPHIC;
+    this->left = left;
+    this->right = right;
+    this->top = top;
+    this->bottom = bottom;
+    this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
+  }
+
+  void Camera::setLayers(uint32 layers)
+  {
+    this->layers = layers;
+  }
+
+  inline uint32 Camera::getLayerMask() const
+  {
+    return layers;
+  }
+    
+  inline const Mat4& Camera::getProjectionMatrix() const
+  {
+    return viewMatrix;
+  }
+
   //
   // internal utility functions
   //
@@ -132,7 +171,7 @@ namespace smol
     }
   }
 
-  static inline uint64 encodeRenderKey(SceneNode::SceneNodeType nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
+  static inline uint64 encodeRenderKey(SceneNode::Type nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
   {
     // Render key format
     // 64--------------------32---------------16-----------8---------------0
@@ -585,8 +624,10 @@ namespace smol
       layout (location = 0) in vec3 vertPos;\n\
       layout (location = 1) in vec2 vertUVIn;\n\
       uniform mat4 proj;\n\
+      uniform mat4 view;\n\
+      uniform mat4 model;\n\
       out vec2 uv;\n\
-      void main() { gl_Position = proj * vec4(vertPos, 1.0); uv = vertUVIn; }";
+      void main() { gl_Position = proj * inverse(view) * model * vec4(vertPos, 1.0); uv = vertUVIn; }";
 
     const char* defaultFShader =
       "#version 330 core\n\
@@ -857,14 +898,29 @@ namespace smol
   {
     this->viewport.w = width;
     this->viewport.h = height;
+    Scene& scene = *this->scene;
 
     glViewport(0, 0, width, height);
 
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-    scene->projectionMatrix = Mat4::perspective(60.0f, width/(float)height, 0.01f, 100.0f);
-    scene->projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
+
+    SceneNode* node = scene.nodes.lookup(scene.mainCamera);
+    if (node)
+    {
+      Camera& camera = node->cameraNode.camera;
+      camera.setPerspective(camera.fov, width/(float)height, camera.zNear, camera.zFar);
+      scene.projectionMatrix = camera.getProjectionMatrix();
+    }
+    else
+    {
+      scene.projectionMatrix = Mat4::perspective(60.0f, width/(float)height, 0.01f, 100.0f);
+    }
+
+    //TODO(marcio); make the renderable find a suitable 2D camera
+    scene.projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST); 
@@ -901,6 +957,12 @@ namespace smol
 
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
+
+    //TODO(marcio): support multiple cameras
+    // find the main camera
+    const SceneNode* cameraNode = scene.nodes.lookup(scene.mainCamera);
+    uint32 cameraLayers = cameraNode->cameraNode.camera.getLayerMask();
+
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
     for(int i = 0; i < numNodes; i++)
@@ -930,18 +992,27 @@ namespace smol
           discard = true;
           break;
 
+        case SceneNode::CAMERA:
+          discard = true;
+          break;
+
         default:
           discard = true;
           break;
       }
 
+      // discard if the node is on a layer the camera is not rendering
+      discard |= (cameraLayers & node->layer) == 0;
+
+      // discard if the ndoe is inactive in hierarchy
       if (!discard && !node->isActiveInHierarchy())
         discard = true;
 
+      // discard if the node does not have a renderable
       if (!renderable)
         discard = true;
 
-
+      // save a descriptor key for rendering the node later if it was not discarded
       if(!discard)
       {
         Material* materialPtr = scene.materials.lookup(renderable->material);
@@ -950,7 +1021,7 @@ namespace smol
             materialPtr->renderQueue, i);
       }
 
-      node->dirty = false;
+      //node->dirty = false;
     }
 
     // ----------------------------------------------------------------------
@@ -965,12 +1036,15 @@ namespace smol
     ShaderProgram* shader = nullptr;
     GLuint shaderProgramId = 0; 
     GLuint uniformLocationProj = 0;
+    GLuint uniformLocationView = 0;
+    GLuint uniformLocationModel = 0;
+
 
     for(int i = 0; i < numKeys; i++)
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-      SceneNode::SceneNodeType nodeType = (SceneNode::SceneNodeType) getNodeTypeFromRenderKey(key);
+      SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
       SMOL_ASSERT((nodeType == node->type), "Node Type does not match with render key node type");
@@ -999,6 +1073,8 @@ namespace smol
         //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
         glUseProgram(shaderProgramId);
         uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
+        uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
+        uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
 
         // Apply uniform values from the material
         for (int i = 0; i < material->parameterCount; i++)
@@ -1057,12 +1133,13 @@ namespace smol
         if (!node->active)
           continue;
 
-        //TODO(marcio): get the view matrix from a camera!
-        Mat4 transformed = Mat4::mul(
-            scene.projectionMatrix,
-            node->transform.getMatrix());   // model matrix
+        const Camera& camera = cameraNode->cameraNode.camera;
 
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) transformed.e);
+        //TODO(marcio): implement Mat4.inverse()
+        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*)  camera.getProjectionMatrix().e);
+        glUniformMatrix4fv(uniformLocationView, 1, 0, (const float*)  cameraNode->transform.getMatrix().e); 
+        glUniformMatrix4fv(uniformLocationModel, 1, 0, (const float*) node->transform.getMatrix().e);
+
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
       }

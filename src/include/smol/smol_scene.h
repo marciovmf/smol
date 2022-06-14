@@ -33,32 +33,41 @@ namespace smol
     int angle;
   };
 
+  struct CameraSceneNode
+  {
+    Camera camera;
+  };
+
   struct SceneNode
   {
     Scene& scene;
-    enum SceneNodeType : char
+    enum Type : char
     {
-      ROOT = 0, // there must be only ONE roote node in a scene
+      ROOT = 0, // there must be only ONE root node in a scene
       MESH,
       SPRITE,
+      CAMERA
     };
 
     bool active = true;
     bool dirty = true; // changed this frame
-    SceneNodeType type;
+    Type type;
+    Layer layer;
     Transform transform;
 
     union
     {
       MeshSceneNode meshNode;
       SpriteSceneNode spriteNode;
+      CameraSceneNode cameraNode;
     };
 
-    SceneNode(Scene* scene, SceneNodeType type, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+    SceneNode(Scene* scene, SceneNode::Type type, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
     bool isActive();
     bool isActiveInHierarchy();
     void setActive(bool status);
     void setParent(Handle<SceneNode> parent);
+    void setLayer(Layer layer);
   };
 }
 
@@ -97,6 +106,7 @@ namespace smol
     smol::Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
     Mat4 projectionMatrix;
+    Handle<SceneNode> mainCamera;
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
@@ -112,12 +122,12 @@ namespace smol
     // Resources
     //
     Handle<Texture> loadTexture(const char* path); 
-    
+
     Handle<Texture> createTexture(const char* path,
         Texture::Wrap wrap = Texture::Wrap::REPEAT,
         Texture::Filter filter = Texture::Filter::LINEAR,
         Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
-    
+
     Handle<Texture> createTexture(const Image& image,
         Texture::Wrap wrap = Texture::Wrap::REPEAT,
         Texture::Filter filter = Texture::Filter::LINEAR,
@@ -125,7 +135,7 @@ namespace smol
     void destroyTexture(Handle<Texture> handle);
     void destroyTexture(Texture* texture);
 
-   
+
     Handle<Material> loadMaterial(const char* path);
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE);
     void destroyMaterial(Handle<Material> handle);
@@ -156,10 +166,10 @@ namespace smol
     //
     // Scene Node utility functions
     //
-
     void setNodeActive(Handle<SceneNode> handle, bool status);
     bool isNodeActive(Handle<SceneNode> handle);
     bool isNodeActiveInHierarchy(Handle<SceneNode> handle);
+    void setLayer(Handle<SceneNode> handle, Layer layer);
 
     //
     // Scene Node creation
@@ -181,9 +191,15 @@ namespace smol
         int angle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
+    Handle<SceneNode> createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform,
+        Handle<SceneNode> parent = Scene::ROOT);
+    Handle<SceneNode> createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform, Handle<SceneNode> parent = Scene::ROOT);
+
     void destroyNode(Handle<SceneNode> handle);
     void destroyNode(SceneNode* node);
     Handle<SceneNode> clone(Handle<SceneNode> handle);
+
+    void setMainCamera(Handle<SceneNode> handle);
 
     //
     // misc

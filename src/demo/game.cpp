@@ -51,7 +51,7 @@ void onStart(smol::SystemsRoot* systemsRoot)
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  scene.createMeshNode(floor, 
+  auto floorNode = scene.createMeshNode(floor, 
       (const smol::Vector3) smol::Vector3(0.0f, -5.0f, -5.0f),
       (const smol::Vector3) smol::Vector3(100.0f, 100.0f, 100.0f),
       (const smol::Vector3) smol::Vector3(-90, 0.0f, 0.0f));
@@ -69,11 +69,22 @@ void onStart(smol::SystemsRoot* systemsRoot)
       node1);
 
   // right cube
-  scene.createMeshNode(renderable2, 
+  auto node3 = scene.createMeshNode(renderable2, 
       smol::Vector3(4.0f, 3.0f, -10.0f),
       smol::Vector3(0.8f, 0.8f, 0.8f),
       smol::Vector3(0.0f, 0.0f, 0.0f)
       );
+
+  scene.setLayer(floorNode, smol::Layer::LAYER_1);
+
+
+  // camera
+  smol::Transform t;
+  smol::Rect viewport =
+    root->renderer.getViewport();
+  auto camera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 100.0f, t, node2);
+  scene.getNode(camera)->cameraNode.camera.setLayers((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  scene.setMainCamera(camera);
 
   // Create a grass field
    

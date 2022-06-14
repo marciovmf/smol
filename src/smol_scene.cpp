@@ -32,7 +32,7 @@ namespace smol
     AssetManager::unloadImage(img);
 
     // Creates a ROOT node
-    nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
+    nodes.add((const SceneNode&) SceneNode(this, SceneNode::Type::ROOT, INVALID_HANDLE(SceneNode)));
 
     // store the default shader program in the scene
     ShaderProgram program = Renderer::getDefaultShaderProgram();
@@ -44,8 +44,8 @@ namespace smol
   //---------------------------------------------------------------------------
   // SceneNode
   //---------------------------------------------------------------------------
-  SceneNode::SceneNode(Scene* scene, SceneNodeType type, Handle<SceneNode> parent) 
-    : scene(*scene), active(true), dirty(true), type(type)
+  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, Handle<SceneNode> parent) 
+    : scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0)
   { 
     transform.setParent(parent);
   }
@@ -93,6 +93,11 @@ namespace smol
     dirty = true;
   }
 
+  void SceneNode::setLayer(Layer layer)
+  {
+    this->layer = layer;
+  }
+
 
   //---------------------------------------------------------------------------
   // Scene
@@ -105,6 +110,13 @@ namespace smol
     node->setActive(status);
   }
 
+  bool Scene::isNodeActive(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if(!node) return false;
+    return node->isActive();
+  }
+
   bool Scene::isNodeActiveInHierarchy(Handle<SceneNode> handle)
   {
     SceneNode* node = nodes.lookup(handle);
@@ -112,13 +124,15 @@ namespace smol
     return node->isActiveInHierarchy();
   }
 
-  bool Scene::isNodeActive(Handle<SceneNode> handle)
+  void Scene::setLayer(Handle<SceneNode> handle, Layer layer)
   {
     SceneNode* node = nodes.lookup(handle);
-    if(!node) return false;
-    return node->isActive();
+    if (node)
+    {
+     node->setLayer(layer);
+    }
   }
-  
+
   // 
   // Resources: Textures, Materials, Meshes, Renderables
   //
@@ -229,7 +243,7 @@ namespace smol
     //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
     Handle<ShaderProgram> shader = loadShader(shaderPath);
     int renderQueue = (int) materialEntry->getVariableNumber((const char*)"queue", (float) RenderQueue::QUEUE_OPAQUE);
-    
+
     const char* STR_TEXTURE = (const char*) "texture";
     ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
     while(textureEntry)
@@ -463,6 +477,7 @@ namespace smol
     return handle;
   }
 
+
   void Scene::destroySpriteBatcher(Handle<SpriteBatcher> handle)
   {
     SpriteBatcher* batcher = batchers.lookup(handle);
@@ -598,6 +613,54 @@ namespace smol
 
     return handle;
   }
+
+  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform, Handle<SceneNode> parent)
+  {
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, parent));
+    SceneNode* node = nodes.lookup(handle);
+
+    node->cameraNode.camera.setPerspective(fov, aspect, zNear, zFar);
+    node->cameraNode.camera.setLayers((uint32) Layer::LAYER_0);
+
+    const Vector3& p = transform.getPosition();
+    const Vector3& s = transform.getScale();
+    const Vector3& r = transform.getRotation();
+    node->transform.setPosition(p.x, p.y, p.z);
+    node->transform.setRotation(r.x, r.y, r.z);
+    node->transform.setScale(s.x, s.y, s.z);
+    node->transform.update(&nodes);
+
+    return handle;
+  }
+
+  Handle<SceneNode> Scene::createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform, Handle<SceneNode> parent)
+  {
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, parent));
+    SceneNode* node = nodes.lookup(handle);
+
+    node->cameraNode.camera.setOrthographic(left, right, top, bottom, zNear, zFar);
+    node->cameraNode.camera.setLayers((uint32) Layer::LAYER_0);
+
+    const Vector3& p = transform.getPosition();
+    const Vector3& s = transform.getScale();
+    const Vector3& r = transform.getRotation();
+    node->transform.setPosition(p.x, p.y, p.z);
+    node->transform.setRotation(r.x, r.y, r.z);
+    node->transform.setScale(s.x, s.y, s.z);
+    node->transform.update(&nodes);
+
+    return handle;
+  }
+
+  void Scene::setMainCamera(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if (!node || node->type != SceneNode::Type::CAMERA)
+      return;
+
+    mainCamera = handle;
+  }
+
 
   Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
   {
