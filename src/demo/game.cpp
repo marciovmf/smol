@@ -20,10 +20,10 @@ smol::Handle<smol::SpriteBatcher> batcher;
 
 int shape = 0;
 
-void onStart(smol::SystemsRoot* systemsRoot)
+void onStart()
 {
   smol::Log::info("Game started!");
-  root = systemsRoot;
+  root = smol::SystemsRoot::get();
 
   smol::ConfigEntry* gameConfig = root->config.findEntry("game");
   uint32 seed = 1655119152; //(uint32) time(0);

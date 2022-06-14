@@ -114,13 +114,14 @@ namespace smol
       smol::Mouse mouseSystem;
 
       // Initialize systems root
-      smol::SystemsRoot root(config,
+
+      smol::SystemsRoot::initialize(config,
           renderer,
           keyboardSystem,
           mouseSystem, 
           scene);
 
-      onGameStartCallback(&root);
+      onGameStartCallback();
 
       uint64 startTime = 0;
       uint64 endTime = 0;
@@ -130,8 +131,8 @@ namespace smol
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
 
-        root.keyboard.update();
-        root.mouse.update();
+        SystemsRoot::get()->keyboard.update();
+        SystemsRoot::get()->mouse.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 

@@ -19,6 +19,11 @@ namespace smol
     Mouse& mouse; 
     Scene& loadedScene;    //TODO: Remove this. I just need some place to get a reference to the scene from the game side. This will probably be a scene manager in the future.
 
+    static void initialize(Config& config, Renderer& renderer, Keyboard& keyboard, Mouse& mouse, Scene& scene);
+    static SystemsRoot* get();
+
+    private:
+    static SystemsRoot* instance;
     SystemsRoot(Config& config, Renderer& renderer, Keyboard& keyboard, Mouse& mouse, Scene& scene);
   };
 
