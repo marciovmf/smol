@@ -1,7 +1,9 @@
 #include <smol/smol.h>
 #include <smol/smol_log.h>
 #include <smol/smol_platform.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
+#include <smol/smol_cfg_parser.h>
+#include <smol/smol_renderer.h>
 
 namespace smol
 {
@@ -29,7 +31,109 @@ namespace smol
   };
 #pragma pack(pop)
 
-  Image* AssetManager::createCheckersImage(int width, int height, int squareCount)
+  //
+  // Texture Resources
+  //
+
+  ResourceManager::ResourceManager(): textures(64) {}
+
+  Handle<Texture> ResourceManager::loadTexture(const char* path)
+  {
+    debugLogInfo("Loading texture %s", path);
+    if (!path)
+      return INVALID_HANDLE(Texture);
+
+    Config config(path);
+    ConfigEntry* entry = config.findEntry((const char*) "texture");
+
+    if (!entry)
+    {
+      Log::error("Unable to load texture '%s'", path);
+      return INVALID_HANDLE(Texture);
+    }
+
+    const char* imagePath = entry->getVariableString((const char*) "image", nullptr);
+    unsigned int wrap = (unsigned int) entry->getVariableNumber((const char*) "wrap", 0.0f);
+    unsigned int filter = (unsigned int) entry->getVariableNumber((const char*) "filter", 0.0f);
+    unsigned int mipmap = (unsigned int) entry->getVariableNumber((const char*) "mipmap", 0.0f);
+
+    if (wrap >= Texture::Wrap::MAX_WRAP_OPTIONS)
+    {
+      wrap = 0;
+      Log::error("Invalid wrap value in Texture file '%s'");
+    }
+
+    if (filter >= Texture::Filter::MAX_FILTER_OPTIONS)
+    {
+      filter = 0;
+      Log::error("Invalid filter value in Texture file '%s'");
+    }
+
+    if (mipmap >= Texture::Mipmap::MAX_MIPMAP_OPTIONS)
+    {
+      mipmap = 0;
+      Log::error("Invalid mipmap value in Texture file '%s'");
+    }
+
+    return createTexture(imagePath, (Texture::Wrap) wrap, (Texture::Filter) filter, (Texture::Mipmap) mipmap);
+  }
+
+  Handle<Texture> ResourceManager::createTexture(const char* path, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
+  {
+    Image* image = ResourceManager::loadImageBitmap(path);
+    Handle<Texture> texture = createTexture(*image, wrap, filter, mipmap);
+    ResourceManager::unloadImage(image);
+    return texture;
+  }
+
+  Handle<Texture> ResourceManager::createTexture(const Image& image, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
+  {
+    Handle<Texture> texture = textures.reserve();
+    Texture* texturePtr = textures.lookup(texture);
+    bool success = Renderer::createTexture(texturePtr, image, wrap, filter, mipmap);
+
+    if (texturePtr && success)
+      return texture;
+
+    return INVALID_HANDLE(Texture);
+  }
+
+  inline Texture* ResourceManager::getTexture(Handle<Texture> handle)
+  {
+    return textures.lookup(handle);
+  }
+
+  inline Texture* ResourceManager::getTextures(int* count)
+  {
+    if (count)
+      *count = textures.count();
+    return (Texture*) textures.getArray();
+  }
+
+  void ResourceManager::destroyTexture(Texture* texture)
+  {
+    Renderer::destroyTexture(texture);
+  }
+
+  void ResourceManager::destroyTexture(Handle<Texture> handle)
+  {
+    Texture* texture = textures.lookup(handle);
+    if (!texture)
+    {
+      debugLogWarning((const char*)"Attempting to destroy a 'Texture' resource from an invalid handle");
+    }
+    else
+    {
+      destroyTexture(texture);
+      textures.remove(handle);
+    }
+  }
+
+  //
+  // Static utility functions
+  //
+
+  Image* ResourceManager::createCheckersImage(int width, int height, int squareCount)
   {
     // Create a procedural checker texture
     const int texWidth = width;
@@ -73,7 +177,7 @@ namespace smol
     return image;
   }
 
-  Image* AssetManager::loadImageBitmap(const char* fileName)
+  Image* ResourceManager::loadImageBitmap(const char* fileName)
   {
     const size_t imageHeaderSize = sizeof(Image);
     char* buffer = Platform::loadFileToBuffer(fileName, nullptr, imageHeaderSize, imageHeaderSize);
@@ -81,7 +185,7 @@ namespace smol
     if (buffer == nullptr)
     {
       debugLogError("Failed to load image '%s': Unable to find or read from file", fileName);
-      return AssetManager::createCheckersImage(800, 600);
+      return ResourceManager::createCheckersImage(800, 600);
     }
 
     BitmapHeader* bitmap = (BitmapHeader*) (buffer + imageHeaderSize);
@@ -145,8 +249,9 @@ namespace smol
     return (Image*) buffer;
   }
 
-  void AssetManager::unloadImage(Image* image)
+  void ResourceManager::unloadImage(Image* image)
   {
     Platform::unloadFileBuffer((const char*)image);
   }
+
 }

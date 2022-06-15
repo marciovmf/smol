@@ -1,9 +1,10 @@
 
 #include <smol/smol_gl.h>             // must be included first
 #include <smol/smol_renderer.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
+#include <smol/smol_systems_root.h>
 
 namespace smol
 {
@@ -192,11 +193,13 @@ namespace smol
       Material* material = scene->materials.lookup(renderable->material);
       if (!material) material = scene->materials.lookup(scene->defaultMaterial);
 
-      Texture* texture =
+      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+
+      Texture* texture = 
         (material->diffuseTextureCount > 0 
          && material->textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        scene->textures.lookup(material->textureDiffuse[0]) :
-        scene->textures.lookup(scene->defaultTexture);
+        resourceManager.getTexture(material->textureDiffuse[0]) :
+        resourceManager.getTexture(scene->defaultTexture);
 
       Mesh* mesh = scene->meshes.lookup(renderable->mesh);
 
@@ -298,8 +301,9 @@ namespace smol
       scene->destroyMesh((Mesh*) mesh);
     }
 
-    int numTextures = scene->textures.count();
-    const Texture* allTextures = scene->textures.getArray();
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    int numTextures;
+    Texture* allTextures = resourceManager.getTextures(&numTextures);
     for (int i=0; i < numTextures; i++) 
     {
       const Texture* texture = &allTextures[i];
@@ -875,9 +879,10 @@ namespace smol
 
   void Renderer::render()
   {
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
     const GLuint defaultShaderProgramId = scene.shaders.lookup(scene.defaultShader)->programId;
-    const GLuint defaultTextureId = scene.textures.lookup(scene.defaultTexture)->textureObject;
+    const GLuint defaultTextureId = resourceManager.getTexture(scene.defaultTexture)->textureObject;
     const Material* defaultMaterial = scene.materials.lookup(scene.defaultMaterial);
 
     // ----------------------------------------------------------------------
@@ -1011,7 +1016,7 @@ namespace smol
               {
                 int textureIndex = parameter.uintValue;
                 Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-                Texture* texture = scene.textures.lookup(hTexture);
+                Texture* texture = resourceManager.getTexture(hTexture);
                 glActiveTexture(GL_TEXTURE0 + textureIndex);
                 GLuint textureId = texture ? texture->textureObject : defaultTextureId;
                 glBindTexture(GL_TEXTURE_2D, textureId);

@@ -72,6 +72,7 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
 
 namespace smol
 {
+  struct ResourceManager;
   struct SMOL_ENGINE_API Scene final
   {
     static const Handle<SceneNode> ROOT;
@@ -84,7 +85,6 @@ namespace smol
     };
 
     smol::ResourceList<smol::ShaderProgram> shaders;
-    smol::ResourceList<smol::Texture> textures;
     smol::ResourceList<smol::Material> materials;
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
@@ -100,7 +100,7 @@ namespace smol
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
-    Scene();
+    Scene(ResourceManager& resourceManager);
 
     // Shaders
     Handle<ShaderProgram> loadShader(const char* filePath);
@@ -111,20 +111,6 @@ namespace smol
     //
     // Resources
     //
-    Handle<Texture> loadTexture(const char* path); 
-    
-    Handle<Texture> createTexture(const char* path,
-        Texture::Wrap wrap = Texture::Wrap::REPEAT,
-        Texture::Filter filter = Texture::Filter::LINEAR,
-        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
-    
-    Handle<Texture> createTexture(const Image& image,
-        Texture::Wrap wrap = Texture::Wrap::REPEAT,
-        Texture::Filter filter = Texture::Filter::LINEAR,
-        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
-    void destroyTexture(Handle<Texture> handle);
-    void destroyTexture(Texture* texture);
-
    
     Handle<Material> loadMaterial(const char* path);
     Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE);

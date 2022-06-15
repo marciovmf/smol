@@ -4,7 +4,7 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_keyboard.h>
 #include <smol/smol_log.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
@@ -33,7 +33,6 @@ namespace smol
 {
   namespace launcher
   {
-
     struct WindowVariables
     {
       Vector2 size;
@@ -50,7 +49,7 @@ namespace smol
 
     int smolMain(int argc, char** argv)
     {
-      smol::Log::verbosity(SMOL_LOGLEVEL);
+      Log::verbosity(SMOL_LOGLEVEL);
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
 
@@ -62,8 +61,8 @@ namespace smol
       entry = config.findEntry("window");
       if (entry)
       {
-          windowVariables.size = entry->getVariableVec2("size");
-          windowVariables.caption = entry->getVariableString("caption");
+        windowVariables.size = entry->getVariableVec2("size");
+        windowVariables.caption = entry->getVariableString("caption");
       }
 
       entry = config.findEntry("system");
@@ -81,7 +80,7 @@ namespace smol
       if (!Platform::initOpenGL(systemVariables.glVersionMajor, systemVariables.glVersionMinor))
         return 1;
 
-      smol::Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
+      Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
       SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
         Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
 
@@ -93,11 +92,11 @@ namespace smol
 
       if (! (game && onGameStartCallback && onGameStopCallback && onGameUpdateCallback))
       {
-        smol::Log::error("Failed to load a valid game module.");
+        Log::error("Failed to load a valid game module.");
         return 1;
       }
 
-      smol::Window* window = Platform::createWindow((int) windowVariables.size.x,
+      Window* window = Platform::createWindow((int) windowVariables.size.x,
           (int) windowVariables.size.y, windowVariables.caption);
 
       Platform::showCursor(systemVariables.showCursor);
@@ -107,18 +106,20 @@ namespace smol
 
       int lastWidth, lastHeight;
       Platform::getWindowSize(window, &lastWidth, &lastHeight);
-      smol::Scene scene;
-      smol::Renderer renderer(scene, lastWidth, lastHeight);
+      ResourceManager resourceManager;
+      Scene scene(resourceManager);
+      Renderer renderer(scene, lastWidth, lastHeight);
 
-      smol::Keyboard keyboardSystem;
-      smol::Mouse mouseSystem;
+      Keyboard keyboardSystem;
+      Mouse mouseSystem;
 
       // Initialize systems root
 
-      smol::SystemsRoot::initialize(config,
+      SystemsRoot::initialize(config,
           renderer,
           keyboardSystem,
           mouseSystem, 
+          resourceManager,
           scene);
 
       onGameStartCallback();

@@ -1,12 +1,13 @@
 #include <smol/smol_scene.h>
 #include <smol/smol_platform.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_renderer_types.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_cfg_parser.h>
+#include <smol/smol_systems_root.h>
 #include <string.h>
 
 namespace smol
@@ -21,15 +22,15 @@ namespace smol
   // First node handle always points to the ROOT scene node
   const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
 
-  Scene::Scene():
-    shaders(32), textures(64), materials(32), meshes(32), renderables(32), nodes(128), 
+  Scene::Scene(ResourceManager& resourceManager):
+    shaders(32), materials(32), meshes(32), renderables(32), nodes(128), 
     batchers(8), renderKeys((size_t)255), renderKeysSorted((size_t)255),
     clearColor(160/255.0f, 165/255.0f, 170/255.0f), clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
-    Image* img = AssetManager::createCheckersImage(800, 600, 32);
-    defaultTexture = createTexture(*img);
-    AssetManager::unloadImage(img);
+    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
+    defaultTexture = resourceManager.createTexture(*img);
+    ResourceManager::unloadImage(img);
 
     // Creates a ROOT node
     nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
@@ -123,87 +124,6 @@ namespace smol
   // Resources: Textures, Materials, Meshes, Renderables
   //
 
-
-  Handle<Texture> Scene::loadTexture(const char* path)
-  {
-    debugLogInfo("Loading texture %s", path);
-    if (!path)
-      return INVALID_HANDLE(Texture);
-
-    Config config(path);
-    ConfigEntry* entry = config.findEntry((const char*) "texture");
-
-    if (!entry)
-    {
-      Log::error("Unable to load texture '%s'", path);
-      return INVALID_HANDLE(Texture);
-    }
-
-    const char* imagePath = entry->getVariableString((const char*) "image", nullptr);
-    unsigned int wrap = (unsigned int) entry->getVariableNumber((const char*) "wrap", 0.0f);
-    unsigned int filter = (unsigned int) entry->getVariableNumber((const char*) "filter", 0.0f);
-    unsigned int mipmap = (unsigned int) entry->getVariableNumber((const char*) "mipmap", 0.0f);
-
-    if (wrap >= Texture::Wrap::MAX_WRAP_OPTIONS)
-    {
-      wrap = 0;
-      Log::error("Invalid wrap value in Texture file '%s'");
-    }
-
-    if (filter >= Texture::Filter::MAX_FILTER_OPTIONS)
-    {
-      filter = 0;
-      Log::error("Invalid filter value in Texture file '%s'");
-    }
-
-    if (mipmap >= Texture::Mipmap::MAX_MIPMAP_OPTIONS)
-    {
-      mipmap = 0;
-      Log::error("Invalid mipmap value in Texture file '%s'");
-    }
-
-    return createTexture(imagePath, (Texture::Wrap) wrap, (Texture::Filter) filter, (Texture::Mipmap) mipmap);
-  }
-
-  Handle<Texture> Scene::createTexture(const char* path, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
-  {
-    Image* image = AssetManager::loadImageBitmap(path);
-    Handle<Texture> texture = createTexture(*image, wrap, filter, mipmap);
-    AssetManager::unloadImage(image);
-    return texture;
-  }
-
-  Handle<Texture> Scene::createTexture(const Image& image, Texture::Wrap wrap, Texture::Filter filter, Texture::Mipmap mipmap)
-  {
-    Handle<Texture> texture = textures.reserve();
-    Texture* texturePtr = textures.lookup(texture);
-    bool success = Renderer::createTexture(texturePtr, image, wrap, filter, mipmap);
-
-    if (texturePtr && success)
-      return texture;
-
-    return INVALID_HANDLE(Texture);
-  }
-
-  void Scene::destroyTexture(Texture* texture)
-  {
-    Renderer::destroyTexture(texture);
-  }
-
-  void Scene::destroyTexture(Handle<Texture> handle)
-  {
-    Texture* texture = textures.lookup(handle);
-    if (!texture)
-    {
-      warnInvalidHandle("Texture");
-    }
-    else
-    {
-      destroyTexture(texture);
-      textures.remove(handle);
-    }
-  }
-
   Handle<Material> Scene::loadMaterial(const char* path)
   {
     debugLogInfo("Loading material %s", path);
@@ -245,7 +165,8 @@ namespace smol
         }
         else
         {
-          diffuseTextures[numDiffuseTextures++] = loadTexture(diffuseTexture);
+          diffuseTextures[numDiffuseTextures++] =
+            SystemsRoot::get()->resourceManager.loadTexture(diffuseTexture);
         }
       }
       textureEntry = config.findEntry(STR_TEXTURE, textureEntry);

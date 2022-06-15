@@ -1,7 +1,7 @@
 #include <smol/smol_game.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
 #include <utility>
 #include <time.h>
@@ -24,6 +24,7 @@ void onStart()
 {
   smol::Log::info("Game started!");
   root = smol::SystemsRoot::get();
+  smol::ResourceManager& resourceManager = root->resourceManager;
 
   smol::ConfigEntry* gameConfig = root->config.findEntry("game");
   uint32 seed = 1655119152; //(uint32) time(0);
@@ -34,7 +35,7 @@ void onStart()
 
   mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
   shader = scene.loadShader("assets/default.shader");
-  auto checkersTexture = scene.createTexture(*smol::AssetManager::createCheckersImage(600, 600, 100));
+  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
   checkersMaterial = scene.createMaterial(shader, &checkersTexture, 1);
 
   scene.getMaterial(checkersMaterial)
@@ -109,7 +110,7 @@ void onStart()
   }
 
   // sprites
-  auto texture = scene.loadTexture("assets/smol.texture");
+  auto texture = resourceManager.loadTexture("assets/smol.texture");
   auto smolMaterial = scene.createMaterial(shader, &texture, 1);
 
   scene.getMaterial(smolMaterial)
