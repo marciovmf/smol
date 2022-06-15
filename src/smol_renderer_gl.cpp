@@ -1,9 +1,10 @@
 
 #include <smol/smol_gl.h>             // must be included first
 #include <smol/smol_renderer.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
+#include <smol/smol_systems_root.h>
 
 namespace smol
 {
@@ -227,15 +228,16 @@ namespace smol
     // do we need to update the data on the GPU ?
     if (batcher->dirty)
     {
+      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material* material = scene->materials.lookup(renderable->material);
-      if (!material) material = scene->materials.lookup(scene->defaultMaterial);
+      Material* material = resourceManager.getMaterial(renderable->material);
+      if (!material) material = resourceManager.getMaterial(scene->defaultMaterial);
 
-      Texture* texture =
+      Texture* texture = 
         (material->diffuseTextureCount > 0 
          && material->textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        scene->textures.lookup(material->textureDiffuse[0]) :
-        scene->textures.lookup(scene->defaultTexture);
+        resourceManager.getTexture(material->textureDiffuse[0]) :
+        resourceManager.getTexture(scene->defaultTexture);
 
       Mesh* mesh = scene->meshes.lookup(renderable->mesh);
 
@@ -337,8 +339,9 @@ namespace smol
       scene->destroyMesh((Mesh*) mesh);
     }
 
-    int numTextures = scene->textures.count();
-    const Texture* allTextures = scene->textures.getArray();
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    int numTextures;
+    Texture* allTextures = resourceManager.getTextures(&numTextures);
     for (int i=0; i < numTextures; i++) 
     {
       const Texture* texture = &allTextures[i];
@@ -931,10 +934,11 @@ namespace smol
 
   void Renderer::render()
   {
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
-    const GLuint defaultShaderProgramId = scene.shaders.lookup(scene.defaultShader)->programId;
-    const GLuint defaultTextureId = scene.textures.lookup(scene.defaultTexture)->textureObject;
-    const Material* defaultMaterial = scene.materials.lookup(scene.defaultMaterial);
+    const GLuint defaultShaderProgramId = resourceManager.getShader(scene.defaultShader)->programId;
+    const GLuint defaultTextureId = resourceManager.getTexture(scene.defaultTexture)->textureObject;
+    const Material* defaultMaterial = resourceManager.getMaterial(scene.defaultMaterial);
 
     // ----------------------------------------------------------------------
     // CLEAR
@@ -1015,7 +1019,7 @@ namespace smol
       // save a descriptor key for rendering the node later if it was not discarded
       if(!discard)
       {
-        Material* materialPtr = scene.materials.lookup(renderable->material);
+        Material* materialPtr = resourceManager.getMaterial(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
         *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
             materialPtr->renderQueue, i);
@@ -1054,9 +1058,9 @@ namespace smol
       {
         currentMaterialIndex = materialIndex;
         const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-        Material* material = scene.materials.lookup(renderable->material);
+        Material* material = resourceManager.getMaterial(renderable->material);
+        shader = resourceManager.getShader(material->shader);
 
-        shader = scene.shaders.lookup(material->shader);
         if(shader && shader->valid)
         {
           // use WHITE as default color for vertex attribute when using a valid shader
@@ -1087,7 +1091,7 @@ namespace smol
               {
                 int textureIndex = parameter.uintValue;
                 Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-                Texture* texture = scene.textures.lookup(hTexture);
+                Texture* texture = resourceManager.getTexture(hTexture);
                 glActiveTexture(GL_TEXTURE0 + textureIndex);
                 GLuint textureId = texture ? texture->textureObject : defaultTextureId;
                 glBindTexture(GL_TEXTURE_2D, textureId);

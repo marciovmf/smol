@@ -10,6 +10,7 @@ namespace smol
   class Renderer;
   struct Scene;
   struct Config;
+  struct ResourceManager;
 
   struct SMOL_ENGINE_API SystemsRoot
   {
@@ -18,8 +19,14 @@ namespace smol
     Keyboard& keyboard; 
     Mouse& mouse; 
     Scene& loadedScene;    //TODO: Remove this. I just need some place to get a reference to the scene from the game side. This will probably be a scene manager in the future.
+    ResourceManager& resourceManager;
 
-    SystemsRoot(Config& config, Renderer& renderer, Keyboard& keyboard, Mouse& mouse, Scene& scene);
+    static void initialize(Config& config, Renderer& renderer, Keyboard& keyboard, Mouse& mouse, ResourceManager& resourceManager, Scene& scene);
+    static SystemsRoot* get();
+
+    private:
+    static SystemsRoot* instance;
+    SystemsRoot(Config& config, Renderer& renderer, Keyboard& keyboard, Mouse& mouse, ResourceManager& resourceManager, Scene& scene);
   };
 
 }

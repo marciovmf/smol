@@ -77,7 +77,6 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_systems_root.cpp
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
   ${SOURCE_PATH}/smol_keyboard.cpp
-  ${SOURCE_PATH}/include/smol/smol_hashmap.h
   ${SOURCE_PATH}/include/smol/smol_mouse.h
   ${SOURCE_PATH}/smol_mouse.cpp
   ${SOURCE_PATH}/include/smol/smol_engine.h
@@ -96,8 +95,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_color.cpp
   ${SOURCE_PATH}/include/smol/smol_mat4.h
   ${SOURCE_PATH}/smol_mat4.cpp
-  ${SOURCE_PATH}/include/smol/smol_assetmanager.h
-  ${SOURCE_PATH}/smol_assetmanager.cpp
+  ${SOURCE_PATH}/include/smol/smol_resource_manager.h
+  ${SOURCE_PATH}/smol_resource_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_arena.h
   ${SOURCE_PATH}/smol_arena.cpp
   ${SOURCE_PATH}/include/smol/smol_log.h

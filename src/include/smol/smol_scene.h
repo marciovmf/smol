@@ -71,9 +71,6 @@ namespace smol
   };
 }
 
-template class SMOL_ENGINE_API smol::ResourceList<smol::ShaderProgram>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Texture>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
@@ -81,6 +78,7 @@ template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
 
 namespace smol
 {
+  struct ResourceManager;
   struct SMOL_ENGINE_API Scene final
   {
     static const Handle<SceneNode> ROOT;
@@ -92,9 +90,6 @@ namespace smol
       DEPTH_BUFFER = 1 << 1
     };
 
-    smol::ResourceList<smol::ShaderProgram> shaders;
-    smol::ResourceList<smol::Texture> textures;
-    smol::ResourceList<smol::Material> materials;
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
     smol::ResourceList<smol::SceneNode> nodes;
@@ -110,37 +105,12 @@ namespace smol
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
-    Scene();
-
-    // Shaders
-    Handle<ShaderProgram> loadShader(const char* filePath);
-    Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
-    void destroyShader(Handle<ShaderProgram> handle);
-    void destroyShader(ShaderProgram* program);
+    Scene(ResourceManager& resourceManager);
 
     //
     // Resources
     //
-    Handle<Texture> loadTexture(const char* path); 
-
-    Handle<Texture> createTexture(const char* path,
-        Texture::Wrap wrap = Texture::Wrap::REPEAT,
-        Texture::Filter filter = Texture::Filter::LINEAR,
-        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
-
-    Handle<Texture> createTexture(const Image& image,
-        Texture::Wrap wrap = Texture::Wrap::REPEAT,
-        Texture::Filter filter = Texture::Filter::LINEAR,
-        Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
-    void destroyTexture(Handle<Texture> handle);
-    void destroyTexture(Texture* texture);
-
-
-    Handle<Material> loadMaterial(const char* path);
-    Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE);
-    void destroyMaterial(Handle<Material> handle);
-    Material* getMaterial(Handle<Material> handle);
-
+   
     Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,
