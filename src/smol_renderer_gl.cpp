@@ -189,11 +189,10 @@ namespace smol
     // do we need to update the data on the GPU ?
     if (batcher->dirty)
     {
-      Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material* material = scene->materials.lookup(renderable->material);
-      if (!material) material = scene->materials.lookup(scene->defaultMaterial);
-
       ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+      Renderable* renderable = scene->renderables.lookup(batcher->renderable);
+      Material* material = resourceManager.getMaterial(renderable->material);
+      if (!material) material = resourceManager.getMaterial(scene->defaultMaterial);
 
       Texture* texture = 
         (material->diffuseTextureCount > 0 
@@ -881,9 +880,9 @@ namespace smol
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
-    const GLuint defaultShaderProgramId = scene.shaders.lookup(scene.defaultShader)->programId;
+    const GLuint defaultShaderProgramId = resourceManager.getShader(scene.defaultShader)->programId;
     const GLuint defaultTextureId = resourceManager.getTexture(scene.defaultTexture)->textureObject;
-    const Material* defaultMaterial = scene.materials.lookup(scene.defaultMaterial);
+    const Material* defaultMaterial = resourceManager.getMaterial(scene.defaultMaterial);
 
     // ----------------------------------------------------------------------
     // CLEAR
@@ -949,7 +948,7 @@ namespace smol
 
       if(!discard)
       {
-        Material* materialPtr = scene.materials.lookup(renderable->material);
+        Material* materialPtr = resourceManager.getMaterial(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
         *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
             materialPtr->renderQueue, i);
@@ -985,9 +984,9 @@ namespace smol
       {
         currentMaterialIndex = materialIndex;
         const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-        Material* material = scene.materials.lookup(renderable->material);
+        Material* material = resourceManager.getMaterial(renderable->material);
+        shader = resourceManager.getShader(material->shader);
 
-        shader = scene.shaders.lookup(material->shader);
         if(shader && shader->valid)
         {
           // use WHITE as default color for vertex attribute when using a valid shader

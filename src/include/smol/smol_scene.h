@@ -62,9 +62,6 @@ namespace smol
   };
 }
 
-template class SMOL_ENGINE_API smol::ResourceList<smol::ShaderProgram>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Texture>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
 template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
@@ -84,8 +81,6 @@ namespace smol
       DEPTH_BUFFER = 1 << 1
     };
 
-    smol::ResourceList<smol::ShaderProgram> shaders;
-    smol::ResourceList<smol::Material> materials;
     smol::ResourceList<smol::Mesh> meshes;
     smol::ResourceList<smol::Renderable> renderables;
     smol::ResourceList<smol::SceneNode> nodes;
@@ -102,21 +97,10 @@ namespace smol
     ClearOperation clearOperation;
     Scene(ResourceManager& resourceManager);
 
-    // Shaders
-    Handle<ShaderProgram> loadShader(const char* filePath);
-    Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
-    void destroyShader(Handle<ShaderProgram> handle);
-    void destroyShader(ShaderProgram* program);
-
     //
     // Resources
     //
    
-    Handle<Material> loadMaterial(const char* path);
-    Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE);
-    void destroyMaterial(Handle<Material> handle);
-    Material* getMaterial(Handle<Material> handle);
-
     Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
     Handle<Mesh> createMesh(bool dynamic,
         Primitive primitive,

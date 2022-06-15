@@ -34,19 +34,19 @@ void onStart()
   smol::Scene& scene = root->loadedScene;
 
   mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
-  shader = scene.loadShader("assets/default.shader");
+  shader = resourceManager.loadShader("assets/default.shader");
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
-  checkersMaterial = scene.createMaterial(shader, &checkersTexture, 1);
+  checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
 
-  scene.getMaterial(checkersMaterial)
+  resourceManager.getMaterial(checkersMaterial)
     ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   // Manually create a material
-  auto floorMaterial = scene.createMaterial(shader, &checkersTexture, 1);
+  auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
   auto floor = scene.createRenderable(floorMaterial,
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
 
-  scene.getMaterial(floorMaterial)
+  resourceManager.getMaterial(floorMaterial)
     ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
@@ -79,11 +79,11 @@ void onStart()
   // Create a grass field
    
   auto grassRenderable1 = scene.createRenderable(
-      scene.loadMaterial("assets/grass_03.material"),
+      resourceManager.loadMaterial("assets/grass_03.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   auto grassRenderable2 = scene.createRenderable(
-      scene.loadMaterial("assets/grass_02.material"),
+      resourceManager.loadMaterial("assets/grass_02.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   float minZ = -90.0f;
@@ -111,9 +111,9 @@ void onStart()
 
   // sprites
   auto texture = resourceManager.loadTexture("assets/smol.texture");
-  auto smolMaterial = scene.createMaterial(shader, &texture, 1);
+  auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
 
-  scene.getMaterial(smolMaterial)
+  resourceManager.getMaterial(smolMaterial)
     ->setVec4("color", smol::Vector4(0.0f, 0.5f, 0.3f, 0.8f));
 
   batcher = scene.createSpriteBatcher(smolMaterial);
@@ -219,10 +219,9 @@ void onUpdate(float deltaTime)
     }
   }
 
+  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { scene.destroyShader(shader); }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { scene.destroyMaterial(checkersMaterial); }
+  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { root->resourceManager.destroyMaterial(checkersMaterial); }
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE)) 
   { 
