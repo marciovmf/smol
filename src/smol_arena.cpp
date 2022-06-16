@@ -44,7 +44,14 @@ namespace smol
   }
 
   void Arena::reset()
-  {
-    used = 0;
-  }
+  { used = 0; }
+
+  inline size_t Arena::getCapacity()
+  { return capacity; }
+
+  inline size_t Arena::getUsed()
+  { return used; }
+
+  const char* Arena::getData()
+  { return data; }
 }

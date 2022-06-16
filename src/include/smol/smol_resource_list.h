@@ -5,7 +5,7 @@
 #include <smol/smol_arena.h>
 #include <string.h>
 
-#define getSlotIndex(slotInfo) ((int)((char*) (slotInfo) - slots.data) / sizeof(SlotInfo))
+#define getSlotIndex(slotInfo) ((int)((char*) (slotInfo) - slots.getData()) / sizeof(SlotInfo))
 
 #define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
 
@@ -73,12 +73,12 @@ namespace smol
 
   template<typename T> 
     ResourceList<T>::ResourceList(int initialCapacity):
-      slots(Arena(sizeof(SlotInfo) * initialCapacity)),
-      resources(Arena(sizeof(T) * initialCapacity)),
+      slots(sizeof(SlotInfo) * initialCapacity),
+      resources(sizeof(T) * initialCapacity),
       resourceCount(0),
       freeSlotListCount(0),
       freeSlotListStart(-1)
- { }
+  { }
 
   template<typename T>
     inline int ResourceList<T>::count()
@@ -86,11 +86,10 @@ namespace smol
       return resourceCount;
     }
 
-
   template<typename T>
     const T* ResourceList<T>::getArray()
     {
-      return (const T*) resources.data;
+      return (const T*) resources.getData();
     }
 
   template<typename T>
@@ -104,7 +103,7 @@ namespace smol
       {
         // Reuse a Free slot.
         --freeSlotListCount;
-        slotInfo = ((SlotInfo*) slots.data) + freeSlotListStart; 
+        slotInfo = ((SlotInfo*) slots.getData()) + freeSlotListStart; 
         freeSlotListStart = slotInfo->nextFreeSlotIndex;
       }
       else
@@ -116,7 +115,7 @@ namespace smol
       }
 
       slotInfo->resourceIndex = resourceCount - 1;   // The newly added resource or the first empty space from a deleted resource
-      resource = ((T*) resources.data)+ slotInfo->resourceIndex; // gets the resource this slot points to
+      resource = ((T*) resources.getData())+ slotInfo->resourceIndex; // gets the resource this slot points to
 
       // Create a handle to the resource
       Handle<T> handle;
@@ -139,17 +138,17 @@ namespace smol
     {
       //SMOL_ASSERT(handle.slotIndex < slots.capacity, "Handle slot is out of bounds");
       //SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
-      if (handle.slotIndex >= slots.capacity || handle.slotIndex < 0)
+      if (handle.slotIndex >= slots.getCapacity() || handle.slotIndex < 0)
       {
         //Log::warning("Attempting to lookup a Handle slot out of bounds");
         return nullptr;
       }
 
-      SlotInfo* slotInfo = ((SlotInfo*) slots.data) + handle.slotIndex;
+      SlotInfo* slotInfo = ((SlotInfo*) slots.getData()) + handle.slotIndex;
       T* resource = nullptr;
       if (handle.version == slotInfo->version)
       {
-        resource = ((T*) resources.data) + slotInfo->resourceIndex;
+        resource = ((T*) resources.getData()) + slotInfo->resourceIndex;
       }
       return resource;
     }
@@ -164,21 +163,21 @@ namespace smol
 
       //SMOL_ASSERT(handle.slotIndex < slots.capacity / sizeof(T), "Handle slot is out of bounds");
       //SMOL_ASSERT(handle.slotIndex >= 0, "Handle slot is out of bounds");
-      if (handle.slotIndex >= slots.capacity / sizeof(T) || handle.slotIndex < 0)
+      if (handle.slotIndex >= slots.getCapacity() / sizeof(T) || handle.slotIndex < 0)
       {
         Log::warning("Attempting to remove a Handle slot out of bounds");
         return;
       }
 
-      SlotInfo* slotOfLast = ((SlotInfo*) slots.data) + (resourceCount-1);
-      SlotInfo* slotOfRemoved = ((SlotInfo*)  slots.data) + handle.slotIndex;
+      SlotInfo* slotOfLast = ((SlotInfo*) slots.getData()) + (resourceCount-1);
+      SlotInfo* slotOfRemoved = ((SlotInfo*)  slots.getData()) + handle.slotIndex;
       ++slotOfRemoved->version;
 
       if (slotOfRemoved != slotOfLast)
       {
         // Move the last resource to the space left by the one being removed
-        T* resourceLast = ((T*) resources.data) + slotOfLast->resourceIndex;
-        T* resourceRemoved = ((T*) resources.data) + slotOfRemoved->resourceIndex;
+        T* resourceLast = ((T*) resources.getData()) + slotOfLast->resourceIndex;
+        T* resourceRemoved = ((T*) resources.getData()) + slotOfRemoved->resourceIndex;
         memcpy((void*) resourceRemoved,
             (void*) resourceLast,
             sizeof(T));

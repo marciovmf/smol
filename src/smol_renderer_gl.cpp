@@ -959,8 +959,8 @@ namespace smol
 
     // ----------------------------------------------------------------------
     // Sort keys
-    const int32 numKeys = (int32) (scene.renderKeys.used / sizeof(uint64));
-    radixSort((uint64*) scene.renderKeys.data, numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.used));
+    const int32 numKeys = (int32) (scene.renderKeys.getUsed() / sizeof(uint64));
+    radixSort((uint64*) scene.renderKeys.getData(), numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.getUsed()));
 
     // ----------------------------------------------------------------------
     // Draw render keys
@@ -972,7 +972,7 @@ namespace smol
 
     for(int i = 0; i < numKeys; i++)
     {
-      uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
+      uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
       SceneNode::SceneNodeType nodeType = (SceneNode::SceneNodeType) getNodeTypeFromRenderKey(key);
       int materialIndex = getMaterialIndexFromRenderKey(key);
@@ -1079,7 +1079,7 @@ namespace smol
         SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
         if(batcher->dirty)
         {
-          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.data) + i);
+          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
         }
 
         //draw
