@@ -7,11 +7,9 @@ namespace smol
 {
   Arena::Arena(): capacity(0), used(0), data(nullptr) { }
 
-  Arena::Arena(size_t initialSize)
-  { initialize(initialSize); }
+  Arena::Arena(size_t initialSize) { initialize(initialSize); }
 
-  Arena::~Arena()
-  { Platform::freeMemory(data, capacity); }
+  Arena::~Arena() { Platform::freeMemory(data, capacity); }
 
   void Arena::initialize(size_t initialSize)
   {
@@ -43,15 +41,11 @@ namespace smol
     return memPtr;
   }
 
-  void Arena::reset()
-  { used = 0; }
+  inline void Arena::reset() { used = 0; }
 
-  inline size_t Arena::getCapacity()
-  { return capacity; }
+  inline size_t Arena::getCapacity() const { return capacity; }
 
-  inline size_t Arena::getUsed()
-  { return used; }
+  inline size_t Arena::getUsed() const { return used; }
 
-  const char* Arena::getData()
-  { return data; }
+  const char* Arena::getData() const { return data; }
 }

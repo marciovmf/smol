@@ -27,14 +27,17 @@ namespace smol
 
     void reset();
 
-    size_t getCapacity();
+    size_t getCapacity() const;
 
-    size_t getUsed();
+    size_t getUsed() const;
 
-    const char* getData();
+    const char* getData() const;
 
-    private:
-    Arena(const Arena& other);
+    Arena(const Arena& other) = delete;
+
+    Arena(const Arena&& other) = delete;
+
+    void operator=(const Arena& other) = delete;
   };
 }
 

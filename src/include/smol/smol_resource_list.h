@@ -11,6 +11,9 @@
 
 namespace smol
 {
+  //
+  // SlotInfo
+  //
   struct SlotInfo
   {
     union
@@ -22,31 +25,34 @@ namespace smol
     int version;
   };
 
+  //
+  // Handle
+  //
   template <typename T>
     struct Handle
     {
       int slotIndex;
       int version;
 
-      inline int compare(const Handle<T>& other);
-      inline int operator== (const Handle<T>& other);
-      inline int operator!= (const Handle<T>& other);
+      int compare(const Handle<T>& other);
+      int operator== (const Handle<T>& other);
+      int operator!= (const Handle<T>& other);
     };
 
   template <typename T>
-    int Handle<T>::compare(const Handle<T>& other)
+    inline int Handle<T>::compare(const Handle<T>& other)
     {
       return other.slotIndex == slotIndex && other.version == version;
     }
 
   template <typename T>
-    int Handle<T>::operator==(const Handle<T>& other)
+    inline int Handle<T>::operator==(const Handle<T>& other)
     {
       return compare(other);
     }
 
   template <typename T>
-    int Handle<T>::operator!=(const Handle<T>& other)
+    inline int Handle<T>::operator!=(const Handle<T>& other)
     {
       return !compare(other);
     }
@@ -71,6 +77,9 @@ namespace smol
       const T* getArray();
     };
 
+  //
+  // ResourceList
+  //
   template<typename T> 
     ResourceList<T>::ResourceList(int initialCapacity):
       slots(sizeof(SlotInfo) * initialCapacity),
