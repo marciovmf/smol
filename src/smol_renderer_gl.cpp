@@ -950,7 +950,7 @@ namespace smol
       if(!discard)
       {
         Material* materialPtr = resourceManager.getMaterial(renderable->material);
-        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
+        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
         *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
             materialPtr->renderQueue, i);
       }
