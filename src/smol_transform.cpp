@@ -76,7 +76,7 @@ namespace smol
 
   bool Transform::isDirty() const { return dirty; }
 
-  bool Transform::update(ResourceList<SceneNode>* nodes)
+  bool Transform::update(HandleList<SceneNode>* nodes)
   {
     SceneNode* parentNode = nodes->lookup(parent);
     Mat4 parentMatrix = Mat4::initIdentity();

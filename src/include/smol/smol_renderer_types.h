@@ -2,7 +2,7 @@
 #define SMOL_RENDERER_TYPES_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_resource_list.h>
+#include <smol/smol_handle_list.h>
 #include <smol/smol_color.h>
 #include <smol/smol_rect.h>
 #include <smol/smol_vector2.h>

@@ -2,7 +2,7 @@
 #define SMOL_SCENE_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_resource_list.h>
+#include <smol/smol_handle_list.h>
 #include <smol/smol_renderer_types.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
@@ -62,10 +62,10 @@ namespace smol
   };
 }
 
-template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
+template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
+template class SMOL_ENGINE_API smol::HandleList<smol::Renderable>;
+template class SMOL_ENGINE_API smol::HandleList<smol::SpriteBatcher>;
+template class SMOL_ENGINE_API smol::HandleList<smol::SceneNode>;
 
 namespace smol
 {
@@ -81,10 +81,10 @@ namespace smol
       DEPTH_BUFFER = 1 << 1
     };
 
-    smol::ResourceList<smol::Mesh> meshes;
-    smol::ResourceList<smol::Renderable> renderables;
-    smol::ResourceList<smol::SceneNode> nodes;
-    smol::ResourceList<smol::SpriteBatcher> batchers;
+    smol::HandleList<smol::Mesh> meshes;
+    smol::HandleList<smol::Renderable> renderables;
+    smol::HandleList<smol::SceneNode> nodes;
+    smol::HandleList<smol::SpriteBatcher> batchers;
     smol::Arena renderKeys;
     smol::Arena renderKeysSorted;
     smol::Handle<smol::Texture> defaultTexture;
