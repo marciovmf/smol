@@ -23,9 +23,14 @@ namespace smol
   const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
 
   Scene::Scene(ResourceManager& resourceManager):
-     meshes(32), renderables(32), nodes(128), 
-    batchers(8), renderKeys((size_t)255), renderKeysSorted((size_t)255),
-    clearColor(160/255.0f, 165/255.0f, 170/255.0f), clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
+    meshes(32 * sizeof(Mesh)),
+    renderables(1024 * sizeof(Renderable)),
+    nodes(1024 * sizeof(SceneNode)), 
+    batchers(8 * sizeof(SpriteBatcher)),
+    renderKeys(1024 * sizeof(uint64)),
+    renderKeysSorted(1024 * sizeof(uint64)),
+    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
 
