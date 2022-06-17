@@ -17,9 +17,9 @@ namespace smol
     public:
     Arena();
 
-    ~Arena();
-
     Arena(size_t initialSize);
+
+    ~Arena();
 
     void initialize(size_t initialSize);
 

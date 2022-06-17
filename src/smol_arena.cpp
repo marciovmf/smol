@@ -1,6 +1,7 @@
 #include <smol/smol_arena.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_engine.h>
+#include <smol/smol_log.h>
 #include <math.h>
 
 namespace smol
@@ -22,7 +23,7 @@ namespace smol
   {
     if (used + size >= capacity)
     {
-      size_t newCapacity = capacity + size;
+      size_t newCapacity = 2 * (capacity + size);
       // get next pow2 larger than current capacity
       newCapacity = (newCapacity >> 1) | newCapacity;
       newCapacity = (newCapacity >> 2) | newCapacity;
@@ -31,7 +32,7 @@ namespace smol
       newCapacity = (newCapacity >> 16) | newCapacity;
       newCapacity = (newCapacity >> 32) | newCapacity;
       newCapacity++;
-
+      Log::warning("Resizing arena...%lu -> %lu", capacity, newCapacity);
       data = (char*) Platform::resizeMemory(data, newCapacity);
       capacity = newCapacity;
     }
