@@ -32,7 +32,6 @@ namespace smol
       newCapacity = (newCapacity >> 16) | newCapacity;
       newCapacity = (newCapacity >> 32) | newCapacity;
       newCapacity++;
-      Log::warning("Resizing arena...%lu -> %lu", capacity, newCapacity);
       data = (char*) Platform::resizeMemory(data, newCapacity);
       capacity = newCapacity;
     }
