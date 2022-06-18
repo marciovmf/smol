@@ -54,7 +54,7 @@ namespace smol
       SpriteSceneNode spriteNode;
     };
 
-    SceneNode(Scene* scene, SceneNodeType type, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+    SceneNode(Scene* scene, SceneNodeType type, const Transform& transform = Transform());//, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
     bool isActive();
     bool isActiveInHierarchy();
     void setActive(bool status);
@@ -136,10 +136,7 @@ namespace smol
     //
     Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
-        const Vector3& position = (const Vector3) Vector3{0.0f, 0.0f, 0.0f},
-        const Vector3& scale = (const Vector3) Vector3{1.0f, 1.0f, 1.0f},
-        const Vector3& rotation = (const Vector3) Vector3{0.0f, 0.0f, 0.0f},
-        Handle<SceneNode> parent = Scene::ROOT);
+        Transform& transform = Transform());
 
     Handle<SceneNode> createSpriteNode(
         Handle<SpriteBatcher> batcher,

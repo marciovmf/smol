@@ -35,7 +35,7 @@ namespace smol
     viewMatrix = Mat4::initIdentity();
 
     // Creates a ROOT node
-    nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
+    nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT));
 
     defaultShader   = resourceManager.getDefaultShader();
     defaultTexture  = resourceManager.getDefaultTexture();
@@ -45,10 +45,9 @@ namespace smol
   //---------------------------------------------------------------------------
   // SceneNode
   //---------------------------------------------------------------------------
-  SceneNode::SceneNode(Scene* scene, SceneNodeType type, Handle<SceneNode> parent) 
-    : scene(*scene), active(true), dirty(true), type(type)
+  SceneNode::SceneNode(Scene* scene, SceneNodeType type, const Transform& transform) 
+    : scene(*scene), active(true), dirty(true), type(type), transform(transform)
   { 
-    transform.setParent(parent);
   }
 
   bool SceneNode::isActive()
@@ -241,22 +240,10 @@ namespace smol
   //
   // Scene Node utility functions
   //
-  Handle<SceneNode> Scene::createMeshNode(
-      Handle<Renderable> renderable,
-      const Vector3& position,
-      const Vector3& scale,
-      const Vector3& rotation,
-      Handle<SceneNode> parent)
+  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, Transform& transform)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, parent));
-    SceneNode* node = nodes.lookup(handle);
-
-    node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(rotation.x, rotation.y, rotation.z);
-    node->transform.setScale(scale.x, scale.y, scale.z);
-    node->transform.update(&nodes);
-
-    node->meshNode.renderable = renderable;
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
+    nodes.lookup(handle)->meshNode.renderable = renderable;
     return handle;
   }
 
@@ -270,13 +257,14 @@ namespace smol
       int angle,
       Handle<SceneNode> parent)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, parent));
-    SceneNode* node = nodes.lookup(handle);
+    const Transform& t = Transform(
+        position,
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(1.0f, 1.0f, 1.0f),
+        parent);
 
-    node->transform.setPosition(position);
-    node->transform.setRotation(0.0f, 0.0f, 1.0f);
-    node->transform.setScale(1.0f, 1.0f, 1.0f);
-    node->transform.update(&nodes);
+    Handle<SceneNode> handle = nodes.add( SceneNode(this, SceneNode::SPRITE, t));
+    SceneNode* node = nodes.lookup(handle);
 
     node->spriteNode.rect = rect;
     node->spriteNode.batcher = batcher;

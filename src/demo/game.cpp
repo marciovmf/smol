@@ -53,31 +53,34 @@ void onStart()
 
   // meshes
   scene.createMeshNode(floor, 
-      (const smol::Vector3) smol::Vector3(0.0f, -5.0f, -5.0f),
-      (const smol::Vector3) smol::Vector3(100.0f, 100.0f, 100.0f),
-      (const smol::Vector3) smol::Vector3(-90, 0.0f, 0.0f));
+      smol::Transform(
+        smol::Vector3(0.0f, -5.0f, -5.0f),
+        smol::Vector3(-90, 0.0f, 0.0f),
+        smol::Vector3(100.0f, 100.0f, 100.0f)));
 
   // center cube
   node1 = scene.createMeshNode(renderable2,
-      smol::Vector3{0.0f, -1.0f, -15.0f},
-      smol::Vector3{2.0f, 2.0f, 2.0f});
+      smol::Transform(
+        smol::Vector3{0.0f, -1.0f, -15.0f},
+        smol::Vector3(0.0f, 0.0f, 0.0f),
+        smol::Vector3{2.0f, 2.0f, 2.0f}));
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3(0.0f, 1.0f, 0.0f),
-      smol::Vector3(0.8f, 0.8f, 0.8f),
-      smol::Vector3(1.0f, 1.0f, 1.0f),
-      node1);
+      smol::Transform(
+        smol::Vector3(0.0f, 1.0f, 0.0f),
+        smol::Vector3(1.0f, 1.0f, 1.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f),
+        node1));
 
   // right cube
   scene.createMeshNode(renderable2, 
-      smol::Vector3(4.0f, 3.0f, -10.0f),
-      smol::Vector3(0.8f, 0.8f, 0.8f),
-      smol::Vector3(0.0f, 0.0f, 0.0f)
-      );
+      smol::Transform(
+        smol::Vector3(4.0f, 3.0f, -10.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f)));
 
   // Create a grass field
-   
+
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
@@ -90,6 +93,7 @@ void onStart()
   const int changeLimit = 3;
   int nextChange = 0;
 
+  smol::Transform t;
   for (int i = 0; i < 5000; i++)
   {
     float randX = (rand() % 1000 - rand() % 1000) / 1000.0f;
@@ -101,12 +105,12 @@ void onStart()
     randScale *= 1.5f;
 
     nextChange = ++nextChange % changeLimit;
+    t.setPosition(100 * randX, -2.0f, randZ);
+    t.setRotation(0.0f, randAngle, 0.0f);
+    t.setScale(2.0f + randScale, 2.0f + randScale, 2.0f + randScale);
 
     scene.createMeshNode(
-        (nextChange == 0) ? grassRenderable1 : grassRenderable2,
-        (const smol::Vector3) smol::Vector3(100 * randX, -2.0f, randZ),
-        (const smol::Vector3) smol::Vector3(2.0f + randScale, 2.0f + randScale, 2.0f + randScale),
-        (const smol::Vector3) smol::Vector3(0.0f, randAngle, 0.0f));
+        (nextChange == 0) ? grassRenderable1 : grassRenderable2, t);
   }
 
   // sprites
