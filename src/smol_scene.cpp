@@ -37,8 +37,6 @@ namespace smol
     // Creates a ROOT node
     nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT, INVALID_HANDLE(SceneNode)));
 
-    //TODO(marcio): Create default SHADER and MATERIAL!
-    // store the default shader program in the scene
     defaultShader   = resourceManager.getDefaultShader();
     defaultTexture  = resourceManager.getDefaultTexture();
     defaultMaterial = resourceManager.getDefaultMaterial();
