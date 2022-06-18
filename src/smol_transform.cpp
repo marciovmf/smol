@@ -4,7 +4,6 @@
 
 namespace smol
 {
-
   Transform::Transform(Vector3 position, Vector3 rotation, Vector3 scale, Handle<SceneNode> parent)
     : position(position), rotation(rotation), scale(scale), dirty(true), parent(parent)
   {
@@ -37,7 +36,7 @@ namespace smol
     dirty = true;
   }
 
-  void Transform::setScale(Vector3& scale) 
+  void Transform::setScale(const Vector3& scale) 
   {
     this->scale = scale;
     dirty = true;
@@ -51,7 +50,7 @@ namespace smol
     dirty = true;
   };
 
-  void Transform::setRotation(Vector3& rotation) 
+  void Transform::setRotation(const Vector3& rotation) 
   {
     this->rotation = rotation;
     dirty = true;
