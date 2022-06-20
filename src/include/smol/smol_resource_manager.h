@@ -2,12 +2,12 @@
 #define SMOL_ASSETMANAGER_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_resource_list.h>
+#include <smol/smol_handle_list.h>
 #include <smol/smol_renderer_types.h>
 
-template class SMOL_ENGINE_API smol::ResourceList<smol::Texture>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Material>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::ShaderProgram>;
+template class SMOL_ENGINE_API smol::HandleList<smol::Texture>;
+template class SMOL_ENGINE_API smol::HandleList<smol::Material>;
+template class SMOL_ENGINE_API smol::HandleList<smol::ShaderProgram>;
 
 namespace smol
 {
@@ -73,14 +73,20 @@ namespace smol
 
     Handle<Material> loadMaterial(const char* path);
 
-    Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE);
+    Handle<Material> createMaterial(
+        Handle<ShaderProgram> shader,
+        Handle<Texture>* diffuseTextures,
+        int diffuseTextureCount,
+        int renderQueue = (int) RenderQueue::QUEUE_OPAQUE,
+        Material::DepthTest depthTest = Material::DepthTest::LESS,
+        Material::CullFace cullFace = Material::CullFace::BACK);
 
     void destroyMaterial(Handle<Material> handle);
 
     Material* getMaterial(Handle<Material> handle);
 
     Material* getMaterials(int* count);
-    
+
     Handle<Material> getDefaultMaterial();
 
 
@@ -95,9 +101,9 @@ namespace smol
     static void unloadImage(Image* image);
 
     private:
-    ResourceList<Texture> textures;
-    ResourceList<ShaderProgram> shaders;
-    smol::ResourceList<smol::Material> materials;
+    HandleList<Texture> textures;
+    HandleList<ShaderProgram> shaders;
+    smol::HandleList<smol::Material> materials;
 
     Handle<ShaderProgram> defaultShader;
     Handle<Texture> defaultTexture;

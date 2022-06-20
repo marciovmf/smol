@@ -1,9 +1,12 @@
 # Material
+#depthTest:  DISABLE = 0, LESS = 1, LESS_EQUAL = 2, EQUAL = 3, GREATER = 4, GREATER_EQUAL = 5, DIFFERENT = 6, NEVER = 7, ALWAYS = 8
+#cullFace: BACK = 0, FRONT = 1, FRONT_AND_BACK = 2, NONE = 3
 @material:
-  queue: 21,
+  queue: 11,
+  depthTest: 2,
+  cullFace: 3,
   shader: "assets/default.shader",
-  color: {0.937, 0.960, 0.513, 1.0},
+  color: {0.6509, 0.41960, 0.26666, 1.0},
   mainTex: 0 # index of the texture to use. This is a SAMPLER_2D uniform
-
 
 @texture: diffuse: "assets/grass_03.texture"

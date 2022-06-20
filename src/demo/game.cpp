@@ -26,7 +26,7 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
 
-  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  //smol::ConfigEntry* gameConfig = root->config.findEntry("game");
   uint32 seed = 1655119152; //(uint32) time(0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
@@ -53,42 +53,46 @@ void onStart()
 
   // meshes
   auto floorNode = scene.createMeshNode(floor, 
-      (const smol::Vector3) smol::Vector3(0.0f, -5.0f, -5.0f),
-      (const smol::Vector3) smol::Vector3(100.0f, 100.0f, 100.0f),
-      (const smol::Vector3) smol::Vector3(-90, 0.0f, 0.0f));
+      smol::Transform(
+        smol::Vector3(0.0f, -5.0f, -5.0f),
+        smol::Vector3(-90, 0.0f, 0.0f),
+        smol::Vector3(100.0f, 100.0f, 100.0f)));
 
   // center cube
   node1 = scene.createMeshNode(renderable2,
-      smol::Vector3{0.0f, -1.0f, -15.0f},
-      smol::Vector3{2.0f, 2.0f, 2.0f});
+      smol::Transform(
+        smol::Vector3{0.0f, -1.0f, -15.0f},
+        smol::Vector3(0.0f, 0.0f, 0.0f),
+        smol::Vector3{2.0f, 2.0f, 2.0f}));
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3(0.0f, 1.0f, 0.0f),
-      smol::Vector3(0.8f, 0.8f, 0.8f),
-      smol::Vector3(1.0f, 1.0f, 1.0f),
-      node1);
+      smol::Transform(
+        smol::Vector3(0.0f, 1.0f, 0.0f),
+        smol::Vector3(1.0f, 1.0f, 1.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f),
+        node1));
 
   // right cube
-  auto node3 = scene.createMeshNode(renderable2, 
-      smol::Vector3(4.0f, 3.0f, -10.0f),
-      smol::Vector3(0.8f, 0.8f, 0.8f),
-      smol::Vector3(0.0f, 0.0f, 0.0f)
-      );
+  scene.createMeshNode(renderable2, 
+      smol::Transform(
+        smol::Vector3(4.0f, 3.0f, -10.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f)));
 
   scene.setLayer(floorNode, smol::Layer::LAYER_1);
 
 
   // camera
   smol::Transform t;
+  t.setParent(node2);
   smol::Rect viewport =
     root->renderer.getViewport();
-  auto camera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 100.0f, t, node2);
+  auto camera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 100.0f, t);
   scene.getNode(camera)->cameraNode.camera.setLayers((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
   scene.setMainCamera(camera);
 
   // Create a grass field
-   
+
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
@@ -107,17 +111,18 @@ void onStart()
     float randZ = minZ + ((rand() % 1000) / 1000.0f) * 0.5f;
     minZ = randZ;
 
-    float randAngle = (rand() % 60 - rand() % 60) * 1.0f;
+    float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
     float randScale = (rand() % 30 - rand() % 30) / 30.0f;
     randScale *= 1.5f;
 
+    smol::Transform t;
     nextChange = ++nextChange % changeLimit;
+    t.setPosition(100 * randX, -2.0f, randZ);
+    t.setRotation(0.0f, randAngle, 0.0f);
+    t.setScale(2.0f + randScale, 2.0f + randScale, 2.0f + randScale);
 
     scene.createMeshNode(
-        (nextChange == 0) ? grassRenderable1 : grassRenderable2,
-        (const smol::Vector3) smol::Vector3(100 * randX, -2.0f, randZ),
-        (const smol::Vector3) smol::Vector3(2.0f + randScale, 2.0f + randScale, 2.0f + randScale),
-        (const smol::Vector3) smol::Vector3(0.0f, randAngle, 0.0f));
+        (nextChange == 0) ? grassRenderable1 : grassRenderable2, t);
   }
 
   // sprites

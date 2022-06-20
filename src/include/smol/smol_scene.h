@@ -2,7 +2,7 @@
 #define SMOL_SCENE_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_resource_list.h>
+#include <smol/smol_handle_list.h>
 #include <smol/smol_renderer_types.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
@@ -62,7 +62,7 @@ namespace smol
       CameraSceneNode cameraNode;
     };
 
-    SceneNode(Scene* scene, SceneNode::Type type, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+    SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     bool isActive();
     bool isActiveInHierarchy();
     void setActive(bool status);
@@ -71,10 +71,10 @@ namespace smol
   };
 }
 
-template class SMOL_ENGINE_API smol::ResourceList<smol::Mesh>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::Renderable>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::SpriteBatcher>;
-template class SMOL_ENGINE_API smol::ResourceList<smol::SceneNode>;
+template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
+template class SMOL_ENGINE_API smol::HandleList<smol::Renderable>;
+template class SMOL_ENGINE_API smol::HandleList<smol::SpriteBatcher>;
+template class SMOL_ENGINE_API smol::HandleList<smol::SceneNode>;
 
 namespace smol
 {
@@ -90,10 +90,10 @@ namespace smol
       DEPTH_BUFFER = 1 << 1
     };
 
-    smol::ResourceList<smol::Mesh> meshes;
-    smol::ResourceList<smol::Renderable> renderables;
-    smol::ResourceList<smol::SceneNode> nodes;
-    smol::ResourceList<smol::SpriteBatcher> batchers;
+    smol::HandleList<smol::Mesh> meshes;
+    smol::HandleList<smol::Renderable> renderables;
+    smol::HandleList<smol::SceneNode> nodes;
+    smol::HandleList<smol::SpriteBatcher> batchers;
     smol::Arena renderKeys;
     smol::Arena renderKeysSorted;
     smol::Handle<smol::Texture> defaultTexture;
@@ -146,10 +146,7 @@ namespace smol
     //
     Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
-        const Vector3& position = (const Vector3) Vector3{0.0f, 0.0f, 0.0f},
-        const Vector3& scale = (const Vector3) Vector3{1.0f, 1.0f, 1.0f},
-        const Vector3& rotation = (const Vector3) Vector3{0.0f, 0.0f, 0.0f},
-        Handle<SceneNode> parent = Scene::ROOT);
+        Transform& transform = Transform());
 
     Handle<SceneNode> createSpriteNode(
         Handle<SpriteBatcher> batcher,
@@ -161,9 +158,8 @@ namespace smol
         int angle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
-    Handle<SceneNode> createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform,
-        Handle<SceneNode> parent = Scene::ROOT);
-    Handle<SceneNode> createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform, Handle<SceneNode> parent = Scene::ROOT);
+    Handle<SceneNode> createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform);
+    Handle<SceneNode> createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform);
 
     void destroyNode(Handle<SceneNode> handle);
     void destroyNode(SceneNode* node);

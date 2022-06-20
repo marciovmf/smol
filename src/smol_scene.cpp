@@ -23,17 +23,20 @@ namespace smol
   const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
 
   Scene::Scene(ResourceManager& resourceManager):
-     meshes(32), renderables(32), nodes(128), 
-    batchers(8), renderKeys((size_t)255), renderKeysSorted((size_t)255),
-    clearColor(160/255.0f, 165/255.0f, 170/255.0f), clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
+    meshes(32 * sizeof(Mesh)),
+    renderables(1024 * sizeof(Renderable)),
+    nodes(1024 * sizeof(SceneNode)), 
+    batchers(8 * sizeof(SpriteBatcher)),
+    renderKeys(1024 * sizeof(uint64)),
+    renderKeysSorted(1024 * sizeof(uint64)),
+    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
 
     // Creates a ROOT node
-    nodes.add((const SceneNode&) SceneNode(this, SceneNode::Type::ROOT, INVALID_HANDLE(SceneNode)));
+    nodes.add((const SceneNode&) SceneNode(this, SceneNode::Type::ROOT));
 
-    //TODO(marcio): Create default SHADER and MATERIAL!
-    // store the default shader program in the scene
     defaultShader   = resourceManager.getDefaultShader();
     defaultTexture  = resourceManager.getDefaultTexture();
     defaultMaterial = resourceManager.getDefaultMaterial();
@@ -42,10 +45,9 @@ namespace smol
   //---------------------------------------------------------------------------
   // SceneNode
   //---------------------------------------------------------------------------
-  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, Handle<SceneNode> parent) 
-    : scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0)
+  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform) 
+    : scene(*scene), active(true), dirty(true), type(type), transform(transform), layer(Layer::LAYER_0)
   { 
-    transform.setParent(parent);
   }
 
   bool SceneNode::isActive()
@@ -66,7 +68,7 @@ namespace smol
     SceneNode* parentPtr = scene.getNode(parent);
     if (!parentPtr)
       return false;
-    
+
     return parentPtr->isActiveInHierarchy();
   }
 
@@ -253,22 +255,10 @@ namespace smol
   //
   // Scene Node utility functions
   //
-  Handle<SceneNode> Scene::createMeshNode(
-      Handle<Renderable> renderable,
-      const Vector3& position,
-      const Vector3& scale,
-      const Vector3& rotation,
-      Handle<SceneNode> parent)
+  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, Transform& transform)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, parent));
-    SceneNode* node = nodes.lookup(handle);
-
-    node->transform.setPosition(position.x, position.y, position.z);
-    node->transform.setRotation(rotation.x, rotation.y, rotation.z);
-    node->transform.setScale(scale.x, scale.y, scale.z);
-    node->transform.update(&nodes);
-
-    node->meshNode.renderable = renderable;
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
+    nodes.lookup(handle)->meshNode.renderable = renderable;
     return handle;
   }
 
@@ -282,13 +272,14 @@ namespace smol
       int angle,
       Handle<SceneNode> parent)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, parent));
-    SceneNode* node = nodes.lookup(handle);
+    const Transform& t = Transform(
+        position,
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(1.0f, 1.0f, 1.0f),
+        parent);
 
-    node->transform.setPosition(position);
-    node->transform.setRotation(0.0f, 0.0f, 1.0f);
-    node->transform.setScale(1.0f, 1.0f, 1.0f);
-    node->transform.update(&nodes);
+    Handle<SceneNode> handle = nodes.add( SceneNode(this, SceneNode::SPRITE, t));
+    SceneNode* node = nodes.lookup(handle);
 
     node->spriteNode.rect = rect;
     node->spriteNode.batcher = batcher;
@@ -311,41 +302,21 @@ namespace smol
     return handle;
   }
 
-  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform, Handle<SceneNode> parent)
+  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, parent));
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-
     node->cameraNode.camera.setPerspective(fov, aspect, zNear, zFar);
     node->cameraNode.camera.setLayers((uint32) Layer::LAYER_0);
-
-    const Vector3& p = transform.getPosition();
-    const Vector3& s = transform.getScale();
-    const Vector3& r = transform.getRotation();
-    node->transform.setPosition(p.x, p.y, p.z);
-    node->transform.setRotation(r.x, r.y, r.z);
-    node->transform.setScale(s.x, s.y, s.z);
-    node->transform.update(&nodes);
-
     return handle;
   }
 
-  Handle<SceneNode> Scene::createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform, Handle<SceneNode> parent)
+  Handle<SceneNode> Scene::createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, parent));
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-
     node->cameraNode.camera.setOrthographic(left, right, top, bottom, zNear, zFar);
     node->cameraNode.camera.setLayers((uint32) Layer::LAYER_0);
-
-    const Vector3& p = transform.getPosition();
-    const Vector3& s = transform.getScale();
-    const Vector3& r = transform.getRotation();
-    node->transform.setPosition(p.x, p.y, p.z);
-    node->transform.setRotation(r.x, r.y, r.z);
-    node->transform.setScale(s.x, s.y, s.z);
-    node->transform.update(&nodes);
-
     return handle;
   }
 

@@ -196,10 +196,11 @@ namespace smol
     return (uint32) (key >> 8);
   }
 
-  static inline uint32 getQueueFromRenderKey(uint64 key)
-  {
-    return (uint32)((uint8)key);
-  }
+  //NOTE(marcio): We're probably not gonna need it
+  //static inline uint32 getQueueFromRenderKey(uint64 key)
+  //{
+  //  return (uint32)((uint8)key);
+  //}
 
 
   // This function assumes a material is already bound
@@ -926,10 +927,6 @@ namespace smol
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST); 
-    glDepthFunc(GL_LESS);  
-    glEnable(GL_CULL_FACE); 
-    glCullFace(GL_BACK);
   }
 
   void Renderer::render()
@@ -1020,7 +1017,7 @@ namespace smol
       if(!discard)
       {
         Material* materialPtr = resourceManager.getMaterial(renderable->material);
-        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
+        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
         *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
             materialPtr->renderQueue, i);
       }
@@ -1030,8 +1027,8 @@ namespace smol
 
     // ----------------------------------------------------------------------
     // Sort keys
-    const int32 numKeys = (int32) (scene.renderKeys.used / sizeof(uint64));
-    radixSort((uint64*) scene.renderKeys.data, numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.used));
+    const int32 numKeys = (int32) (scene.renderKeys.getUsed() / sizeof(uint64));
+    radixSort((uint64*) scene.renderKeys.getData(), numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.getUsed()));
 
     // ----------------------------------------------------------------------
     // Draw render keys
@@ -1046,7 +1043,7 @@ namespace smol
 
     for(int i = 0; i < numKeys; i++)
     {
-      uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
+      uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
       SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
       int materialIndex = getMaterialIndexFromRenderKey(key);
@@ -1060,6 +1057,67 @@ namespace smol
         const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
         Material* material = resourceManager.getMaterial(renderable->material);
         shader = resourceManager.getShader(material->shader);
+
+        switch(material->depthTest)
+        {
+          case Material::DISABLE:
+            glDisable(GL_DEPTH_TEST);
+          break;
+          case Material::LESS:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);  
+          break;
+          case Material::LESS_EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);  
+          break;
+          case Material::EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_EQUAL);  
+          break;
+          case Material::GREATER:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_GREATER);  
+          break;
+          case Material::GREATER_EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_GEQUAL);  
+          break;
+          case Material::DIFFERENT:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_NOTEQUAL);  
+          break;
+          case Material::ALWAYS:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_ALWAYS);  
+          break;
+          case Material::NEVER:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_NEVER);  
+          break;
+        }
+
+        switch(material->cullFace)
+        {
+          case Material::BACK:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_BACK);
+            break;
+
+          case Material::FRONT:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_FRONT);
+            break;
+
+          case Material::FRONT_AND_BACK:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_FRONT_AND_BACK);
+            break;
+
+          case Material::NONE:
+            glDisable(GL_CULL_FACE);
+            break;
+        }
 
         if(shader && shader->valid)
         {
@@ -1156,7 +1214,7 @@ namespace smol
         SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
         if(batcher->dirty)
         {
-          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.data) + i);
+          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
         }
 
         //draw

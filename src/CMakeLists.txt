@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 include(CMakeDependentOption)
 set(SMOL_VERSION_MAJOR 0)
-set(SMOL_VERSION_MINOR 0)
+set(SMOL_VERSION_MINOR 1)
 set(SMOL_VERSION_PATCH 1)
 set(SMOL_VERSION_TWEAK 0)
 set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATCH}.${SMOL_VERSION_TWEAK})
@@ -72,7 +72,7 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
-  ${SOURCE_PATH}/include/smol/smol_resource_list.h
+  ${SOURCE_PATH}/include/smol/smol_handle_list.h
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/smol_systems_root.cpp
   ${SOURCE_PATH}/include/smol/smol_keyboard.h

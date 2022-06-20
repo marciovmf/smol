@@ -127,19 +127,21 @@ namespace smol
     KEYCODE_OEM8        = 0xDF // Used for miscellaneous characters; it can vary by keyboard.
   };
   
-  struct SMOL_ENGINE_API Keyboard
+  class SMOL_ENGINE_API Keyboard
   {
     const unsigned char* mKeyboardState = nullptr;
 
+    public:
     Keyboard();
-    bool getKey(unsigned char keyCode);
-    bool getKeyUp(unsigned char keyCode);
-    bool getKeyDown(unsigned char keyCode);
+    bool getKey(unsigned char keyCode) const;
+    bool getKeyUp(unsigned char keyCode) const;
+    bool getKeyDown(unsigned char keyCode) const;
     void update();
 
-    private:
-    Keyboard(const Keyboard& other);
-    Keyboard& operator=(const Keyboard& other);
+    // Disallow coppies
+    Keyboard(const Keyboard& other) = delete;
+    void operator=(const Keyboard& other) = delete;
+    void operator=(const Keyboard&& other) = delete;
   };
 
 }

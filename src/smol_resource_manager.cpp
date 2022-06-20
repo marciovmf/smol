@@ -281,7 +281,10 @@ namespace smol
       textureEntry = config.findEntry(STR_TEXTURE, textureEntry);
     }
 
-    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue);
+    Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
+    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::CullFace) Material::CullFace::BACK);
+
+    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest, cullFace);
     Material* material = materials.lookup(handle);
 
     //set values for material parameters
@@ -329,19 +332,26 @@ namespace smol
     return handle;
   }
 
-  Handle<Material> ResourceManager::createMaterial(Handle<ShaderProgram> shader,
-      Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue)
+  Handle<Material> ResourceManager::createMaterial(
+      Handle<ShaderProgram> shader,
+      Handle<Texture>* diffuseTextures,
+      int diffuseTextureCount,
+      int renderQueue,
+      Material::DepthTest depthTest,
+      Material::CullFace cullFace)
   {
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
     Material* material = materials.lookup(handle);
     memset(material, 0, sizeof(Material));
+    material->depthTest = depthTest;
+    material->renderQueue = renderQueue;
+    material->cullFace = cullFace;
 
     if (diffuseTextureCount)
     {
       size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
-      material->renderQueue = renderQueue;
       material->shader = shader;
       material->diffuseTextureCount = diffuseTextureCount;
       memcpy(material->textureDiffuse, diffuseTextures, copySize);

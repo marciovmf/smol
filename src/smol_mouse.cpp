@@ -8,18 +8,18 @@ namespace smol
 {
   Mouse::Mouse() { update(); }
 
-  const Point2& Mouse::getCursorPosition()
+  const Point2& Mouse::getCursorPosition() const
   {
     ASSERT_UPDATED();
     return mouseState->cursor;
   }
 
-  void Mouse::update()
+  inline void Mouse::update()
   {
     mouseState = Platform::getMouseState();
   }
 
-  bool Mouse::getButton(MouseButton button)
+  bool Mouse::getButton(MouseButton button) const
   {
     ASSERT_UPDATED();
     unsigned char buttonState = mouseState->button[(int)button];
@@ -27,7 +27,7 @@ namespace smol
     return pressed;
   }
 
-  bool Mouse::getButtonUp(MouseButton button)
+  bool Mouse::getButtonUp(MouseButton button) const
   {
     ASSERT_UPDATED();
     unsigned char buttonState = mouseState->button[(int)button];
@@ -35,7 +35,7 @@ namespace smol
     return released;
   }
 
-  bool Mouse::getButtonDown(MouseButton button)
+  bool Mouse::getButtonDown(MouseButton button) const
   {
     ASSERT_UPDATED();
     unsigned char buttonState = mouseState->button[(int)button];
@@ -43,7 +43,7 @@ namespace smol
     return down;
   }
 
-  int Mouse::getWheelDelta()
+  int Mouse::getWheelDelta() const
   {
     ASSERT_UPDATED();
     return mouseState->wheelDelta;

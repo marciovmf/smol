@@ -2,7 +2,7 @@
 #define SMOL_RENDERER_TYPES_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_resource_list.h>
+#include <smol/smol_handle_list.h>
 #include <smol/smol_color.h>
 #include <smol/smol_rect.h>
 #include <smol/smol_vector2.h>
@@ -177,12 +177,35 @@ namespace smol
 #define SMOL_MAX_BUFFERS_PER_MESH 6
   struct SMOL_ENGINE_API Material
   {
+    enum DepthTest
+    {
+      DISABLE         = 0,
+      LESS            = 1,
+      LESS_EQUAL      = 2,
+      EQUAL           = 3,
+      GREATER         = 4,
+      GREATER_EQUAL   = 5,
+      DIFFERENT       = 6,
+      NEVER           = 7,
+      ALWAYS          = 8
+    };
+
+    enum CullFace
+    {
+      BACK            = 0,
+      FRONT           = 1,
+      FRONT_AND_BACK  = 2,
+      NONE            = 3
+    };
+
     Handle<ShaderProgram> shader;
     Handle<Texture> textureDiffuse[SMOL_MATERIAL_MAX_TEXTURES];
     int diffuseTextureCount;
     int renderQueue;
     MaterialParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
     int parameterCount;
+    DepthTest depthTest;
+    CullFace cullFace;
 
     Material* setSampler2D(const char* name, unsigned int value);
     Material* setUint(const char* name, unsigned int value);

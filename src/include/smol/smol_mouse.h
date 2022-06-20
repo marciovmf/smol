@@ -17,19 +17,24 @@ namespace smol
     MOUSE_BUTTON_EXTRA_1  = 4
   };
 
-  struct SMOL_ENGINE_API Mouse
+  class SMOL_ENGINE_API Mouse
   {
-    Mouse();
     const MouseState* mouseState = nullptr;
-    const Point2& getCursorPosition();
-    bool getButton(MouseButton button);
-    bool getButtonUp(MouseButton button);
-    bool getButtonDown(MouseButton button);
-    int getWheelDelta();
+
+    public:
+    Mouse();
+    const Point2& getCursorPosition() const;
+    bool getButton(MouseButton button) const;
+    bool getButtonUp(MouseButton button) const;
+    bool getButtonDown(MouseButton button) const;
+    int getWheelDelta() const;
     void update();
-    private:
-    Mouse(const Mouse& other);
-    Mouse& operator=(const Mouse& other);
+
+    // Disallow coppies
+    Mouse(const Mouse& other) = delete;
+    Mouse(const Mouse&& other) = delete;
+    Mouse& operator=(const Mouse& other) = delete;
+    Mouse& operator=(const Mouse&& other) = delete;
   };
 }
 #endif  // SMOL_MOUSE_H
