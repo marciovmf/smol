@@ -52,7 +52,7 @@ void onStart()
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  scene.createMeshNode(floor, 
+  auto floorNode = scene.createMeshNode(floor, 
       smol::Transform(
         smol::Vector3(0.0f, -5.0f, -5.0f),
         smol::Vector3(-90, 0.0f, 0.0f),
@@ -100,10 +100,11 @@ void onStart()
     float randZ = minZ + ((rand() % 1000) / 1000.0f) * 0.5f;
     minZ = randZ;
 
-    float randAngle = (rand() % 60 - rand() % 60) * 1.0f;
+    float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
     float randScale = (rand() % 30 - rand() % 30) / 30.0f;
     randScale *= 1.5f;
 
+    smol::Transform t;
     nextChange = ++nextChange % changeLimit;
     t.setPosition(100 * randX, -2.0f, randZ);
     t.setRotation(0.0f, randAngle, 0.0f);

@@ -281,7 +281,9 @@ namespace smol
       textureEntry = config.findEntry(STR_TEXTURE, textureEntry);
     }
 
-    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue);
+    Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
+
+    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest);
     Material* material = materials.lookup(handle);
 
     //set values for material parameters
@@ -330,18 +332,19 @@ namespace smol
   }
 
   Handle<Material> ResourceManager::createMaterial(Handle<ShaderProgram> shader,
-      Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue)
+      Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue, Material::DepthTest depthTest)
   {
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
     Material* material = materials.lookup(handle);
     memset(material, 0, sizeof(Material));
+    material->depthTest = depthTest;
+    material->renderQueue = renderQueue;
 
     if (diffuseTextureCount)
     {
       size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
-      material->renderQueue = renderQueue;
       material->shader = shader;
       material->diffuseTextureCount = diffuseTextureCount;
       memcpy(material->textureDiffuse, diffuseTextures, copySize);

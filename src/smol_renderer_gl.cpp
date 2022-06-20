@@ -988,6 +988,46 @@ namespace smol
         Material* material = resourceManager.getMaterial(renderable->material);
         shader = resourceManager.getShader(material->shader);
 
+        switch(material->depthTest)
+        {
+          case Material::DISABLE:
+            glDisable(GL_DEPTH_TEST);
+          break;
+          case Material::LESS:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);  
+          break;
+          case Material::LESS_EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);  
+          break;
+          case Material::EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_EQUAL);  
+          break;
+          case Material::GREATER:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_GREATER);  
+          break;
+          case Material::GREATER_EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_GEQUAL);  
+          break;
+          case Material::DIFFERENT:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_NOTEQUAL);  
+          break;
+          case Material::ALWAYS:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_ALWAYS);  
+          break;
+          case Material::NEVER:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_NEVER);  
+          break;
+        }
+
+
         if(shader && shader->valid)
         {
           // use WHITE as default color for vertex attribute when using a valid shader
