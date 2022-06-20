@@ -73,14 +73,20 @@ namespace smol
 
     Handle<Material> loadMaterial(const char* path);
 
-    Handle<Material> createMaterial(Handle<ShaderProgram> shader, Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue = (int) RenderQueue::QUEUE_OPAQUE, Material::DepthTest depthTest = Material::DepthTest::LESS);
+    Handle<Material> createMaterial(
+        Handle<ShaderProgram> shader,
+        Handle<Texture>* diffuseTextures,
+        int diffuseTextureCount,
+        int renderQueue = (int) RenderQueue::QUEUE_OPAQUE,
+        Material::DepthTest depthTest = Material::DepthTest::LESS,
+        Material::CullFace cullFace = Material::CullFace::BACK);
 
     void destroyMaterial(Handle<Material> handle);
 
     Material* getMaterial(Handle<Material> handle);
 
     Material* getMaterials(int* count);
-    
+
     Handle<Material> getDefaultMaterial();
 
 

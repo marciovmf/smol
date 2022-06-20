@@ -282,8 +282,9 @@ namespace smol
     }
 
     Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
+    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::DepthTest) Material::CullFace::BACK);
 
-    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest);
+    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest, cullFace);
     Material* material = materials.lookup(handle);
 
     //set values for material parameters
@@ -331,8 +332,13 @@ namespace smol
     return handle;
   }
 
-  Handle<Material> ResourceManager::createMaterial(Handle<ShaderProgram> shader,
-      Handle<Texture>* diffuseTextures, int diffuseTextureCount, int renderQueue, Material::DepthTest depthTest)
+  Handle<Material> ResourceManager::createMaterial(
+      Handle<ShaderProgram> shader,
+      Handle<Texture>* diffuseTextures,
+      int diffuseTextureCount,
+      int renderQueue,
+      Material::DepthTest depthTest,
+      Material::CullFace cullFace)
   {
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
@@ -341,6 +347,7 @@ namespace smol
     memset(material, 0, sizeof(Material));
     material->depthTest = depthTest;
     material->renderQueue = renderQueue;
+    material->cullFace = cullFace;
 
     if (diffuseTextureCount)
     {

@@ -871,10 +871,6 @@ namespace smol
     scene->projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST); 
-    glDepthFunc(GL_LESS);  
-    glEnable(GL_CULL_FACE); 
-    glCullFace(GL_BACK);
   }
 
   void Renderer::render()
@@ -1027,6 +1023,28 @@ namespace smol
           break;
         }
 
+
+        switch(material->cullFace)
+        {
+          case Material::BACK:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_BACK);
+            break;
+
+          case Material::FRONT:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_FRONT);
+            break;
+
+          case Material::FRONT_AND_BACK:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_FRONT_AND_BACK);
+            break;
+
+          case Material::NONE:
+            glDisable(GL_CULL_FACE);
+            break;
+        }
 
         if(shader && shader->valid)
         {

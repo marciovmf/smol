@@ -126,6 +126,14 @@ namespace smol
       ALWAYS          = 8
     };
 
+    enum CullFace
+    {
+      BACK            = 0,
+      FRONT           = 1,
+      FRONT_AND_BACK  = 2,
+      NONE            = 3
+    };
+
     Handle<ShaderProgram> shader;
     Handle<Texture> textureDiffuse[SMOL_MATERIAL_MAX_TEXTURES];
     int diffuseTextureCount;
@@ -133,6 +141,7 @@ namespace smol
     MaterialParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
     int parameterCount;
     DepthTest depthTest;
+    CullFace cullFace;
 
     Material* setSampler2D(const char* name, unsigned int value);
     Material* setUint(const char* name, unsigned int value);
