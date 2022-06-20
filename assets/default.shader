@@ -26,6 +26,11 @@ fragmentShader:"
   in vec2 uv;
   void main()
   {
-    fragColor = vec4(texture(mainTex, uv) * vertColor);
+    vec4 texColor = vec4(texture(mainTex, uv));
+
+    if(texColor.a < 0.1)
+        discard;
+
+    fragColor = texColor * vertColor;
   }
 "
