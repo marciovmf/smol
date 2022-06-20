@@ -35,7 +35,7 @@ namespace smol
     viewMatrix = Mat4::initIdentity();
 
     // Creates a ROOT node
-    nodes.add((const SceneNode&) SceneNode(this, SceneNode::SceneNodeType::ROOT));
+    nodes.add((const SceneNode&) SceneNode(this, SceneNode::Type::ROOT));
 
     defaultShader   = resourceManager.getDefaultShader();
     defaultTexture  = resourceManager.getDefaultTexture();
@@ -45,8 +45,8 @@ namespace smol
   //---------------------------------------------------------------------------
   // SceneNode
   //---------------------------------------------------------------------------
-  SceneNode::SceneNode(Scene* scene, SceneNodeType type, const Transform& transform) 
-    : scene(*scene), active(true), dirty(true), type(type), transform(transform)
+  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform) 
+    :scene(*scene), active(true), dirty(true), type(type), transform(transform)
   { 
   }
 
@@ -68,7 +68,7 @@ namespace smol
     SceneNode* parentPtr = scene.getNode(parent);
     if (!parentPtr)
       return false;
-    
+
     return parentPtr->isActiveInHierarchy();
   }
 
@@ -118,7 +118,7 @@ namespace smol
     if(!node) return false;
     return node->isActive();
   }
-  
+
   // 
   // Resources: Textures, Materials, Meshes, Renderables
   //

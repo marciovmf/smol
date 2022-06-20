@@ -133,7 +133,7 @@ namespace smol
     }
   }
 
-  static inline uint64 encodeRenderKey(SceneNode::SceneNodeType nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
+  static inline uint64 encodeRenderKey(SceneNode::Type nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
   {
     // Render key format
     // 64--------------------32---------------16-----------8---------------0
@@ -975,7 +975,7 @@ namespace smol
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-      SceneNode::SceneNodeType nodeType = (SceneNode::SceneNodeType) getNodeTypeFromRenderKey(key);
+      SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
       SMOL_ASSERT((nodeType == node->type), "Node Type does not match with render key node type");

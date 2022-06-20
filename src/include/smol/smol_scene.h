@@ -36,7 +36,7 @@ namespace smol
   struct SceneNode
   {
     Scene& scene;
-    enum SceneNodeType : char
+    enum Type : char
     {
       ROOT = 0, // there must be only ONE roote node in a scene
       MESH,
@@ -45,7 +45,7 @@ namespace smol
 
     bool active = true;
     bool dirty = true; // changed this frame
-    SceneNodeType type;
+    Type type;
     Transform transform;
 
     union
@@ -54,7 +54,7 @@ namespace smol
       SpriteSceneNode spriteNode;
     };
 
-    SceneNode(Scene* scene, SceneNodeType type, const Transform& transform = Transform());//, const Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+    SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     bool isActive();
     bool isActiveInHierarchy();
     void setActive(bool status);
