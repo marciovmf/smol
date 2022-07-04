@@ -13,7 +13,7 @@ vertexShader:"
   out vec4 vertColor; 
   out vec2 uv;
   void main() {
-    gl_Position =  proj * inverse(view) * model * vec4(vertPos, 1.0);
+    gl_Position =  proj * view * model * vec4(vertPos, 1.0);
     vertColor = colorIn * color;
     uv = vertUVIn;
 }

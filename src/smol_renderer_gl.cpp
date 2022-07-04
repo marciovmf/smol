@@ -631,7 +631,7 @@ namespace smol
       uniform mat4 view;\n\
       uniform mat4 model;\n\
       out vec2 uv;\n\
-      void main() { gl_Position = proj * inverse(view) * model * vec4(vertPos, 1.0); uv = vertUVIn; }";
+      void main() { gl_Position = proj * view * model * vec4(vertPos, 1.0); uv = vertUVIn; }";
 
     const char* defaultFShader =
       "#version 330 core\n\
@@ -1134,9 +1134,17 @@ namespace smol
 
         //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
         glUseProgram(shaderProgramId);
+
+        //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
         uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
         uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
         uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
+        
+        // Pass camera matrices to the shader
+        glUniformMatrix4fv(uniformLocationProj,   1, 0,
+            (const float*) cameraNode->cameraNode.camera.getProjectionMatrix().e);
+        glUniformMatrix4fv(uniformLocationView,   1, 0,
+            (const float*) cameraNode->transform.getMatrix().inverse().e);
 
         // Apply uniform values from the material
         for (int i = 0; i < material->parameterCount; i++)
@@ -1195,12 +1203,11 @@ namespace smol
         if (!node->active)
           continue;
 
-        const Camera& camera = cameraNode->cameraNode.camera;
+        //const Camera& camera = cameraNode->cameraNode.camera;
 
-        //TODO(marcio): implement Mat4.inverse()
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*)  camera.getProjectionMatrix().e);
-        glUniformMatrix4fv(uniformLocationView, 1, 0, (const float*)  cameraNode->transform.getMatrix().e); 
-        glUniformMatrix4fv(uniformLocationModel, 1, 0, (const float*) node->transform.getMatrix().e);
+        //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) camera.getProjectionMatrix().e);
+        //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
+        glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
 
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
