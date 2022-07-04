@@ -7,6 +7,8 @@
 
 namespace smol
 {
+  // class methods
+
   Mat4 Mat4::initIdentity()
   {
     Mat4 m = {};
@@ -65,7 +67,7 @@ namespace smol
     yRot.e[0][2] = (float)(-sy);
     yRot.e[2][0] = (float)(sy);
     yRot.e[2][2] = (float)(cy);
-    
+
     Mat4 zRot = Mat4::initIdentity();
     zRot.e[0][0] = (float)(cz);
     zRot.e[0][1] = (float)(sz);
@@ -125,7 +127,7 @@ namespace smol
     return m;
   }
 
-  Mat4 Mat4::transpose(Mat4& m)
+  Mat4 Mat4::transpose(const Mat4& m)
   {
     Mat4 t;
     for(int line = 0; line < 4; line++)
@@ -147,17 +149,156 @@ namespace smol
     return t;
   }
 
-  Mat4& Mat4::mul(const Mat4& other)
+  Mat4 Mat4::invert(const Mat4& m)
   {
-    Mat4 result = Mat4::mul(*this, other);
-    *this = result;
+    double inv[16];
+    float* me = (float*) m.e; // just access target matrix elements lineraly. 
+
+    //NOTE(marcio): our matrices are floats. But we calculate the determinant as doubles to enforce precision. I'm not really sure how effectit this is.
+      inv[0] = me[5]  * me[10] * me[15] - 
+      me[5]  * me[11] * me[14] - 
+      me[9]  * me[6]  * me[15] + 
+      me[9]  * me[7]  * me[14] +
+      me[13] * me[6]  * me[11] - 
+      me[13] * me[7]  * me[10];
+
+    inv[4] = -me[4]  * me[10] * me[15] + 
+      me[4]  * me[11] * me[14] + 
+      me[8]  * me[6]  * me[15] - 
+      me[8]  * me[7]  * me[14] - 
+      me[12] * me[6]  * me[11] + 
+      me[12] * me[7]  * me[10];
+
+    inv[8] = me[4]  * me[9] * me[15] - 
+      me[4]  * me[11] * me[13] - 
+      me[8]  * me[5] * me[15] + 
+      me[8]  * me[7] * me[13] + 
+      me[12] * me[5] * me[11] - 
+      me[12] * me[7] * me[9];
+
+    inv[12] = -me[4]  * me[9] * me[14] + 
+      me[4]  * me[10] * me[13] +
+      me[8]  * me[5] * me[14] - 
+      me[8]  * me[6] * me[13] - 
+      me[12] * me[5] * me[10] + 
+      me[12] * me[6] * me[9];
+
+    inv[1] = -me[1]  * me[10] * me[15] + 
+      me[1]  * me[11] * me[14] + 
+      me[9]  * me[2] * me[15] - 
+      me[9]  * me[3] * me[14] - 
+      me[13] * me[2] * me[11] + 
+      me[13] * me[3] * me[10];
+
+    inv[5] = me[0]  * me[10] * me[15] - 
+      me[0]  * me[11] * me[14] - 
+      me[8]  * me[2] * me[15] + 
+      me[8]  * me[3] * me[14] + 
+      me[12] * me[2] * me[11] - 
+      me[12] * me[3] * me[10];
+
+    inv[9] = -me[0]  * me[9] * me[15] + 
+      me[0]  * me[11] * me[13] + 
+      me[8]  * me[1] * me[15] - 
+      me[8]  * me[3] * me[13] - 
+      me[12] * me[1] * me[11] + 
+      me[12] * me[3] * me[9];
+
+    inv[13] = me[0]  * me[9] * me[14] - 
+      me[0]  * me[10] * me[13] - 
+      me[8]  * me[1] * me[14] + 
+      me[8]  * me[2] * me[13] + 
+      me[12] * me[1] * me[10] - 
+      me[12] * me[2] * me[9];
+
+    inv[2] = me[1]  * me[6] * me[15] - 
+      me[1]  * me[7] * me[14] - 
+      me[5]  * me[2] * me[15] + 
+      me[5]  * me[3] * me[14] + 
+      me[13] * me[2] * me[7] - 
+      me[13] * me[3] * me[6];
+
+    inv[6] = -me[0]  * me[6] * me[15] + 
+      me[0]  * me[7] * me[14] + 
+      me[4]  * me[2] * me[15] - 
+      me[4]  * me[3] * me[14] - 
+      me[12] * me[2] * me[7] + 
+      me[12] * me[3] * me[6];
+
+    inv[10] = me[0]  * me[5] * me[15] - 
+      me[0]  * me[7] * me[13] - 
+      me[4]  * me[1] * me[15] + 
+      me[4]  * me[3] * me[13] + 
+      me[12] * me[1] * me[7] - 
+      me[12] * me[3] * me[5];
+
+    inv[14] = -me[0]  * me[5] * me[14] + 
+      me[0]  * me[6] * me[13] + 
+      me[4]  * me[1] * me[14] - 
+      me[4]  * me[2] * me[13] - 
+      me[12] * me[1] * me[6] + 
+      me[12] * me[2] * me[5];
+
+    inv[3] = -me[1] * me[6] * me[11] + 
+      me[1] * me[7] * me[10] + 
+      me[5] * me[2] * me[11] - 
+      me[5] * me[3] * me[10] - 
+      me[9] * me[2] * me[7] + 
+      me[9] * me[3] * me[6];
+
+    inv[7] = me[0] * me[6] * me[11] - 
+      me[0] * me[7] * me[10] - 
+      me[4] * me[2] * me[11] + 
+      me[4] * me[3] * me[10] + 
+      me[8] * me[2] * me[7] - 
+      me[8] * me[3] * me[6];
+
+    inv[11] = -me[0] * me[5] * me[11] + 
+      me[0] * me[7] * me[9] + 
+      me[4] * me[1] * me[11] - 
+      me[4] * me[3] * me[9] - 
+      me[8] * me[1] * me[7] + 
+      me[8] * me[3] * me[5];
+
+    inv[15] = me[0] * me[5] * me[10] - 
+      me[0] * me[6] * me[9] - 
+      me[4] * me[1] * me[10] + 
+      me[4] * me[2] * me[9] + 
+      me[8] * me[1] * me[6] - 
+      me[8] * me[2] * me[5];
+
+    double det = me[0] * inv[0] + me[1] * inv[4] + me[2] * inv[8] + me[3] * inv[12];
+
+    if (det == 0)
+      return Mat4::initIdentity();
+
+    det = 1.0 / det;
+   
+    // Stores the result on a new matrix
+    Mat4 inverseMatrix;
+    me = (float*) inverseMatrix.e;
+    for (int i = 0; i < 16; i++)
+      me[i] = (float) (inv[i] * det);
+
+    return inverseMatrix;
+  }
+
+  // instance methods
+
+  inline Mat4& Mat4::mul(const Mat4& other)
+  {
+    *this = Mat4::mul(*this, other);
     return *this;
   }
 
-  Mat4& Mat4::transposed()
+  inline Mat4 Mat4::transposed() const
   {
-    Mat4 t = Mat4::transpose(*this);
-    *this = t;
-    return *this;
+    return Mat4::transpose(*this);
   }
+
+  inline Mat4 Mat4::inverse() const
+  {
+    return Mat4::invert(*this);
+  }
+
 }
