@@ -146,7 +146,7 @@ namespace smol
     //
     Handle<SceneNode> createMeshNode(
         Handle<Renderable> renderable,
-        Transform& transform = Transform());
+        const Transform& transform = Transform());
 
     Handle<SceneNode> createSpriteNode(
         Handle<SpriteBatcher> batcher,

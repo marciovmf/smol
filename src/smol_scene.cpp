@@ -46,7 +46,7 @@ namespace smol
   // SceneNode
   //---------------------------------------------------------------------------
   SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform) 
-    : scene(*scene), active(true), dirty(true), type(type), transform(transform), layer(Layer::LAYER_0)
+    : scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0), transform(transform)
   { 
   }
 
@@ -255,7 +255,7 @@ namespace smol
   //
   // Scene Node utility functions
   //
-  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, Transform& transform)
+  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, const Transform& transform)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
     nodes.lookup(handle)->meshNode.renderable = renderable;
