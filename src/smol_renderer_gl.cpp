@@ -1040,7 +1040,6 @@ namespace smol
     GLuint uniformLocationView = 0;
     GLuint uniformLocationModel = 0;
 
-
     for(int i = 0; i < numKeys; i++)
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
@@ -1194,8 +1193,6 @@ namespace smol
         }
       }
 
-      //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
-      //TODO(marcio): Change it so it updates ONCE per frame.
       //TODO(marcio): Use a uniform buffer for that
 
       if (node->type == SceneNode::MESH) 
@@ -1203,10 +1200,6 @@ namespace smol
         if (!node->active)
           continue;
 
-        //const Camera& camera = cameraNode->cameraNode.camera;
-
-        //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) camera.getProjectionMatrix().e);
-        //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
         glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
 
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
