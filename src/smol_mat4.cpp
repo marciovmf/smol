@@ -155,7 +155,7 @@ namespace smol
     float* me = (float*) m.e; // just access target matrix elements lineraly. 
 
     //NOTE(marcio): our matrices are floats. But we calculate the determinant as doubles to enforce precision. I'm not really sure how effectit this is.
-      inv[0] = me[5]  * me[10] * me[15] - 
+    inv[0] = me[5]  * me[10] * me[15] - 
       me[5]  * me[11] * me[14] - 
       me[9]  * me[6]  * me[15] + 
       me[9]  * me[7]  * me[14] +
@@ -273,7 +273,7 @@ namespace smol
       return Mat4::initIdentity();
 
     det = 1.0 / det;
-   
+
     // Stores the result on a new matrix
     Mat4 inverseMatrix;
     me = (float*) inverseMatrix.e;

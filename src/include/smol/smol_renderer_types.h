@@ -217,7 +217,6 @@ namespace smol
 
     private:
     MaterialParameter* getParameter(const char* name, ShaderParameter::Type type);
-    //TODO(marcio): Add more state relevant options here
   };
 
   struct SMOL_ENGINE_API Mesh
