@@ -30,6 +30,7 @@ namespace smol
     renderKeys(1024 * sizeof(uint64)),
     renderKeysSorted(1024 * sizeof(uint64)),
     clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    mainCamera(INVALID_HANDLE(SceneNode)),
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
   {
     viewMatrix = Mat4::initIdentity();
