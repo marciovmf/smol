@@ -16,19 +16,16 @@ namespace smol
     for(int i=0; i < parameterCount; i++)
     {
       MaterialParameter& p = parameter[i];
-      if (strncmp(name, p.name, strlen(name)) == 0)
+      if (p.type == type)
       {
-        if (p.type != type)
+        if (strncmp(name, p.name, strlen(name)) == 0)
         {
-          debugLogError("Setting shader %X parameter '%s'. Expected a '%d' but found a '%d'.", this, name);
-          return nullptr;
+          return &p;
         }
-
-        return &p;
       }
     }
 
-    debugLogError("Setting shader %x parameter '%s'. Parameter not found", this, name);
+    debugLogError("Unable to find shader %x parameter '%s' of type %d. Parameter name/type not found", this, name, type);
     return nullptr;
   }
 
@@ -124,6 +121,154 @@ namespace smol
   //
   // internal utility functions
   //
+
+
+  static GLuint setMaterial(const Scene* scene, const Material* material, const SceneNode* cameraNode)
+  {
+    GLuint shaderProgramId = 0; 
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    ShaderProgram* shader = resourceManager.getShader(material->shader);
+
+    switch(material->depthTest)
+    {
+      case Material::DISABLE:
+        glDisable(GL_DEPTH_TEST);
+        break;
+      case Material::LESS:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);  
+        break;
+      case Material::LESS_EQUAL:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);  
+        break;
+      case Material::EQUAL:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_EQUAL);  
+        break;
+      case Material::GREATER:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_GREATER);  
+        break;
+      case Material::GREATER_EQUAL:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_GEQUAL);  
+        break;
+      case Material::DIFFERENT:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_NOTEQUAL);  
+        break;
+      case Material::ALWAYS:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_ALWAYS);  
+        break;
+      case Material::NEVER:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_NEVER);  
+        break;
+    }
+
+    switch(material->cullFace)
+    {
+      case Material::BACK:
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_BACK);
+        break;
+
+      case Material::FRONT:
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_FRONT);
+        break;
+
+      case Material::FRONT_AND_BACK:
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_FRONT_AND_BACK);
+        break;
+
+      case Material::NONE:
+        glDisable(GL_CULL_FACE);
+        break;
+    }
+
+    if(shader && shader->valid)
+    {
+      // use WHITE as default color for vertex attribute when using a valid shader
+      shaderProgramId = shader->programId;
+      glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    else
+    {
+      // use MAGENTA as default color for vertex attribute when using the default shader
+      //
+      shaderProgramId = resourceManager.getShader(scene->defaultShader)->programId;
+      glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
+    }
+
+    //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
+    glUseProgram(shaderProgramId);
+
+//    //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
+//    GLuint uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
+//    GLuint uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
+//    GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
+//
+//    // Pass camera matrices to the shader
+//    material->getParameter("proj", ShaderParameter::Type::MAT)
+//    glUniformMatrix4fv(uniformLocationProj,   1, 0,
+//        (const float*) cameraNode->cameraNode.camera.getProjectionMatrix().e);
+//    glUniformMatrix4fv(uniformLocationView,   1, 0,
+//        (const float*) cameraNode->transform.getMatrix().inverse().e);
+
+    // Apply uniform values from the material
+    for (int i = 0; i < material->parameterCount; i++)
+    {
+      const MaterialParameter& parameter = material->parameter[i];
+      switch(parameter.type)
+      {
+        case ShaderParameter::SAMPLER_2D:
+          if (parameter.uintValue < (uint32) material->diffuseTextureCount)
+          {
+            int textureIndex = parameter.uintValue;
+            Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
+            Texture* texture = resourceManager.getTexture(hTexture);
+            glActiveTexture(GL_TEXTURE0 + textureIndex);
+            GLuint textureId = texture ? texture->textureObject :
+              resourceManager.getTexture(scene->defaultTexture)->textureObject;
+            glBindTexture(GL_TEXTURE_2D, textureId);
+          }
+          break;
+        case ShaderParameter::FLOAT:
+          glUniform1f(parameter.location, parameter.floatValue);
+          break;
+
+        case ShaderParameter::VECTOR2:
+          glUniform2f(parameter.location, parameter.vec2Value.x, parameter.vec2Value.y);
+          break;
+
+        case ShaderParameter::VECTOR3:
+          glUniform3f(parameter.location, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
+          break;
+
+        case ShaderParameter::VECTOR4:
+          glUniform4f(parameter.location, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
+          break;
+
+        case ShaderParameter::INT:
+          glUniform1i(parameter.location, parameter.intValue);
+          break;
+
+        case ShaderParameter::UNSIGNED_INT:
+          glUniform1ui(parameter.location, parameter.uintValue);
+          break;
+
+        default:
+          continue;
+          break;
+      }
+    }
+  
+    return shaderProgramId;
+  }
 
   //Radix sort 64bit values by the lower 32bit values.
   //param elements - pointer to 64bit integers to be sorted.
@@ -1033,7 +1178,7 @@ namespace smol
     // ----------------------------------------------------------------------
     // Draw render keys
 
-    int currentMaterialIndex = - 1;
+    int currentMaterialIndex = -1;
     ShaderProgram* shader = nullptr;
     GLuint shaderProgramId = 0; 
     GLuint uniformLocationProj = 0;
@@ -1049,149 +1194,23 @@ namespace smol
 
       SMOL_ASSERT((nodeType == node->type), "Node Type does not match with render key node type");
 
-      // Change material only if necessary
+      // Change material *if* necessary
       if (currentMaterialIndex != materialIndex)
       {
         currentMaterialIndex = materialIndex;
         const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
         Material* material = resourceManager.getMaterial(renderable->material);
-        shader = resourceManager.getShader(material->shader);
-
-        switch(material->depthTest)
-        {
-          case Material::DISABLE:
-            glDisable(GL_DEPTH_TEST);
-          break;
-          case Material::LESS:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);  
-          break;
-          case Material::LESS_EQUAL:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LEQUAL);  
-          break;
-          case Material::EQUAL:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_EQUAL);  
-          break;
-          case Material::GREATER:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_GREATER);  
-          break;
-          case Material::GREATER_EQUAL:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_GEQUAL);  
-          break;
-          case Material::DIFFERENT:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_NOTEQUAL);  
-          break;
-          case Material::ALWAYS:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_ALWAYS);  
-          break;
-          case Material::NEVER:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_NEVER);  
-          break;
-        }
-
-        switch(material->cullFace)
-        {
-          case Material::BACK:
-            glEnable(GL_CULL_FACE); 
-            glCullFace(GL_BACK);
-            break;
-
-          case Material::FRONT:
-            glEnable(GL_CULL_FACE); 
-            glCullFace(GL_FRONT);
-            break;
-
-          case Material::FRONT_AND_BACK:
-            glEnable(GL_CULL_FACE); 
-            glCullFace(GL_FRONT_AND_BACK);
-            break;
-
-          case Material::NONE:
-            glDisable(GL_CULL_FACE);
-            break;
-        }
-
-        if(shader && shader->valid)
-        {
-          // use WHITE as default color for vertex attribute when using a valid shader
-          shaderProgramId = shader->programId;
-          glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
-        }
-        else
-        {
-          // use MAGENTA as default color for vertex attribute when using the default shader
-          shaderProgramId = defaultShaderProgramId;
-          glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
-        }
-
-        //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
-        glUseProgram(shaderProgramId);
-
-        //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
-        uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
-        uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
-        uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
-        
-        // Pass camera matrices to the shader
-        glUniformMatrix4fv(uniformLocationProj,   1, 0,
-            (const float*) cameraNode->cameraNode.camera.getProjectionMatrix().e);
-        glUniformMatrix4fv(uniformLocationView,   1, 0,
-            (const float*) cameraNode->transform.getMatrix().inverse().e);
-
-        // Apply uniform values from the material
-        for (int i = 0; i < material->parameterCount; i++)
-        {
-          MaterialParameter& parameter = material->parameter[i];
-          switch(parameter.type)
-          {
-            case ShaderParameter::SAMPLER_2D:
-              if (parameter.uintValue < (uint32) material->diffuseTextureCount)
-              {
-                int textureIndex = parameter.uintValue;
-                Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-                Texture* texture = resourceManager.getTexture(hTexture);
-                glActiveTexture(GL_TEXTURE0 + textureIndex);
-                GLuint textureId = texture ? texture->textureObject : defaultTextureId;
-                glBindTexture(GL_TEXTURE_2D, textureId);
-              }
-              break;
-            case ShaderParameter::FLOAT:
-              glUniform1f(parameter.location, parameter.floatValue);
-              break;
-
-            case ShaderParameter::VECTOR2:
-              glUniform2f(parameter.location, parameter.vec2Value.x, parameter.vec2Value.y);
-              break;
-
-            case ShaderParameter::VECTOR3:
-              glUniform3f(parameter.location, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
-              break;
-
-            case ShaderParameter::VECTOR4:
-              glUniform4f(parameter.location, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
-              break;
-
-            case ShaderParameter::INT:
-              glUniform1i(parameter.location, parameter.intValue);
-              break;
-
-            case ShaderParameter::UNSIGNED_INT:
-              glUniform1ui(parameter.location, parameter.uintValue);
-              break;
-
-            default:
-              continue;
-              break;
-          }
-        }
+        shaderProgramId = setMaterial(&scene, material, cameraNode);
       }
+
+      //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
+      GLuint uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
+      GLuint uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
+      GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
+
+      // Pass camera matrices to the shader
+      glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->cameraNode.camera.getProjectionMatrix().e);
+      glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
 
       //TODO(marcio): Use a uniform buffer for that
 
@@ -1208,8 +1227,7 @@ namespace smol
       else if (node->type == SceneNode::SPRITE)
       {
         //TODO(marcio): get the view matrix from a camera!
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, 
-            (const float*) scene.projectionMatrix2D.e);
+        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) scene.projectionMatrix2D.e);
 
         SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
         if(batcher->dirty)
