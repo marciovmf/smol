@@ -33,31 +33,39 @@ namespace smol
     int angle;
   };
 
-  struct SceneNode
+  struct SMOL_ENGINE_API SceneNode
   {
-    Scene& scene;
     enum Type : char
     {
+      INVALID = -1,
       ROOT = 0, // there must be only ONE roote node in a scene
       MESH,
       SPRITE,
     };
 
-    bool active = true;
-    bool dirty = true; // changed this frame
-    Type type;
     Transform transform;
-
     union
     {
       MeshSceneNode meshNode;
       SpriteSceneNode spriteNode;
     };
 
+    private:
+    Scene& scene;
+    bool active = true;   // active state for the node, not the hierarchy
+    bool dirty = true;    // changed this frame
+    Type type;
+
+    public:
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
-    bool isActive();
-    bool isActiveInHierarchy();
     void setActive(bool status);
+    inline bool isValid()  { return type != SceneNode::Type::INVALID; }
+    inline bool isActive() { return active; }
+    inline bool isDirty() { return dirty; }
+    inline void setDirty(bool value) { dirty = value; }
+    inline Type getType() { return type; }
+    inline bool typeIs(Type t) { return type == t; }
+    bool isActiveInHierarchy();
     void setParent(Handle<SceneNode> parent);
   };
 }
@@ -95,6 +103,8 @@ namespace smol
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
+    const smol::SceneNode& nullSceneNode;
+
     Scene(ResourceManager& resourceManager);
 
     //
@@ -124,14 +134,6 @@ namespace smol
     void destroySpriteBatcher(Handle<SpriteBatcher> handle);
 
     //
-    // Scene Node utility functions
-    //
-
-    void setNodeActive(Handle<SceneNode> handle, bool status);
-    bool isNodeActive(Handle<SceneNode> handle);
-    bool isNodeActiveInHierarchy(Handle<SceneNode> handle);
-
-    //
     // Scene Node creation
     //
     Handle<SceneNode> createMeshNode(
@@ -155,8 +157,7 @@ namespace smol
     //
     // misc
     //
-    SceneNode* getNode(Handle<SceneNode> handle);
-    Transform* getTransform(Handle<SceneNode> handle);
+    SceneNode& getNode(Handle<SceneNode> handle);
   };
 }
 

@@ -161,8 +161,8 @@ void onUpdate(float deltaTime)
   if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
   {
     smol::Point2 p = mouse.getCursorPosition();
-    smol::Transform* transform = scene.getTransform(sprite2);
-    transform->setPosition((float) p.x, (float) p.y, 0.2f);
+    //smol::Transform* transform = scene.getTransform(sprite2);
+    scene.getNode(sprite2).transform.setPosition((float) p.x, (float) p.y, 0.2f);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
@@ -230,8 +230,8 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE)) 
   { 
-    bool active = scene.isNodeActive(selectedNode);
-    scene.setNodeActive(selectedNode, !active);
+    smol::SceneNode& node = scene.getNode(selectedNode);
+    node.setActive(!node.isActive());
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB)) { selectedNode = (selectedNode == node1) ? node2 : node1; }
@@ -253,7 +253,7 @@ void onUpdate(float deltaTime)
 
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
-    smol::Transform* transform = scene.getTransform(selectedNode);
+    smol::Transform* transform = &scene.getNode(selectedNode).transform;
     if (transform)
     {
       const float amount = 3.0f * deltaTime;
@@ -272,7 +272,7 @@ void onUpdate(float deltaTime)
     }
   }
 
-  smol::Transform* transform = scene.getTransform(node1);
+  smol::Transform* transform = &scene.getNode(node1).transform;
   if (transform)
   {
     float a = transform->getRotation().y + 30 * deltaTime;
@@ -280,7 +280,7 @@ void onUpdate(float deltaTime)
   }
 
   // bounce sprite1 across the screen borders
-  transform = scene.getTransform(sprite1);
+  transform = &scene.getNode(sprite1).transform;
 
   smol::Vector3 position = transform->getPosition();
   smol::Rect viewport = renderer.getViewport();

@@ -30,7 +30,8 @@ namespace smol
     renderKeys(1024 * sizeof(uint64)),
     renderKeysSorted(1024 * sizeof(uint64)),
     clearColor(160/255.0f, 165/255.0f, 170/255.0f),
-    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER))
+    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER)),
+    nullSceneNode(SceneNode(this, SceneNode::Type::INVALID))
   {
     viewMatrix = Mat4::initIdentity();
 
@@ -50,11 +51,6 @@ namespace smol
   { 
   }
 
-  bool SceneNode::isActive()
-  {
-    return active;
-  }
-
   bool SceneNode::isActiveInHierarchy()
   {
     if (!active)
@@ -65,11 +61,11 @@ namespace smol
     if (parent == Scene::ROOT)
       return true;
 
-    SceneNode* parentPtr = scene.getNode(parent);
-    if (!parentPtr)
+    SceneNode& parentPtr = scene.getNode(parent);
+    if (!parentPtr.isValid())
       return false;
 
-    return parentPtr->isActiveInHierarchy();
+    return parentPtr.isActiveInHierarchy();
   }
 
   void SceneNode::setParent(Handle<SceneNode> parent)
@@ -78,7 +74,7 @@ namespace smol
     if (type == SceneNode::ROOT)
       return;
 
-    if (!scene.getNode(parent))
+    if (!scene.getNode(parent).isValid())
     {
       Log::error("Trying to set parent of node with an invalid parent node handle");
       transform.setParent(Scene::ROOT);
@@ -89,6 +85,9 @@ namespace smol
 
   void SceneNode::setActive(bool status)
   {
+    if (!isValid())
+      return;
+
     active = status;
     dirty = true;
   }
@@ -97,31 +96,6 @@ namespace smol
   //---------------------------------------------------------------------------
   // Scene
   //---------------------------------------------------------------------------
-
-  void Scene::setNodeActive(Handle<SceneNode> handle, bool status)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if(!node) return;
-    node->setActive(status);
-  }
-
-  bool Scene::isNodeActiveInHierarchy(Handle<SceneNode> handle)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if(!node) return false;
-    return node->isActiveInHierarchy();
-  }
-
-  bool Scene::isNodeActive(Handle<SceneNode> handle)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if(!node) return false;
-    return node->isActive();
-  }
-
-  // 
-  // Resources: Textures, Materials, Meshes, Renderables
-  //
 
   Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData& meshData)
   {
@@ -263,7 +237,7 @@ namespace smol
         Vector3(1.0f, 1.0f, 1.0f),
         parent);
 
-    Handle<SceneNode> handle = nodes.add( SceneNode(this, SceneNode::SPRITE, t));
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, t));
     SceneNode* node = nodes.lookup(handle);
 
     node->spriteNode.rect = rect;
@@ -298,18 +272,13 @@ namespace smol
     return newHandle;
   }
 
-  SceneNode* Scene::getNode(Handle<SceneNode> handle)
-  {
-    return nodes.lookup(handle);
-  }
-
-  Transform* Scene::getTransform(Handle<SceneNode> handle)
+  SceneNode& Scene::getNode(Handle<SceneNode> handle)
   {
     SceneNode* node = nodes.lookup(handle);
-    if (!node)
-      return nullptr;
+    if(node)
+      return *node;
 
-    return &node->transform;
+    return (SceneNode&) nullSceneNode;
   }
 }
 

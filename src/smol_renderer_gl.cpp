@@ -907,11 +907,11 @@ namespace smol
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->dirty |= node->transform.update(&scene.nodes);
+      node->setDirty(node->isDirty() | node->transform.update(&scene.nodes));
       Renderable* renderable = nullptr;
       bool discard = false;
 
-      switch(node->type)
+      switch(node->getType())
       {
         case SceneNode::MESH:
           renderable = scene.renderables.lookup(node->meshNode.renderable);
@@ -920,7 +920,7 @@ namespace smol
         case SceneNode::SPRITE:
           renderable = scene.renderables.lookup(node->spriteNode.renderable);
 
-          if (node->dirty)
+          if (node->isDirty())
           {
             SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
             batcher->dirty = true;
@@ -947,11 +947,11 @@ namespace smol
       {
         Material* materialPtr = resourceManager.getMaterial(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
-        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
+        *keyPtr = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex),
             materialPtr->renderQueue, i);
       }
 
-      node->dirty = false;
+      node->setDirty(false);
     }
 
     // ----------------------------------------------------------------------
@@ -974,7 +974,7 @@ namespace smol
       SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
-      SMOL_ASSERT((nodeType == node->type), "Node Type does not match with render key node type");
+      SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match with render key node type");
 
       // Change material only if necessary
       if (currentMaterialIndex != materialIndex)
@@ -1115,9 +1115,9 @@ namespace smol
       //TODO(marcio): Change it so it updates ONCE per frame.
       //TODO(marcio): Use a uniform buffer for that
 
-      if (node->type == SceneNode::MESH) 
+      if (node->typeIs(SceneNode::MESH)) 
       {
-        if (!node->active)
+        if (!node->isActive())
           continue;
 
         //TODO(marcio): get the view matrix from a camera!
@@ -1129,7 +1129,7 @@ namespace smol
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
       }
-      else if (node->type == SceneNode::SPRITE)
+      else if (node->typeIs(SceneNode::SPRITE))
       {
         //TODO(marcio): get the view matrix from a camera!
         glUniformMatrix4fv(uniformLocationProj, 1, 0, 

@@ -80,7 +80,7 @@ namespace smol
     SceneNode* parentNode = nodes->lookup(parent);
     Mat4 parentMatrix = Mat4::initIdentity();
 
-    if(parentNode && parentNode->type != SceneNode::ROOT) // Ignores ROOT node transform and assume it's Identity
+    if(parentNode && !parentNode->typeIs(SceneNode::ROOT)) // Ignores ROOT node transform and assume it's Identity
     {
       if (parentNode->transform.update(nodes))
       {
