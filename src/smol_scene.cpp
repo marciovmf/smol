@@ -1,4 +1,5 @@
 #include <smol/smol_scene.h>
+#include <smol/smol_scene_nodes.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_renderer.h>
@@ -17,7 +18,6 @@ namespace smol
   const size_t SpriteBatcher::uvsSize = 4 * sizeof(Vector2);
   const size_t SpriteBatcher::indicesSize = 6 * sizeof(unsigned int);
   const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
-
 
   // First node handle always points to the ROOT scene node
   const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
@@ -42,56 +42,6 @@ namespace smol
     defaultTexture  = resourceManager.getDefaultTexture();
     defaultMaterial = resourceManager.getDefaultMaterial();
   }
-
-  //---------------------------------------------------------------------------
-  // SceneNode
-  //---------------------------------------------------------------------------
-  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform) 
-    :scene(*scene), active(true), dirty(true), type(type), transform(transform)
-  { 
-  }
-
-  bool SceneNode::isActiveInHierarchy()
-  {
-    if (!active)
-      return false;
-
-    Handle<SceneNode> parent = transform.getParent();
-
-    if (parent == Scene::ROOT)
-      return true;
-
-    SceneNode& parentPtr = scene.getNode(parent);
-    if (!parentPtr.isValid())
-      return false;
-
-    return parentPtr.isActiveInHierarchy();
-  }
-
-  void SceneNode::setParent(Handle<SceneNode> parent)
-  {
-    // root nodes have no parent
-    if (type == SceneNode::ROOT)
-      return;
-
-    if (!scene.getNode(parent).isValid())
-    {
-      Log::error("Trying to set parent of node with an invalid parent node handle");
-      transform.setParent(Scene::ROOT);
-      return;
-    }
-    transform.setParent(parent);
-  }
-
-  void SceneNode::setActive(bool status)
-  {
-    if (!isValid())
-      return;
-
-    active = status;
-    dirty = true;
-  }
-
 
   //---------------------------------------------------------------------------
   // Scene

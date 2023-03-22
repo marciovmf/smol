@@ -103,10 +103,12 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_log.cpp
   ${SOURCE_PATH}/include/smol/smol_renderer.h
   ${SOURCE_PATH}/smol_renderer_gl.cpp
+  ${SOURCE_PATH}/include/smol/smol_scene_nodes.h
+  ${SOURCE_PATH}/smol_scene_nodes.cpp
   ${SOURCE_PATH}/include/smol/smol_scene.h
+  ${SOURCE_PATH}/smol_scene.cpp
   ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
   ${SOURCE_PATH}/smol_cfg_parser.cpp
-  ${SOURCE_PATH}/smol_scene.cpp
   ${SOURCE_PATH}/include/smol/smol_mesh_data.h
   ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")

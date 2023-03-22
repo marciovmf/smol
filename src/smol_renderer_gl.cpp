@@ -91,7 +91,7 @@ namespace smol
   //param elementCount - number of elements on elements array.
   //param dest - destination buffer where to put the sorted list. This buffer
   //must be large enough for storing elementCount elements.
-  void radixSort(uint64* elements, uint32 elementCount,  uint64* dest)
+  static void radixSort(uint64* elements, uint32 elementCount,  uint64* dest)
   {
     for(int shiftIndex = 0; shiftIndex < 32; shiftIndex+=8)
     {
