@@ -156,3 +156,10 @@ add_custom_command(TARGET assets POST_BUILD
 # slauncher.exe: Editor / Game launcher
 #
 add_subdirectory("Launcher")
+
+
+# Build tests
+if(BUILD_TESTS)
+  enable_testing()
+  add_subdirectory("tests")
+endif()

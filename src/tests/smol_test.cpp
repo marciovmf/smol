@@ -9,13 +9,12 @@
 
 namespace smol
 {
-
 #if _WIN32
   struct Win32Console
   {
     HANDLE hConsole;
     int defaultColors;
-    
+
     Win32Console()
     {
       CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -50,51 +49,54 @@ namespace smol
   {
   }
 
-  void TestSuite::printPassedStatus(std::string& msg)
+
+  void printPassedStatus(std::string& msg)
   {
+    std::cerr << "\r[";
 #ifdef _WIN32
     win32Console.setGreenTextColor();
 #endif
-      std::cerr << "\r\t[  OK  ]\t";
+    std::cerr << "PASS";
 #ifdef _WIN32
     win32Console.setDefaultTextColor();
 #endif
-    std::cerr << msg << std::endl;
+    std::cerr << "] " << msg << std::endl;
   }
-  
-  void TestSuite::printFailStatus(std::string& msg)
+
+  void printFailStatus(std::string& msg)
   {
+    std::cerr << "\r[";
 #ifdef _WIN32
     win32Console.setRedTextColor();
 #endif
-    std::cerr << "\r\t[ FAIL ]\t";
+    std::cerr << "FAIL";
 #ifdef _WIN32
     win32Console.setDefaultTextColor();
 #endif
-    std::cerr << msg << std::endl;
+    std::cerr << "] " << msg << std::endl;
   }
 
-  void TestSuite::printWaitStatus(std::string& msg)
+  void printWaitStatus(std::string& msg)
   {
+    std::cerr << "\r[";
 #ifdef _WIN32
     win32Console.setYellowTextColor();
 #endif
-    std::cerr << "\t[ WAIT ]\t";
+    std::cerr << "WAIT";
 #ifdef _WIN32
     win32Console.setDefaultTextColor();
 #endif
-    std::cerr << msg; 
+    std::cerr << "] " << msg << std::flush;
   }
 
-  int TestSuite::runAllTests()
+  int runTestSuite(TestSuite& testSuite)
   {
-    failCount = 0;
+    int failCount = 0;
     int numTestesExecuted = 0;
+    std::cerr << std::endl;
 
-    TestSuite& testSuite = TestSuite::get();
-    for (smol::Test& i : tests)
+    for (smol::Test& i : testSuite.tests)
     {
-      //std::cerr << "\t[ WAIT ]\t" << i.name; 
       printWaitStatus(i.name);
       i.state = Test::State::RUNNING;
       i.func(testSuite, i);
@@ -104,7 +106,6 @@ namespace smol
       {
         failCount++;
 
-        //std::cerr << "\r\t[ FAIL ]\t" << i.name << std::endl;
         printFailStatus(i.name);
         if (i.errorMsg.length())
           std::cerr << "\t\t" << i.errorMsg << std::endl;
@@ -117,7 +118,6 @@ namespace smol
       }
       else
       {
-        //std::cerr << "\r\t[  OK  ]\t" << i.name << std::endl;
         printPassedStatus(i.name);
       }
     }
@@ -125,12 +125,12 @@ namespace smol
     std::cerr << std::endl
       << "\tSucceeded tests: " << numTestesExecuted - failCount << "/" << numTestesExecuted << std::endl;
 
- 
+
     return failCount;
   }
 }
 
 int main(int argc, char** argv)
 {
-  return smol::TestSuite::get().runAllTests();
+  return smol::runTestSuite(smol::TestSuite::get());
 }
