@@ -186,9 +186,7 @@ namespace smol
         // Move the last resource to the space left by the one being removed
         T* resourceLast = ((T*) resources.getData()) + slotOfLast->resourceIndex;
         T* resourceRemoved = ((T*) resources.getData()) + slotOfRemoved->resourceIndex;
-        memcpy((void*) resourceRemoved,
-            (void*) resourceLast,
-            sizeof(T));
+        memcpy((void*) resourceRemoved, (void*) resourceLast, sizeof(T));
       }
 
       slotOfRemoved->nextFreeSlotIndex = freeSlotListStart;
@@ -200,6 +198,13 @@ namespace smol
   template <typename T>
     void HandleList<T>::reset()
     {
+      // invalidate ALL slots
+      for (int i = 0; i < resourceCount; i++)
+      {
+        SlotInfo* slot = ((SlotInfo*)  slots.getData()) + i;
+        slot->version++;
+      }
+
       slots.reset();
       resources.reset();
       resourceCount = 0;
