@@ -52,7 +52,7 @@ void onStart()
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  auto floorNode = scene.createMeshNode(floor, 
+  scene.createMeshNode(floor, 
       smol::Transform(
         smol::Vector3(0.0f, -5.0f, -5.0f),
         smol::Vector3(-90, 0.0f, 0.0f),

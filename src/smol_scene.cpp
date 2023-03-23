@@ -164,7 +164,7 @@ namespace smol
   //
   // Scene Node utility functions
   //
-  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, Transform& transform)
+  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, const Transform& transform)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
     nodes.lookup(handle)->meshNode.renderable = renderable;

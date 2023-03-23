@@ -5,8 +5,8 @@ namespace smol
 {
   struct Scene;
 
-  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform) 
-    :scene(*scene), active(true), dirty(true), type(type), transform(transform)
+  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform)
+    :transform(transform), scene(*scene), active(true), dirty(true), type(type)
   { 
   }
 

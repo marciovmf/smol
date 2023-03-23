@@ -35,21 +35,21 @@ namespace smol
       DEPTH_BUFFER = 1 << 1
     };
 
-    smol::HandleList<smol::Mesh> meshes;
-    smol::HandleList<smol::Renderable> renderables;
-    smol::HandleList<smol::SceneNode> nodes;
-    smol::HandleList<smol::SpriteBatcher> batchers;
-    smol::Arena renderKeys;
-    smol::Arena renderKeysSorted;
-    smol::Handle<smol::Texture> defaultTexture;
-    smol::Handle<smol::ShaderProgram> defaultShader;
-    smol::Handle<smol::Material> defaultMaterial;
+    HandleList<smol::Mesh> meshes;
+    HandleList<smol::Renderable> renderables;
+    HandleList<smol::SceneNode> nodes;
+    HandleList<smol::SpriteBatcher> batchers;
+    Arena renderKeys;
+    Arena renderKeysSorted;
+    Handle<smol::Texture> defaultTexture;
+    Handle<smol::ShaderProgram> defaultShader;
+    Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
     Mat4 projectionMatrix;
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
-    const smol::SceneNode& nullSceneNode;
+    const smol::SceneNode nullSceneNode;
 
     Scene(ResourceManager& resourceManager);
 
@@ -82,9 +82,7 @@ namespace smol
     //
     // Scene Node creation
     //
-    Handle<SceneNode> createMeshNode(
-        Handle<Renderable> renderable,
-        Transform& transform = Transform());
+    Handle<SceneNode> createMeshNode(Handle<Renderable> renderable, const Transform& transform = Transform());
 
     Handle<SceneNode> createSpriteNode(
         Handle<SpriteBatcher> batcher,
