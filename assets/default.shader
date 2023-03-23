@@ -6,12 +6,14 @@ vertexShader:"
   layout (location = 3) in vec3 normalIn;
 
   uniform mat4 proj;
+  uniform mat4 view;
+  uniform mat4 model;
   uniform vec4 color;
 
   out vec4 vertColor; 
   out vec2 uv;
   void main() {
-    gl_Position = proj * vec4(vertPos, 1.0);
+    gl_Position =  proj * view * model * vec4(vertPos, 1.0);
     vertColor = colorIn * color;
     uv = vertUVIn;
 }
@@ -24,6 +26,11 @@ fragmentShader:"
   in vec2 uv;
   void main()
   {
-    fragColor = vec4(texture(mainTex, uv) * vertColor);
+    vec4 texColor = vec4(texture(mainTex, uv));
+
+    if(texColor.a < 0.1)
+        discard;
+
+    fragColor = texColor * vertColor;
   }
 "

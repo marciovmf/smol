@@ -46,6 +46,7 @@ namespace smol
     Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
     Mat4 projectionMatrix;
+    Handle<SceneNode> mainCamera;
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     Vector3 clearColor;
     ClearOperation clearOperation;
@@ -94,9 +95,14 @@ namespace smol
         int angle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
+    Handle<SceneNode> createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform);
+    Handle<SceneNode> createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform);
+
     void destroyNode(Handle<SceneNode> handle);
     void destroyNode(SceneNode* node);
     Handle<SceneNode> clone(Handle<SceneNode> handle);
+
+    void setMainCamera(Handle<SceneNode> handle);
 
     //
     // misc

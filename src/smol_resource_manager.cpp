@@ -282,7 +282,7 @@ namespace smol
     }
 
     Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
-    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::DepthTest) Material::CullFace::BACK);
+    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::CullFace) Material::CullFace::BACK);
 
     Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest, cullFace);
     Material* material = materials.lookup(handle);

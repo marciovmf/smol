@@ -5,6 +5,7 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_rect.h>
 #include <smol/smol_color.h>
+#include <smol/smol_renderer_types.h>
 
 namespace smol
 {
@@ -27,6 +28,11 @@ namespace smol
     int angle;
   };
 
+  struct CameraSceneNode
+  {
+    Camera camera;
+  };
+
   struct SMOL_ENGINE_API SceneNode
   {
     enum Type : char
@@ -35,6 +41,7 @@ namespace smol
       ROOT = 0, // there must be only ONE roote node in a scene
       MESH,
       SPRITE,
+      CAMERA
     };
 
     Transform transform;
@@ -42,6 +49,7 @@ namespace smol
     {
       MeshSceneNode meshNode;
       SpriteSceneNode spriteNode;
+      CameraSceneNode cameraNode;
     };
 
     private:
@@ -49,6 +57,7 @@ namespace smol
     bool active = true;   // active state for the node, not the hierarchy
     bool dirty = true;    // changed this frame
     Type type;
+    Layer layer;
 
     public:
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
@@ -59,6 +68,8 @@ namespace smol
     inline void setDirty(bool value) { dirty = value; }
     inline Type getType() { return type; }
     inline bool typeIs(Type t) { return type == t; }
+    inline void setLayer(Layer l) { layer = l; }
+    inline Layer getLayer() { return layer; }
     bool isActiveInHierarchy();
     void setParent(Handle<SceneNode> parent);
   };

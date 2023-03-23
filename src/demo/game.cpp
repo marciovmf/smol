@@ -7,6 +7,7 @@
 #include <time.h>
 
 smol::SystemsRoot* root;
+smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
 smol::Handle<smol::SceneNode> sprite1;
@@ -52,7 +53,7 @@ void onStart()
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  scene.createMeshNode(floor, 
+  floorNode = scene.createMeshNode(floor, 
       smol::Transform(
         smol::Vector3(0.0f, -5.0f, -5.0f),
         smol::Vector3(-90, 0.0f, 0.0f),
@@ -79,6 +80,18 @@ void onStart()
         smol::Vector3(4.0f, 3.0f, -10.0f),
         smol::Vector3(0.8f, 0.8f, 0.8f)));
 
+  scene.getNode(floorNode).setLayer(smol::Layer::LAYER_1);
+
+
+  // camera
+  smol::Transform t;
+  t.setParent(node2);
+  smol::Rect viewport =
+    root->renderer.getViewport();
+  auto camera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 100.0f, t);
+  scene.getNode(camera).cameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  scene.setMainCamera(camera);
+
   // Create a grass field
 
   auto grassRenderable1 = scene.createRenderable(
@@ -93,7 +106,6 @@ void onStart()
   const int changeLimit = 3;
   int nextChange = 0;
 
-  smol::Transform t;
   for (int i = 0; i < 5000; i++)
   {
     float randX = (rand() % 1000 - rand() % 1000) / 1000.0f;

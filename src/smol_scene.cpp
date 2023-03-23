@@ -30,6 +30,7 @@ namespace smol
     renderKeys(1024 * sizeof(uint64)),
     renderKeysSorted(1024 * sizeof(uint64)),
     clearColor(160/255.0f, 165/255.0f, 170/255.0f),
+    mainCamera(INVALID_HANDLE(SceneNode)),
     clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER)),
     nullSceneNode(SceneNode(this, SceneNode::Type::INVALID))
   {
@@ -147,6 +148,7 @@ namespace smol
     return handle;
   }
 
+
   void Scene::destroySpriteBatcher(Handle<SpriteBatcher> handle)
   {
     SpriteBatcher* batcher = batchers.lookup(handle);
@@ -210,6 +212,34 @@ namespace smol
 
     return handle;
   }
+
+  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform)
+  {
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
+    SceneNode* node = nodes.lookup(handle);
+    node->cameraNode.camera.setPerspective(fov, aspect, zNear, zFar);
+    node->cameraNode.camera.setLayerMask((uint32) Layer::LAYER_0);
+    return handle;
+  }
+
+  Handle<SceneNode> Scene::createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform)
+  {
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
+    SceneNode* node = nodes.lookup(handle);
+    node->cameraNode.camera.setOrthographic(left, right, top, bottom, zNear, zFar);
+    node->cameraNode.camera.setLayerMask((uint32) Layer::LAYER_0);
+    return handle;
+  }
+
+  void Scene::setMainCamera(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if (!node || !node->typeIs(SceneNode::Type::CAMERA))
+      return;
+
+    mainCamera = handle;
+  }
+
 
   Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
   {
