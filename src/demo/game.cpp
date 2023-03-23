@@ -27,8 +27,8 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
 
-  //smol::ConfigEntry* gameConfig = root->config.findEntry("game");
-  uint32 seed = 1655119152; //(uint32) time(0);
+  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  uint32 seed = (uint32) gameConfig->getVariableNumber("seed", 0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
 

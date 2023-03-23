@@ -316,7 +316,7 @@ namespace smol
           param.vec4Value = materialEntry->getVariableVec4(param.name);
           break;
         case ShaderParameter::FLOAT:
-          param.floatValue = materialEntry->getVariableNumber(param.name);
+          param.floatValue = (float) materialEntry->getVariableNumber(param.name);
           break;
         case ShaderParameter::INT:
           param.intValue = (int) materialEntry->getVariableNumber(param.name);

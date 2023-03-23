@@ -20,7 +20,7 @@ namespace smol
     Type type;
     union
     {
-      float numberValue;
+      double numberValue;
       float vec2Value[2];
       float vec3Value[3];
       float vec4Value[4];
@@ -36,7 +36,7 @@ namespace smol
     const char* name;
     int64 hash;
 
-    float getVariableNumber(const char* name, float defaultValue = 1.0f);
+    double getVariableNumber(const char* name, double defaultValue = 1.0f);
     Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f});
     Vector3 getVariableVec3(const char* name, Vector3 defaultValue = {0.0f, 0.0f, 0.0f});
     Vector2 getVariableVec2(const char* name, Vector2 defaultValue = {0.0f, 0.0f});

@@ -1,14 +1,15 @@
 # variables.txt
 
 @system:
-  showCursor: 0,
+  showCursor: 1,
   captureCursor: 0,
-  glVersion: {3, 3}
+  glVersion: {3, 0}
 
 @window:
   size:         {1080, 768},
   caption:      "SMOL engine v0.1"
 
 @game:
+  seed: 1655119152,
   numHSprites: 50,
   numVSprites: 50

@@ -151,14 +151,14 @@ namespace smol
     const char* data;
   };
 
-  float substringToFloat(const char* strNumber, size_t size)
+  double substringToDouble(const char* strNumber, size_t size)
   {
     const char maxNumberLiteralLen = 64;
     char temp[maxNumberLiteralLen];
     size_t numberLiteralLen = size >= maxNumberLiteralLen ? maxNumberLiteralLen : size;
     memcpy(temp, strNumber, numberLiteralLen);
     temp[size] = 0;
-    return (float) atof(temp);
+    return atof(temp);
   }
 
   static Token getToken(Lexer& lexer)
@@ -385,7 +385,7 @@ namespace smol
       {
         case Token::Type::NUMBER:
           {
-            var.numberValue = substringToFloat(rValue.data, rValue.size);
+            var.numberValue = substringToDouble(rValue.data, rValue.size);
             var.type = ConfigVariable::NUMBER;
           }
           break;
@@ -420,7 +420,7 @@ namespace smol
               // don't know how many elements are in the vectore we are parsing
               // at the moment
               float* value = (float*) &var.vec4Value;
-              value[numElements++] = substringToFloat(rValue.data, rValue.size);
+              value[numElements++] = (float) substringToDouble(rValue.data, rValue.size);
 
               lexer.skipWhiteSpaceAndLineBreak();
               t = getToken(lexer);
@@ -616,7 +616,7 @@ namespace smol
     return nullptr;
   }
 
-  float ConfigEntry::getVariableNumber(const char* name, float defaultValue)
+  double ConfigEntry::getVariableNumber(const char* name, double defaultValue)
   {
     ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::NUMBER);
     return v ? v->numberValue : defaultValue;
