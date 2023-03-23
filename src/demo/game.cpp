@@ -1,7 +1,7 @@
 #include <smol/smol_game.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
 #include <utility>
 #include <time.h>
@@ -20,12 +20,13 @@ smol::Handle<smol::SpriteBatcher> batcher;
 
 int shape = 0;
 
-void onStart(smol::SystemsRoot* systemsRoot)
+void onStart()
 {
   smol::Log::info("Game started!");
-  root = systemsRoot;
+  root = smol::SystemsRoot::get();
+  smol::ResourceManager& resourceManager = root->resourceManager;
 
-  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  //smol::ConfigEntry* gameConfig = root->config.findEntry("game");
   uint32 seed = 1655119152; //(uint32) time(0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
@@ -33,86 +34,91 @@ void onStart(smol::SystemsRoot* systemsRoot)
   smol::Scene& scene = root->loadedScene;
 
   mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
-  shader = scene.loadShader("assets/default.shader");
-  auto checkersTexture = scene.createTexture(*smol::AssetManager::createCheckersImage(600, 600, 100));
-  checkersMaterial = scene.createMaterial(shader, &checkersTexture, 1);
+  shader = resourceManager.loadShader("assets/default.shader");
+  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
+  checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
 
-  scene.getMaterial(checkersMaterial)
+  resourceManager.getMaterial(checkersMaterial)
     ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   // Manually create a material
-  auto floorMaterial = scene.createMaterial(shader, &checkersTexture, 1);
+  auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
   auto floor = scene.createRenderable(floorMaterial,
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
 
-  scene.getMaterial(floorMaterial)
+  resourceManager.getMaterial(floorMaterial)
     ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
   scene.createMeshNode(floor, 
-      (const smol::Vector3) smol::Vector3(0.0f, -5.0f, -5.0f),
-      (const smol::Vector3) smol::Vector3(100.0f, 100.0f, 100.0f),
-      (const smol::Vector3) smol::Vector3(-90, 0.0f, 0.0f));
+      smol::Transform(
+        smol::Vector3(0.0f, -5.0f, -5.0f),
+        smol::Vector3(-90, 0.0f, 0.0f),
+        smol::Vector3(100.0f, 100.0f, 100.0f)));
 
   // center cube
   node1 = scene.createMeshNode(renderable2,
-      smol::Vector3{0.0f, -1.0f, -15.0f},
-      smol::Vector3{2.0f, 2.0f, 2.0f});
+      smol::Transform(
+        smol::Vector3{0.0f, -1.0f, -15.0f},
+        smol::Vector3(0.0f, 0.0f, 0.0f),
+        smol::Vector3{2.0f, 2.0f, 2.0f}));
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Vector3(0.0f, 1.0f, 0.0f),
-      smol::Vector3(0.8f, 0.8f, 0.8f),
-      smol::Vector3(1.0f, 1.0f, 1.0f),
-      node1);
+      smol::Transform(
+        smol::Vector3(0.0f, 1.0f, 0.0f),
+        smol::Vector3(1.0f, 1.0f, 1.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f),
+        node1));
 
   // right cube
   scene.createMeshNode(renderable2, 
-      smol::Vector3(4.0f, 3.0f, -10.0f),
-      smol::Vector3(0.8f, 0.8f, 0.8f),
-      smol::Vector3(0.0f, 0.0f, 0.0f)
-      );
+      smol::Transform(
+        smol::Vector3(4.0f, 3.0f, -10.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f)));
 
   // Create a grass field
-   
+
   auto grassRenderable1 = scene.createRenderable(
-      scene.loadMaterial("assets/grass_03.material"),
+      resourceManager.loadMaterial("assets/grass_03.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   auto grassRenderable2 = scene.createRenderable(
-      scene.loadMaterial("assets/grass_02.material"),
+      resourceManager.loadMaterial("assets/grass_02.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   float minZ = -90.0f;
   const int changeLimit = 3;
   int nextChange = 0;
 
+  smol::Transform t;
   for (int i = 0; i < 5000; i++)
   {
     float randX = (rand() % 1000 - rand() % 1000) / 1000.0f;
     float randZ = minZ + ((rand() % 1000) / 1000.0f) * 0.5f;
     minZ = randZ;
 
-    float randAngle = (rand() % 60 - rand() % 60) * 1.0f;
+    float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
     float randScale = (rand() % 30 - rand() % 30) / 30.0f;
     randScale *= 1.5f;
 
+    smol::Transform t;
     nextChange = ++nextChange % changeLimit;
+    t.setPosition(100 * randX, -2.0f, randZ);
+    t.setRotation(0.0f, randAngle, 0.0f);
+    t.setScale(2.0f + randScale, 2.0f + randScale, 2.0f + randScale);
 
     scene.createMeshNode(
-        (nextChange == 0) ? grassRenderable1 : grassRenderable2,
-        (const smol::Vector3) smol::Vector3(100 * randX, -2.0f, randZ),
-        (const smol::Vector3) smol::Vector3(2.0f + randScale, 2.0f + randScale, 2.0f + randScale),
-        (const smol::Vector3) smol::Vector3(0.0f, randAngle, 0.0f));
+        (nextChange == 0) ? grassRenderable1 : grassRenderable2, t);
   }
 
   // sprites
-  auto texture = scene.loadTexture("assets/smol.texture");
-  auto smolMaterial = scene.createMaterial(shader, &texture, 1);
+  auto texture = resourceManager.loadTexture("assets/smol.texture");
+  auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
 
-  scene.getMaterial(smolMaterial)
+  resourceManager.getMaterial(smolMaterial)
     ->setVec4("color", smol::Vector4(0.0f, 0.5f, 0.3f, 0.8f));
 
   batcher = scene.createSpriteBatcher(smolMaterial);
@@ -155,8 +161,8 @@ void onUpdate(float deltaTime)
   if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
   {
     smol::Point2 p = mouse.getCursorPosition();
-    smol::Transform* transform = scene.getTransform(sprite2);
-    transform->setPosition((float) p.x, (float) p.y, 0.2f);
+    //smol::Transform* transform = scene.getTransform(sprite2);
+    scene.getNode(sprite2).transform.setPosition((float) p.x, (float) p.y, 0.2f);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
@@ -218,15 +224,14 @@ void onUpdate(float deltaTime)
     }
   }
 
+  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { scene.destroyShader(shader); }
-
-  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { scene.destroyMaterial(checkersMaterial); }
+  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { root->resourceManager.destroyMaterial(checkersMaterial); }
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE)) 
   { 
-    bool active = scene.isNodeActive(selectedNode);
-    scene.setNodeActive(selectedNode, !active);
+    smol::SceneNode& node = scene.getNode(selectedNode);
+    node.setActive(!node.isActive());
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB)) { selectedNode = (selectedNode == node1) ? node2 : node1; }
@@ -248,7 +253,7 @@ void onUpdate(float deltaTime)
 
   if (xDirection || yDirection || zDirection || scaleAmount)
   {
-    smol::Transform* transform = scene.getTransform(selectedNode);
+    smol::Transform* transform = &scene.getNode(selectedNode).transform;
     if (transform)
     {
       const float amount = 3.0f * deltaTime;
@@ -267,7 +272,7 @@ void onUpdate(float deltaTime)
     }
   }
 
-  smol::Transform* transform = scene.getTransform(node1);
+  smol::Transform* transform = &scene.getNode(node1).transform;
   if (transform)
   {
     float a = transform->getRotation().y + 30 * deltaTime;
@@ -275,7 +280,7 @@ void onUpdate(float deltaTime)
   }
 
   // bounce sprite1 across the screen borders
-  transform = scene.getTransform(sprite1);
+  transform = &scene.getNode(sprite1).transform;
 
   smol::Vector3 position = transform->getPosition();
   smol::Rect viewport = renderer.getViewport();

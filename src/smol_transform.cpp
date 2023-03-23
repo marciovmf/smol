@@ -1,10 +1,9 @@
 #include <smol/smol_transform.h>
-#include <smol/smol_scene.h>
+#include <smol/smol_scene_nodes.h>
 #include <smol/smol_systems_root.h>
 
 namespace smol
 {
-
   Transform::Transform(Vector3 position, Vector3 rotation, Vector3 scale, Handle<SceneNode> parent)
     : position(position), rotation(rotation), scale(scale), dirty(true), parent(parent)
   {
@@ -37,7 +36,7 @@ namespace smol
     dirty = true;
   }
 
-  void Transform::setScale(Vector3& scale) 
+  void Transform::setScale(const Vector3& scale) 
   {
     this->scale = scale;
     dirty = true;
@@ -51,7 +50,7 @@ namespace smol
     dirty = true;
   };
 
-  void Transform::setRotation(Vector3& rotation) 
+  void Transform::setRotation(const Vector3& rotation) 
   {
     this->rotation = rotation;
     dirty = true;
@@ -76,12 +75,12 @@ namespace smol
 
   bool Transform::isDirty() const { return dirty; }
 
-  bool Transform::update(ResourceList<SceneNode>* nodes)
+  bool Transform::update(HandleList<SceneNode>* nodes)
   {
     SceneNode* parentNode = nodes->lookup(parent);
     Mat4 parentMatrix = Mat4::initIdentity();
 
-    if(parentNode && parentNode->type != SceneNode::ROOT) // Ignores ROOT node transform and assume it's Identity
+    if(parentNode && !parentNode->typeIs(SceneNode::ROOT)) // Ignores ROOT node transform and assume it's Identity
     {
       if (parentNode->transform.update(nodes))
       {

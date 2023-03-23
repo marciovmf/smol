@@ -1,9 +1,10 @@
 
 #include <smol/smol_gl.h>             // must be included first
 #include <smol/smol_renderer.h>
-#include <smol/smol_assetmanager.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
+#include <smol/smol_systems_root.h>
 
 namespace smol
 {
@@ -90,7 +91,7 @@ namespace smol
   //param elementCount - number of elements on elements array.
   //param dest - destination buffer where to put the sorted list. This buffer
   //must be large enough for storing elementCount elements.
-  void radixSort(uint64* elements, uint32 elementCount,  uint64* dest)
+  static void radixSort(uint64* elements, uint32 elementCount,  uint64* dest)
   {
     for(int shiftIndex = 0; shiftIndex < 32; shiftIndex+=8)
     {
@@ -132,7 +133,7 @@ namespace smol
     }
   }
 
-  static inline uint64 encodeRenderKey(SceneNode::SceneNodeType nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
+  static inline uint64 encodeRenderKey(SceneNode::Type nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
   {
     // Render key format
     // 64--------------------32---------------16-----------8---------------0
@@ -156,10 +157,11 @@ namespace smol
     return (uint32) (key >> 8);
   }
 
-  static inline uint32 getQueueFromRenderKey(uint64 key)
-  {
-    return (uint32)((uint8)key);
-  }
+  //NOTE(marcio): We're probably not gonna need it
+  //static inline uint32 getQueueFromRenderKey(uint64 key)
+  //{
+  //  return (uint32)((uint8)key);
+  //}
 
 
   // This function assumes a material is already bound
@@ -188,15 +190,16 @@ namespace smol
     // do we need to update the data on the GPU ?
     if (batcher->dirty)
     {
+      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material* material = scene->materials.lookup(renderable->material);
-      if (!material) material = scene->materials.lookup(scene->defaultMaterial);
+      Material* material = resourceManager.getMaterial(renderable->material);
+      if (!material) material = resourceManager.getMaterial(scene->defaultMaterial);
 
-      Texture* texture =
+      Texture* texture = 
         (material->diffuseTextureCount > 0 
          && material->textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        scene->textures.lookup(material->textureDiffuse[0]) :
-        scene->textures.lookup(scene->defaultTexture);
+        resourceManager.getTexture(material->textureDiffuse[0]) :
+        resourceManager.getTexture(scene->defaultTexture);
 
       Mesh* mesh = scene->meshes.lookup(renderable->mesh);
 
@@ -298,8 +301,9 @@ namespace smol
       scene->destroyMesh((Mesh*) mesh);
     }
 
-    int numTextures = scene->textures.count();
-    const Texture* allTextures = scene->textures.getArray();
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    int numTextures;
+    Texture* allTextures = resourceManager.getTextures(&numTextures);
     for (int i=0; i < numTextures; i++) 
     {
       const Texture* texture = &allTextures[i];
@@ -867,18 +871,15 @@ namespace smol
     scene->projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST); 
-    glDepthFunc(GL_LESS);  
-    glEnable(GL_CULL_FACE); 
-    glCullFace(GL_BACK);
   }
 
   void Renderer::render()
   {
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
-    const GLuint defaultShaderProgramId = scene.shaders.lookup(scene.defaultShader)->programId;
-    const GLuint defaultTextureId = scene.textures.lookup(scene.defaultTexture)->textureObject;
-    const Material* defaultMaterial = scene.materials.lookup(scene.defaultMaterial);
+    const GLuint defaultShaderProgramId = resourceManager.getShader(scene.defaultShader)->programId;
+    const GLuint defaultTextureId = resourceManager.getTexture(scene.defaultTexture)->textureObject;
+    const Material* defaultMaterial = resourceManager.getMaterial(scene.defaultMaterial);
 
     // ----------------------------------------------------------------------
     // CLEAR
@@ -906,11 +907,11 @@ namespace smol
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->dirty |= node->transform.update(&scene.nodes);
+      node->setDirty(node->isDirty() | node->transform.update(&scene.nodes));
       Renderable* renderable = nullptr;
       bool discard = false;
 
-      switch(node->type)
+      switch(node->getType())
       {
         case SceneNode::MESH:
           renderable = scene.renderables.lookup(node->meshNode.renderable);
@@ -919,7 +920,7 @@ namespace smol
         case SceneNode::SPRITE:
           renderable = scene.renderables.lookup(node->spriteNode.renderable);
 
-          if (node->dirty)
+          if (node->isDirty())
           {
             SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
             batcher->dirty = true;
@@ -944,19 +945,19 @@ namespace smol
 
       if(!discard)
       {
-        Material* materialPtr = scene.materials.lookup(renderable->material);
-        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(sizeof(uint64)));
-        *keyPtr = encodeRenderKey(node->type, (uint16)(renderable->material.slotIndex),
+        Material* materialPtr = resourceManager.getMaterial(renderable->material);
+        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
+        *keyPtr = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex),
             materialPtr->renderQueue, i);
       }
 
-      node->dirty = false;
+      node->setDirty(false);
     }
 
     // ----------------------------------------------------------------------
     // Sort keys
-    const int32 numKeys = (int32) (scene.renderKeys.used / sizeof(uint64));
-    radixSort((uint64*) scene.renderKeys.data, numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.used));
+    const int32 numKeys = (int32) (scene.renderKeys.getUsed() / sizeof(uint64));
+    radixSort((uint64*) scene.renderKeys.getData(), numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.getUsed()));
 
     // ----------------------------------------------------------------------
     // Draw render keys
@@ -968,21 +969,83 @@ namespace smol
 
     for(int i = 0; i < numKeys; i++)
     {
-      uint64 key = ((uint64*)scene.renderKeysSorted.data)[i];
+      uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-      SceneNode::SceneNodeType nodeType = (SceneNode::SceneNodeType) getNodeTypeFromRenderKey(key);
+      SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
-      SMOL_ASSERT((nodeType == node->type), "Node Type does not match with render key node type");
+      SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match with render key node type");
 
       // Change material only if necessary
       if (currentMaterialIndex != materialIndex)
       {
         currentMaterialIndex = materialIndex;
         const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-        Material* material = scene.materials.lookup(renderable->material);
+        Material* material = resourceManager.getMaterial(renderable->material);
+        shader = resourceManager.getShader(material->shader);
 
-        shader = scene.shaders.lookup(material->shader);
+        switch(material->depthTest)
+        {
+          case Material::DISABLE:
+            glDisable(GL_DEPTH_TEST);
+          break;
+          case Material::LESS:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);  
+          break;
+          case Material::LESS_EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);  
+          break;
+          case Material::EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_EQUAL);  
+          break;
+          case Material::GREATER:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_GREATER);  
+          break;
+          case Material::GREATER_EQUAL:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_GEQUAL);  
+          break;
+          case Material::DIFFERENT:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_NOTEQUAL);  
+          break;
+          case Material::ALWAYS:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_ALWAYS);  
+          break;
+          case Material::NEVER:
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_NEVER);  
+          break;
+        }
+
+
+        switch(material->cullFace)
+        {
+          case Material::BACK:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_BACK);
+            break;
+
+          case Material::FRONT:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_FRONT);
+            break;
+
+          case Material::FRONT_AND_BACK:
+            glEnable(GL_CULL_FACE); 
+            glCullFace(GL_FRONT_AND_BACK);
+            break;
+
+          case Material::NONE:
+            glDisable(GL_CULL_FACE);
+            break;
+        }
+
         if(shader && shader->valid)
         {
           // use WHITE as default color for vertex attribute when using a valid shader
@@ -1011,7 +1074,7 @@ namespace smol
               {
                 int textureIndex = parameter.uintValue;
                 Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-                Texture* texture = scene.textures.lookup(hTexture);
+                Texture* texture = resourceManager.getTexture(hTexture);
                 glActiveTexture(GL_TEXTURE0 + textureIndex);
                 GLuint textureId = texture ? texture->textureObject : defaultTextureId;
                 glBindTexture(GL_TEXTURE_2D, textureId);
@@ -1052,9 +1115,9 @@ namespace smol
       //TODO(marcio): Change it so it updates ONCE per frame.
       //TODO(marcio): Use a uniform buffer for that
 
-      if (node->type == SceneNode::MESH) 
+      if (node->typeIs(SceneNode::MESH)) 
       {
-        if (!node->active)
+        if (!node->isActive())
           continue;
 
         //TODO(marcio): get the view matrix from a camera!
@@ -1066,7 +1129,7 @@ namespace smol
         Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
       }
-      else if (node->type == SceneNode::SPRITE)
+      else if (node->typeIs(SceneNode::SPRITE))
       {
         //TODO(marcio): get the view matrix from a camera!
         glUniformMatrix4fv(uniformLocationProj, 1, 0, 
@@ -1075,7 +1138,7 @@ namespace smol
         SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
         if(batcher->dirty)
         {
-          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.data) + i);
+          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
         }
 
         //draw
