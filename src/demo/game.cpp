@@ -161,7 +161,6 @@ void onUpdate(float deltaTime)
   if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
   {
     smol::Point2 p = mouse.getCursorPosition();
-    //smol::Transform* transform = scene.getTransform(sprite2);
     scene.getNode(sprite2).transform.setPosition((float) p.x, (float) p.y, 0.2f);
   }
 
