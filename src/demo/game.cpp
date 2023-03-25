@@ -11,6 +11,7 @@
 #undef _USE_MATH_DEFINES
 
 smol::SystemsRoot* root;
+smol::Handle<smol::SceneNode> cameraNode;
 smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
@@ -79,22 +80,22 @@ void onStart()
         node1));
 
   // right cube
-  scene.createMeshNode(renderable2, 
-      smol::Transform(
-        smol::Vector3(4.0f, 3.0f, -10.0f),
-        smol::Vector3(0.8f, 0.8f, 0.8f)));
+  //scene.createMeshNode(renderable2, 
+  //    smol::Transform(
+  //      smol::Vector3(4.0f, 3.0f, -10.0f),
+  //      smol::Vector3(0.8f, 0.8f, 0.8f)));
 
   scene.getNode(floorNode).setLayer(smol::Layer::LAYER_1);
 
   // camera
   smol::Transform t;
-  t.setParent(node2);
+  //t.setParent(node2);
   smol::Rect viewport =
     root->renderer.getViewport();
-  auto camera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
-  scene.getNode(camera).cameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
-  scene.setMainCamera(camera);
-  scene.getNode(camera).transform.setRotation(-30.0f, 0.0f, 0.0f);
+  cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  scene.getNode(cameraNode).cameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  scene.setMainCamera(cameraNode);
+  scene.getNode(cameraNode).transform.setRotation(-30.0f, 0.0f, 0.0f);
 
   // Create a grass field
 
@@ -154,7 +155,7 @@ void onStart()
       smol::Vector3(400.0f, 200.0f, 0.0f),
       100.0f, 100.0f, smol::Color::BLUE);
 
-  selectedNode = node2;
+  selectedNode = cameraNode;
 }
 
 unsigned int angle = 0;
@@ -249,7 +250,15 @@ void onUpdate(float deltaTime)
     node.setActive(!node.isActive());
   }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_TAB)) { selectedNode = (selectedNode == node1) ? node2 : node1; }
+  if (keyboard.getKeyDown(smol::KEYCODE_TAB)) 
+  { 
+    if (selectedNode == node1)
+      selectedNode = node2;
+    else if (selectedNode == node2)
+      selectedNode = cameraNode;
+    else if (selectedNode == cameraNode)
+      selectedNode = node1;
+  }
 
   // left/right
   if (keyboard.getKey(smol::KEYCODE_A)) { xDirection = -1; }
@@ -290,7 +299,7 @@ void onUpdate(float deltaTime)
   smol::Transform* transform = &scene.getNode(node1).transform;
   if (transform)
   {
-    float a = transform->getRotation().y + 10 * deltaTime;
+    float a = transform->getRotation().y + 30 * deltaTime;
     transform->setRotation(0, a, 0);
   }
 

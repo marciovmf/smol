@@ -29,7 +29,7 @@ namespace smol
         Vector3 scale     = Vector3{1.0f, 1.0f, 1.0f}, 
         Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
 
-    bool update(HandleList<SceneNode>* nodes);
+    void update(const HandleList<SceneNode>& nodes);
 
     const Mat4& getMatrix() const;
 
@@ -55,7 +55,11 @@ namespace smol
 
     const Vector3& getRotation() const;
 
-    bool isDirty() const;
+    inline void clearDirtyFlag() { dirty = false; }
+
+    private:
+    bool isDirty(const HandleList<SceneNode>& nodes) const;
+
   };
 }
 #endif  // SMOL_TRANSFORM_H

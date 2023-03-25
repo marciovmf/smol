@@ -1114,7 +1114,7 @@ namespace smol
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->setDirty(node->isDirty() | node->transform.update(&scene.nodes));
+      node->transform.update(scene.nodes);
       Renderable* renderable = nullptr;
       bool discard = false;
 
@@ -1190,6 +1190,9 @@ namespace smol
       uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
       SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
+
+      node->transform.clearDirtyFlag(); // reset transform dirty flag
+
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
       SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match with render key node type");

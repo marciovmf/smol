@@ -73,37 +73,43 @@ namespace smol
 
   const Vector3& Transform::getRotation() const { return rotation; }
 
-  bool Transform::isDirty() const { return dirty; }
-
-  bool Transform::update(HandleList<SceneNode>* nodes)
+  bool Transform::isDirty(const HandleList<SceneNode>& nodes) const 
   {
-    SceneNode* parentNode = nodes->lookup(parent);
-    Mat4 parentMatrix = Mat4::initIdentity();
-
-    if(parentNode && !parentNode->typeIs(SceneNode::ROOT)) // Ignores ROOT node transform and assume it's Identity
+    // the Dirty flag is meant to allow us to skip matrix calculations
+    // if neither the node or it's parents have changed
+    SceneNode* parentNode = nodes.lookup(parent);
+    if (parentNode && !parentNode->typeIs(SceneNode::ROOT))
     {
-      if (parentNode->transform.update(nodes))
+      return parentNode->transform.isDirty(nodes) || dirty;
+    }
+    return dirty;
+  }
+
+  void Transform::update(const HandleList<SceneNode>& nodes)
+  {
+    SceneNode* parentNode = nodes.lookup(parent);
+    Mat4 parentMatrix;
+
+    // Do nothing if nothing changed
+    if (isDirty(nodes))
+    {
+      if (parentNode && !parentNode->typeIs(SceneNode::ROOT))
       {
-        //TODO(marcio): This is bad. It forces the transform to update every frame even if it didin't chage. Fix it!
-        parentNode->transform.dirty = true;     //we keep it dirty so other children nodes can update
+        parentNode->transform.update(nodes);
+        parentMatrix = parentNode->transform.model;
+      }
+      else
+      {
+        parentMatrix = Mat4::initIdentity();
       }
 
-      dirty = true;
-      parentMatrix = parentNode->transform.model;
+      Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
+      Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z);
+      Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
+
+      Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
+      transformed = Mat4::mul(translationMatrix, transformed);
+      model = Mat4::mul(parentMatrix, transformed);
     }
-
-    if(!dirty)
-      return false;
-
-    Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-    Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z);
-    Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
-
-    Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
-    transformed = Mat4::mul(translationMatrix, transformed);
-    model = Mat4::mul(parentMatrix, transformed);
-
-    dirty = false;
-    return true;
   }
 }
