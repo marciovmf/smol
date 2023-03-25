@@ -73,10 +73,10 @@ namespace smol
       HandleList(int initialCapacity);
       Handle<T> reserve();
       Handle<T> add(const T&);
-      T* lookup(Handle<T> handle);
+      T* lookup(Handle<T> handle) const;
       void remove(Handle<T> handle);
       void reset();
-      int count();
+      int count() const;
       const T* getArray();
     };
 
@@ -93,7 +93,7 @@ namespace smol
   { }
 
   template<typename T>
-    inline int HandleList<T>::count()
+    inline int HandleList<T>::count() const
     {
       return resourceCount;
     }
@@ -146,7 +146,7 @@ namespace smol
     }
 
   template <typename T>
-    T* HandleList<T>::lookup(Handle<T> handle)
+    T* HandleList<T>::lookup(Handle<T> handle) const
     {
       if (handle.slotIndex >= slots.getCapacity() || handle.slotIndex < 0)
       {
