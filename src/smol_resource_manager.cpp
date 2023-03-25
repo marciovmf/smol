@@ -39,13 +39,19 @@ namespace smol
   {
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
-    defaultTexture = createTexture(*img);
+    Handle<Texture> defaultTextureHandle = createTexture(*img);
     ResourceManager::unloadImage(img);
 
-    // Make the default shader program
-    ShaderProgram program = Renderer::getDefaultShaderProgram();
-    defaultShader = shaders.add(program);
-    defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
+    // Make the default ShaderProgram
+    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
+
+    // Make the default Material
+    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
+
+    defaultTexture = textures.lookup(defaultTextureHandle);
+    defaultShader = shaders.lookup(defaultShaderHandle);
+    defaultMaterial = materials.lookup(defaultMaterialHandle);
   }
 
   Handle<Texture> ResourceManager::loadTexture(const char* path)
@@ -109,21 +115,26 @@ namespace smol
     return INVALID_HANDLE(Texture);
   }
 
-  inline Texture* ResourceManager::getTexture(Handle<Texture> handle)
+  inline Texture& ResourceManager::getTexture(Handle<Texture> handle) const
   {
-    return textures.lookup(handle);
+    Texture* texture = textures.lookup(handle);
+    if (texture)
+      return *texture;
+
+    debugLogWarning("Could not get Texture from Handle. Returning default Texture.");
+    return getDefaultTexture();
   }
 
-  inline Texture* ResourceManager::getTextures(int* count)
+  inline Texture* ResourceManager::getTextures(int* count) const
   {
     if (count)
       *count = textures.count();
     return (Texture*) textures.getArray();
   }
 
-  inline Handle<Texture> ResourceManager::getDefaultTexture()
+  inline Texture& ResourceManager::getDefaultTexture() const
   {
-    return defaultTexture;
+    return *defaultTexture;
   }
 
   void ResourceManager::destroyTexture(Texture* texture)
@@ -136,7 +147,7 @@ namespace smol
     Texture* texture = textures.lookup(handle);
     if (!texture)
     {
-      debugLogWarning((const char*)"Attempting to destroy a 'Texture' resource from an invalid handle");
+      debugLogWarning((const char*)"Attempting to destroy a 'Texture' resource from an invalid handle.");
     }
     else
     {
@@ -202,7 +213,7 @@ namespace smol
     ShaderProgram* program = shaders.lookup(handle);
     if (!program)
     {
-      debugLogWarning((const char*)"Attempting to destroy a 'Shader' resource from an invalid handle");
+      debugLogWarning((const char*)"Attempting to destroy a 'Shader' resource from an invalid handle.");
     }
     else
     {
@@ -211,21 +222,27 @@ namespace smol
     }
   }
 
-  inline ShaderProgram* ResourceManager::getShader(Handle<ShaderProgram> handle)
+  inline ShaderProgram& ResourceManager::getShader(Handle<ShaderProgram> handle) const
   {
-    return shaders.lookup(handle);
+     ShaderProgram* shaderProgram = shaders.lookup(handle);
+     if (shaderProgram)
+       return *shaderProgram;
+
+     debugLogWarning("Could not get Shader from Handle. Returning default Shader.");
+     return getDefaultShader();
+
   }
 
-  inline ShaderProgram* ResourceManager::getShaders(int* count)
+  inline ShaderProgram* ResourceManager::getShaders(int* count) const
   {
     if (count)
       *count = shaders.count();
     return (ShaderProgram*) shaders.getArray();
   }
 
-  inline Handle<ShaderProgram> ResourceManager::getDefaultShader()
+  inline ShaderProgram& ResourceManager::getDefaultShader() const
   {
-    return defaultShader;
+    return *defaultShader;
   }
 
 
@@ -333,7 +350,7 @@ namespace smol
   }
 
   Handle<Material> ResourceManager::createMaterial(
-      Handle<ShaderProgram> shader,
+      Handle<ShaderProgram> shaderHandle,
       Handle<Texture>* diffuseTextures,
       int diffuseTextureCount,
       int renderQueue,
@@ -343,30 +360,30 @@ namespace smol
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
-    Material* material = materials.lookup(handle);
-    memset(material, 0, sizeof(Material));
-    material->depthTest = depthTest;
-    material->renderQueue = renderQueue;
-    material->cullFace = cullFace;
+    Material& material = *materials.lookup(handle);
+    memset(&material, 0, sizeof(Material));
+    material.depthTest = depthTest;
+    material.renderQueue = renderQueue;
+    material.cullFace = cullFace;
 
     if (diffuseTextureCount)
     {
       size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
-      material->shader = shader;
-      material->diffuseTextureCount = diffuseTextureCount;
-      memcpy(material->textureDiffuse, diffuseTextures, copySize);
+      material.shader = shaderHandle;
+      material.diffuseTextureCount = diffuseTextureCount;
+      memcpy(material.textureDiffuse, diffuseTextures, copySize);
     }
 
-    ShaderProgram* shaderPtr = getShader(shader);
-    if (shaderPtr)
+    ShaderProgram& shader = getShader(shaderHandle);
+    if (shader.valid)
     {
-      material->parameterCount = shaderPtr->parameterCount;
+      material.parameterCount = shader.parameterCount;
       uint32 texturesAssigned = 0;
 
-      for(int i = 0; i < shaderPtr->parameterCount; i++)
+      for(int i = 0; i < shader.parameterCount; i++)
       {
-        MaterialParameter& materialParam = material->parameter[i];
-        const ShaderParameter& shaderParam = shaderPtr->parameter[i];
+        MaterialParameter& materialParam = material.parameter[i];
+        const ShaderParameter& shaderParam = shader.parameter[i];
         //We copy sizeof(ShaderParameter) to the MaterialParameter so the values remain untouched.
         //This is intentional since we memset(0) the whole material after allocating it.
         memcpy(&materialParam, &shaderParam, sizeof(ShaderParameter));
@@ -390,7 +407,7 @@ namespace smol
     Material* material = materials.lookup(handle);
     if(!material)
     {
-      debugLogWarning((const char*)"Attempting to destroy a 'Material' resource from an invalid handle");
+      debugLogWarning((const char*)"Attempting to destroy a 'Material' resource from an invalid handle.");
     }
     else
     {
@@ -398,21 +415,26 @@ namespace smol
     }
   }
 
-  inline Material* ResourceManager::getMaterial(Handle<Material> handle)
+  inline Material& ResourceManager::getMaterial(Handle<Material> handle) const
   {
-    return materials.lookup(handle);
+    Material* material = materials.lookup(handle);
+    if (material)
+      return *material;
+
+    debugLogWarning("Could not get Material from Handle. Returning default Material.");
+    return getDefaultMaterial();
   }
 
-  inline Material* ResourceManager::getMaterials(int* count)
+  inline Material* ResourceManager::getMaterials(int* count) const
   {
     if (count)
       *count = materials.count();
     return (Material*) materials.getArray();
   }
 
-  inline Handle<Material> ResourceManager::getDefaultMaterial()
+  inline Material& ResourceManager::getDefaultMaterial() const
   {
-    return defaultMaterial;
+    return *defaultMaterial;
   }
 
   //

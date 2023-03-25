@@ -29,53 +29,53 @@ namespace smol
     return nullptr;
   }
 
-  Material* Material::setSampler2D(const char* name, unsigned int value)
+  Material& Material::setSampler2D(const char* name, unsigned int value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::SAMPLER_2D);
     if (param) param->uintValue = value;
-    return this;
+    return *this;
   }
 
-  Material* Material::setUint(const char* name, unsigned int value)
+  Material& Material::setUint(const char* name, unsigned int value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::UNSIGNED_INT);
     if (param) param->uintValue = value;
-    return this;
+    return *this;
   }
 
-  Material* Material::setInt(const char* name, int value)
+  Material& Material::setInt(const char* name, int value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::INT);
     if (param) param->intValue = value;
-    return this;
+    return *this;
   }
 
-  Material* Material::setFloat(const char* name, float value)
+  Material& Material::setFloat(const char* name, float value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::FLOAT);
     if (param) param->floatValue = value;
-    return this;
+    return *this;
   }
 
-  Material* Material::setVec2(const char* name, const Vector2& value)
+  Material& Material::setVec2(const char* name, const Vector2& value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR2);
     if (param) param->vec2Value = value;
-    return this;
+    return *this;
   }
 
-  Material* Material::setVec3(const char* name, const Vector3& value)
+  Material& Material::setVec3(const char* name, const Vector3& value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR3);
     if (param) param->vec3Value = value;
-    return this;
+    return *this;
   }
 
-  Material* Material::setVec4(const char* name, const Vector4& value)
+  Material& Material::setVec4(const char* name, const Vector4& value)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR4);
     if (param) param->vec4Value = value;
-    return this;
+    return *this;
   }
 
 
@@ -83,12 +83,11 @@ namespace smol
   // internal utility functions
   //
 
-
   static GLuint setMaterial(const Scene* scene, const Material* material, const SceneNode* cameraNode)
   {
     GLuint shaderProgramId = 0; 
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    ShaderProgram* shader = resourceManager.getShader(material->shader);
+    ShaderProgram& shader = resourceManager.getShader(material->shader);
 
     switch(material->depthTest)
     {
@@ -151,17 +150,17 @@ namespace smol
         break;
     }
 
-    if(shader && shader->valid)
+    if(shader.valid)
     {
       // use WHITE as default color for vertex attribute when using a valid shader
-      shaderProgramId = shader->programId;
+      shaderProgramId = shader.programId;
       glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
     }
     else
     {
       // use MAGENTA as default color for vertex attribute when using the default shader
       //
-      shaderProgramId = resourceManager.getShader(scene->defaultShader)->programId;
+      shaderProgramId = resourceManager.getShader(scene->defaultShader).programId;
       glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
     }
 
@@ -191,10 +190,9 @@ namespace smol
           {
             int textureIndex = parameter.uintValue;
             Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-            Texture* texture = resourceManager.getTexture(hTexture);
+            Texture& texture = resourceManager.getTexture(hTexture);
             glActiveTexture(GL_TEXTURE0 + textureIndex);
-            GLuint textureId = texture ? texture->textureObject :
-              resourceManager.getTexture(scene->defaultTexture)->textureObject;
+            GLuint textureId = texture.textureObject;
             glBindTexture(GL_TEXTURE_2D, textureId);
           }
           break;
@@ -337,19 +335,18 @@ namespace smol
     {
       ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material* material = resourceManager.getMaterial(renderable->material);
-      if (!material) material = resourceManager.getMaterial(scene->defaultMaterial);
+      Material& material = resourceManager.getMaterial(renderable->material);
 
-      Texture* texture = 
-        (material->diffuseTextureCount > 0 
-         && material->textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        resourceManager.getTexture(material->textureDiffuse[0]) :
-        resourceManager.getTexture(scene->defaultTexture);
+      Texture& texture = 
+        (material.diffuseTextureCount > 0 
+         && material.textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
+        resourceManager.getTexture(material.textureDiffuse[0]) :
+        resourceManager.getDefaultTexture();
 
       Mesh* mesh = scene->meshes.lookup(renderable->mesh);
 
-      const float textureWidth  = (float) texture->width;
-      const float textureHeight = (float) texture->height;
+      const float textureWidth  = (float) texture.width;
+      const float textureHeight = (float) texture.height;
       const size_t totalSize    = batcher->spriteCount * SpriteBatcher::totalSpriteSize;
 
       batcher->arena.reset();
@@ -744,9 +741,10 @@ namespace smol
       out vec4 fragColor;\n\
       uniform sampler2D mainTex;\n\
       in vec2 uv;\n\
-      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
+      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0); }";
 
-    createShaderProgram(&defaultShader, defaultVShader, defaultFShader, nullptr);
+    bool success = createShaderProgram(&defaultShader, defaultVShader, defaultFShader, nullptr);
+    SMOL_ASSERT(success == true, "Failed to create default shader program.");
     return defaultShader;
   }
 
@@ -1039,9 +1037,9 @@ namespace smol
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
-    const GLuint defaultShaderProgramId = resourceManager.getShader(scene.defaultShader)->programId;
-    const GLuint defaultTextureId = resourceManager.getTexture(scene.defaultTexture)->textureObject;
-    const Material* defaultMaterial = resourceManager.getMaterial(scene.defaultMaterial);
+    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().programId;
+    const GLuint defaultTextureId = resourceManager.getDefaultTexture().textureObject;
+    const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
     // ----------------------------------------------------------------------
     // CLEAR
@@ -1122,10 +1120,10 @@ namespace smol
       // save a descriptor key for rendering the node later if it was not discarded
       if(!discard)
       {
-        Material* materialPtr = resourceManager.getMaterial(renderable->material);
+        Material& materialPtr = resourceManager.getMaterial(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
         *keyPtr = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex),
-            materialPtr->renderQueue, i);
+            materialPtr.renderQueue, i);
       }
 
       node->setDirty(false);
@@ -1163,8 +1161,8 @@ namespace smol
       {
         currentMaterialIndex = materialIndex;
         const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
-        Material* material = resourceManager.getMaterial(renderable->material);
-        shaderProgramId = setMaterial(&scene, material, cameraNode);
+        Material& material = resourceManager.getMaterial(renderable->material);
+        shaderProgramId = setMaterial(&scene, &material, cameraNode);
       }
 
       //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
@@ -1213,7 +1211,7 @@ namespace smol
 
     // unbind the last shader and textures (material)
     glUseProgram(defaultShaderProgramId);
-    for (int i = 0; i < defaultMaterial->diffuseTextureCount; i++)
+    for (int i = 0; i < defaultMaterial.diffuseTextureCount; i++)
     {
       glActiveTexture(GL_TEXTURE0 + i);
       glBindTexture(GL_TEXTURE_2D, 0);

@@ -181,13 +181,13 @@ namespace smol
     DepthTest depthTest;
     CullFace cullFace;
 
-    Material* setSampler2D(const char* name, unsigned int value);
-    Material* setUint(const char* name, unsigned int value);
-    Material* setInt(const char* name, int value);
-    Material* setFloat(const char* name, float value);
-    Material* setVec2(const char* name, const Vector2& value);
-    Material* setVec3(const char* name, const Vector3& value);
-    Material* setVec4(const char* name, const Vector4& value);
+    Material& setSampler2D(const char* name, unsigned int value);
+    Material& setUint(const char* name, unsigned int value);
+    Material& setInt(const char* name, int value);
+    Material& setFloat(const char* name, float value);
+    Material& setVec2(const char* name, const Vector2& value);
+    Material& setVec3(const char* name, const Vector3& value);
+    Material& setVec4(const char* name, const Vector4& value);
 
     private:
     MaterialParameter* getParameter(const char* name, ShaderParameter::Type type);

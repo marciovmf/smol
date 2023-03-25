@@ -38,10 +38,6 @@ namespace smol
 
     // Creates a ROOT node
     nodes.add((const SceneNode&) SceneNode(this, SceneNode::Type::ROOT));
-
-    defaultShader   = resourceManager.getDefaultShader();
-    defaultTexture  = resourceManager.getDefaultTexture();
-    defaultMaterial = resourceManager.getDefaultMaterial();
   }
 
   //---------------------------------------------------------------------------

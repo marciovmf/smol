@@ -77,7 +77,7 @@ namespace smol
       void remove(Handle<T> handle);
       void reset();
       int count() const;
-      const T* getArray();
+      const T* getArray() const;
     };
 
   //
@@ -99,7 +99,7 @@ namespace smol
     }
 
   template<typename T>
-    const T* HandleList<T>::getArray()
+    const T* HandleList<T>::getArray() const
     {
       return (const T*) resources.getData();
     }

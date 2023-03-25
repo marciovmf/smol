@@ -6,10 +6,6 @@
 #include <utility>
 #include <time.h>
 
-#define _USE_MATH_DEFINES
-#include <math.h>
-#undef _USE_MATH_DEFINES
-
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> cameraNode;
 smol::Handle<smol::SceneNode> floorNode;
@@ -47,7 +43,7 @@ void onStart()
       smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
 
   resourceManager.getMaterial(checkersMaterial)
-    ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
@@ -55,7 +51,7 @@ void onStart()
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
 
   resourceManager.getMaterial(floorMaterial)
-    ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
@@ -138,7 +134,7 @@ void onStart()
   auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
 
   resourceManager.getMaterial(smolMaterial)
-    ->setVec4("color", smol::Vector4(0.0f, 0.5f, 0.3f, 0.8f));
+    .setVec4("color", smol::Vector4(0.0f, 0.5f, 0.3f, 0.8f));
 
   batcher = scene.createSpriteBatcher(smolMaterial);
   sprite1 = scene.createSpriteNode(batcher,

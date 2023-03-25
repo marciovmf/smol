@@ -23,6 +23,7 @@ namespace smol
   {
     ResourceManager();
 
+
     //
     // Texture Resources
     //
@@ -39,15 +40,16 @@ namespace smol
         Texture::Filter filter = Texture::Filter::LINEAR,
         Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
 
-    Texture* getTexture(Handle<Texture> handle);
+    Texture& getDefaultTexture() const;
 
-    Texture* getTextures(int* count);
+    Texture& getTexture(Handle<Texture> handle) const;
 
-    Handle<Texture> getDefaultTexture();
+    Texture* getTextures(int* count) const;
 
     void destroyTexture(Handle<Texture> handle);
 
     void destroyTexture(Texture* texture);
+
 
     //
     // Shader Resources
@@ -56,15 +58,16 @@ namespace smol
     Handle<ShaderProgram> loadShader(const char* filePath);
 
     Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
+
+    ShaderProgram& getDefaultShader() const;
+
+    ShaderProgram& getShader(Handle<ShaderProgram> handle) const;
+
+    ShaderProgram* getShaders(int* count) const;
+
     void destroyShader(Handle<ShaderProgram> handle);
 
     void destroyShader(ShaderProgram* program);
-
-    ShaderProgram* getShader(Handle<ShaderProgram> handle);
-
-    ShaderProgram* getShaders(int* count);
-
-    Handle<ShaderProgram> getDefaultShader();
 
 
     //
@@ -81,13 +84,13 @@ namespace smol
         Material::DepthTest depthTest = Material::DepthTest::LESS,
         Material::CullFace cullFace = Material::CullFace::BACK);
 
+    Material& getDefaultMaterial() const;
+
+    Material& getMaterial(Handle<Material> handle) const;
+
+    Material* getMaterials(int* count) const;
+
     void destroyMaterial(Handle<Material> handle);
-
-    Material* getMaterial(Handle<Material> handle);
-
-    Material* getMaterials(int* count);
-
-    Handle<Material> getDefaultMaterial();
 
 
     //
@@ -104,11 +107,9 @@ namespace smol
     HandleList<Texture> textures;
     HandleList<ShaderProgram> shaders;
     smol::HandleList<smol::Material> materials;
-
-    Handle<ShaderProgram> defaultShader;
-    Handle<Texture> defaultTexture;
-    Handle<Material> defaultMaterial;
-
+    ShaderProgram* defaultShader;
+    Texture* defaultTexture;
+    Material* defaultMaterial;
   };
 }
 
