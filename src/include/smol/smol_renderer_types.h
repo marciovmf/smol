@@ -9,6 +9,7 @@
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector4.h>
 #include <smol/smol_mat4.h>
+#include <smol/smol_camera.h>
 
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h> //TODO(marcio): Make this API independent. Remove all GL specifics from this header
@@ -52,33 +53,6 @@ namespace smol
     LAYER_29 = 1 << 29,
     LAYER_30 = 1 << 30,
     LAYER_31 = 1 << 31
-  };
-
-  struct SMOL_ENGINE_API Camera
-  {
-    enum Type
-    {
-      PERSPECTIVE = 0,
-      ORTHOGRAPHIC = 1
-    };
-
-    float aspect;
-    float fov;
-    float zNear;
-    float zFar;
-    float top;
-    float right;
-    float left;
-    float bottom;
-    Type type;
-    uint32 layers;
-    Mat4 viewMatrix;
-
-    void setPerspective(float fov, float aspect, float zNear, float zFar);
-    void setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar);
-    void setLayerMask(uint32 layers);
-    uint32 getLayerMask() const;
-    const Mat4& getProjectionMatrix() const;
   };
 
   enum RenderQueue : char

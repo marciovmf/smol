@@ -79,45 +79,6 @@ namespace smol
   }
 
 
-  // 
-  // CameraSceneNode
-  //
-
-  void Camera::setPerspective(float fov, float aspect, float zNear, float zFar)
-  {
-    this->type = Camera::PERSPECTIVE;
-    this->fov = fov;
-    this->aspect = aspect;
-    this->zNear = zNear;
-    this->zFar = zFar;
-    this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
-  }
-
-  void Camera::setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar)
-  {
-    this->type = Camera::ORTHOGRAPHIC;
-    this->left = left;
-    this->right = right;
-    this->top = top;
-    this->bottom = bottom;
-    this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
-  }
-
-  void Camera::setLayerMask(uint32 layers)
-  {
-    this->layers = layers;
-  }
-
-  inline uint32 Camera::getLayerMask() const
-  {
-    return layers;
-  }
-    
-  inline const Mat4& Camera::getProjectionMatrix() const
-  {
-    return viewMatrix;
-  }
-
   //
   // internal utility functions
   //
@@ -1058,7 +1019,7 @@ namespace smol
     SceneNode* node = scene.nodes.lookup(scene.mainCamera);
     if (node)
     {
-      Camera& camera = node->cameraNode.camera;
+      Camera& camera = node->camera;
       camera.setPerspective(camera.fov, width/(float)height, camera.zNear, camera.zFar);
       scene.projectionMatrix = camera.getProjectionMatrix();
     }
@@ -1107,7 +1068,7 @@ namespace smol
     //TODO(marcio): support multiple cameras
     // find the main camera
     const SceneNode* cameraNode = scene.nodes.lookup(scene.mainCamera);
-    uint32 cameraLayers = cameraNode->cameraNode.camera.getLayerMask();
+    uint32 cameraLayers = cameraNode->camera.getLayerMask();
 
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
@@ -1212,7 +1173,7 @@ namespace smol
       GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
 
       // Pass camera matrices to the shader
-      glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->cameraNode.camera.getProjectionMatrix().e);
+      glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
       glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
 
       //TODO(marcio): Use a uniform buffer for that

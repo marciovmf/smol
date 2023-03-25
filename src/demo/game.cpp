@@ -42,7 +42,9 @@ void onStart()
   mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
   shader = resourceManager.loadShader("assets/default.shader");
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
-  checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
+  checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
+      smol::Texture::Filter::NEAREST,
+      smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
 
   resourceManager.getMaterial(checkersMaterial)
     ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -80,25 +82,27 @@ void onStart()
         node1));
 
   // right cube
-  //scene.createMeshNode(renderable2, 
-  //    smol::Transform(
-  //      smol::Vector3(4.0f, 3.0f, -10.0f),
-  //      smol::Vector3(0.8f, 0.8f, 0.8f)));
+  scene.createMeshNode(renderable2, 
+      smol::Transform(
+        smol::Vector3(4.0f, 3.0f, -10.0f),
+        smol::Vector3(0.8f, 0.8f, 0.8f)));
 
   scene.getNode(floorNode).setLayer(smol::Layer::LAYER_1);
 
   // camera
   smol::Transform t;
-  //t.setParent(node2);
   smol::Rect viewport =
     root->renderer.getViewport();
   cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
-  scene.getNode(cameraNode).cameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
   scene.setMainCamera(cameraNode);
-  scene.getNode(cameraNode).transform.setRotation(-30.0f, 0.0f, 0.0f);
+
+  smol::SceneNode& pCameraNode = scene.getNode(cameraNode);
+  pCameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  pCameraNode.transform
+    .setRotation(-30.0f, 0.0f, 0.0f)
+    .setPosition(0.0f, 10.0f, 15.0f);
 
   // Create a grass field
-
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
@@ -107,15 +111,13 @@ void onStart()
       resourceManager.loadMaterial("assets/grass_02.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
-  //float minZ = -90.0f;
   const int changeLimit = 3;
   int nextChange = 0;
 
-  for (int i = 0; i < 5000; i++)
+  for (int i = 0; i < 3000; i++)
   {
     float randX = (rand() % 100 - rand() % 100) * 1.0f;
     float randZ = (rand() % 100 - rand() % 100) * 1.0f;
-    //minZ = randZ;
 
     float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
     float randScale = (rand() % 30 - rand() % 30) / 30.0f;
@@ -280,7 +282,7 @@ void onUpdate(float deltaTime)
     smol::Transform* transform = &scene.getNode(selectedNode).transform;
     if (transform)
     {
-      const float amount = 3.0f * deltaTime;
+      const float amount = 15.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();
       transform->setPosition(

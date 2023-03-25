@@ -12,52 +12,59 @@ namespace smol
 
   inline const Mat4& Transform::getMatrix() const { return model; }
 
-  void Transform::setPosition(float x, float y, float z) 
+  Transform& Transform::setPosition(float x, float y, float z) 
   { 
     position.x = x;
     position.y = y;
     position.z = z;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setPosition(const Vector3& position) 
+  Transform& Transform::setPosition(const Vector3& position) 
   {
     this->position = position;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setScale(float x, float y, float z)
+  Transform& Transform::setScale(float x, float y, float z)
   { 
     scale.x = x;
     scale.y = y;
     scale.z = z;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setScale(const Vector3& scale) 
+  Transform& Transform::setScale(const Vector3& scale) 
   {
     this->scale = scale;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setRotation(float x, float y, float z) 
+  Transform& Transform::setRotation(float x, float y, float z) 
   {
     rotation.x = x;
     rotation.y = y;
     rotation.z = z;
     dirty = true;
+    return *this;
   };
 
-  void Transform::setRotation(const Vector3& rotation) 
+  Transform& Transform::setRotation(const Vector3& rotation) 
   {
     this->rotation = rotation;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setParent(Handle<SceneNode> parent)
+  Transform& Transform::setParent(Handle<SceneNode> parent)
   {
     this->parent = parent;
     dirty = true;
+    return *this;
   }
 
   inline const Vector3& Transform::getPosition() const { return position; }

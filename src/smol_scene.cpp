@@ -217,8 +217,8 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->cameraNode.camera.setPerspective(fov, aspect, zNear, zFar);
-    node->cameraNode.camera.setLayerMask((uint32) Layer::LAYER_0);
+    node->camera.setPerspective(fov, aspect, zNear, zFar);
+    node->camera.setLayerMask((uint32) Layer::LAYER_0);
     return handle;
   }
 
@@ -226,8 +226,8 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->cameraNode.camera.setOrthographic(left, right, top, bottom, zNear, zFar);
-    node->cameraNode.camera.setLayerMask((uint32) Layer::LAYER_0);
+    node->camera.setOrthographic(left, right, top, bottom, zNear, zFar);
+    node->camera.setLayerMask((uint32) Layer::LAYER_0);
     return handle;
   }
 

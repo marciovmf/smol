@@ -6,6 +6,7 @@
 #include <smol/smol_rect.h>
 #include <smol/smol_color.h>
 #include <smol/smol_renderer_types.h>
+#include <smol/smol_camera.h>
 
 namespace smol
 {
@@ -28,17 +29,12 @@ namespace smol
     int angle;
   };
 
-  struct CameraSceneNode
-  {
-    Camera camera;
-  };
-
   struct SMOL_ENGINE_API SceneNode
   {
     enum Type : char
     {
       INVALID = -1,
-      ROOT = 0, // there must be only ONE roote node in a scene
+      ROOT = 0, // there must be only ONE root node in a scene
       MESH,
       SPRITE,
       CAMERA
@@ -49,7 +45,7 @@ namespace smol
     {
       MeshSceneNode meshNode;
       SpriteSceneNode spriteNode;
-      CameraSceneNode cameraNode;
+      Camera camera;
     };
 
     private:

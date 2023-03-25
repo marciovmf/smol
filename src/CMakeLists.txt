@@ -76,6 +76,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_log.h
   ${SOURCE_PATH}/smol_log.cpp
   ${SOURCE_PATH}/include/smol/smol_renderer.h
+  ${SOURCE_PATH}/include/smol/smol_camera.h
+  ${SOURCE_PATH}/smol_camera.cpp
   ${SOURCE_PATH}/smol_renderer_gl.cpp
   ${SOURCE_PATH}/include/smol/smol_scene_nodes.h
   ${SOURCE_PATH}/smol_scene_nodes.cpp

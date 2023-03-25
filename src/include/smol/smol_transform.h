@@ -34,19 +34,19 @@ namespace smol
 
     const Mat4& getMatrix() const;
 
-    void setPosition(float x, float y, float z);
+    Transform& setPosition(float x, float y, float z);
 
-    void setPosition(const Vector3& position);
+    Transform& setPosition(const Vector3& position);
    
-    void setScale(float x, float y, float z);
+    Transform& setScale(float x, float y, float z);
     
-    void setScale(const Vector3& scale);
+    Transform& setScale(const Vector3& scale);
 
-    void setRotation(float x, float y, float z);
+    Transform& setRotation(float x, float y, float z);
 
-    void setRotation(const Vector3& rotation);
+    Transform& setRotation(const Vector3& rotation);
 
-    void setParent(Handle<SceneNode> parent);
+    Transform& setParent(Handle<SceneNode> parent);
 
     const Vector3& getPosition() const;
 
