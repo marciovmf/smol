@@ -169,7 +169,7 @@ namespace smol
   Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, const Transform& transform)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
-    nodes.lookup(handle)->meshNode.renderable = renderable;
+    nodes.lookup(handle)->mesh.renderable = renderable;
     return handle;
   }
 
@@ -192,19 +192,19 @@ namespace smol
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, t));
     SceneNode* node = nodes.lookup(handle);
 
-    node->spriteNode.rect = rect;
-    node->spriteNode.batcher = batcher;
-    node->spriteNode.width = width;
-    node->spriteNode.height = height;
-    node->spriteNode.angle = angle;
-    node->spriteNode.color = color;
+    node->sprite.rect = rect;
+    node->sprite.batcher = batcher;
+    node->sprite.width = width;
+    node->sprite.height = height;
+    node->sprite.angle = angle;
+    node->sprite.color = color;
 
 
     SpriteBatcher* batcherPtr = batchers.lookup(batcher);
     if (batcherPtr)
     {
       // copy the renreable handle to the node level
-      node->spriteNode.renderable = batcherPtr->renderable;
+      node->sprite.renderable = batcherPtr->renderable;
 
       batcherPtr->spriteCount++;
       batcherPtr->dirty = true;

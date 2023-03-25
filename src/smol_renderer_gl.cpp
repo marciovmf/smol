@@ -373,7 +373,7 @@ namespace smol
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
 
         Transform& transform = sceneNode->transform;
-        SpriteSceneNode& node = sceneNode->spriteNode;
+        SpriteNodeInfo& node = sceneNode->sprite;
 
         // convert UVs from pixels to 0~1 range
         // pixel coords origin is at top left corner
@@ -1082,15 +1082,15 @@ namespace smol
       switch(node->getType())
       {
         case SceneNode::MESH:
-          renderable = scene.renderables.lookup(node->meshNode.renderable);
+          renderable = scene.renderables.lookup(node->mesh.renderable);
           break;
 
         case SceneNode::SPRITE:
-          renderable = scene.renderables.lookup(node->spriteNode.renderable);
+          renderable = scene.renderables.lookup(node->sprite.renderable);
 
           if (node->isDirty())
           {
-            SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
+            SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
             batcher->dirty = true;
           }
           break;
@@ -1162,7 +1162,7 @@ namespace smol
       if (currentMaterialIndex != materialIndex)
       {
         currentMaterialIndex = materialIndex;
-        const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
+        const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
         Material* material = resourceManager.getMaterial(renderable->material);
         shaderProgramId = setMaterial(&scene, material, cameraNode);
       }
@@ -1185,7 +1185,7 @@ namespace smol
 
         glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
 
-        Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
+        Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
       }
       else if (node->typeIs(SceneNode::SPRITE))
@@ -1193,14 +1193,14 @@ namespace smol
         //TODO(marcio): get the view matrix from a camera!
         glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) scene.projectionMatrix2D.e);
 
-        SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
+        SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
         if(batcher->dirty)
         {
           updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
         }
 
         //draw
-        Renderable* renderable = scene.renderables.lookup(node->spriteNode.renderable);
+        Renderable* renderable = scene.renderables.lookup(node->sprite.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
         i+=batcher->spriteCount - 1;
       }

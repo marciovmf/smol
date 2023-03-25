@@ -14,12 +14,12 @@ namespace smol
   struct Renderable;
   struct SpriteBatcher;
 
-  struct MeshSceneNode
+  struct MeshNodeInfo
   {
     Handle<Renderable> renderable;
   };
 
-  struct SpriteSceneNode : public MeshSceneNode
+  struct SpriteNodeInfo : public MeshNodeInfo
   {
     Handle<SpriteBatcher> batcher;
     Rect rect;
@@ -43,8 +43,8 @@ namespace smol
     Transform transform;
     union
     {
-      MeshSceneNode meshNode;
-      SpriteSceneNode spriteNode;
+      MeshNodeInfo mesh;
+      SpriteNodeInfo sprite;
       Camera camera;
     };
 
