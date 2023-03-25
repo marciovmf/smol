@@ -62,16 +62,16 @@ namespace smol
     public:
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     void setActive(bool status);
-    inline bool isValid()  { return type != SceneNode::Type::INVALID; }
-    inline bool isActive() { return active; }
-    inline bool isDirty() { return dirty; }
-    inline void setDirty(bool value) { dirty = value; }
-    inline Type getType() { return type; }
-    inline bool typeIs(Type t) { return type == t; }
-    inline void setLayer(Layer l) { layer = l; }
-    inline Layer getLayer() { return layer; }
-    bool isActiveInHierarchy();
+    void setDirty(bool value);
+    bool isValid() const;
+    bool isActive() const;
+    bool isDirty() const;
+    Type getType() const;
+    Layer getLayer() const;
+    bool typeIs(Type t) const;
+    bool isActiveInHierarchy() const;
     void setParent(Handle<SceneNode> parent);
+    void setLayer(Layer l);
   };
 }
 

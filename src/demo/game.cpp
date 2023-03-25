@@ -111,7 +111,7 @@ void onStart()
   const int changeLimit = 3;
   int nextChange = 0;
 
-  for (int i = 0; i < 3000; i++)
+  for (int i = 0; i < 5000; i++)
   {
     float randX = (rand() % 100 - rand() % 100) * 1.0f;
     float randZ = (rand() % 100 - rand() % 100) * 1.0f;

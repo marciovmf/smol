@@ -10,7 +10,7 @@ namespace smol
   { 
   }
 
-  bool SceneNode::isActiveInHierarchy()
+  bool SceneNode::isActiveInHierarchy() const
   {
     if (!active)
       return false;
@@ -51,4 +51,19 @@ namespace smol
     dirty = true;
   }
 
+  void SceneNode::setDirty(bool value) { dirty = value; }
+
+  bool SceneNode::isValid() const { return type != SceneNode::Type::INVALID; }
+
+  bool SceneNode::isActive() const { return active; }
+
+  bool SceneNode::isDirty() const { return dirty; }
+
+  SceneNode::Type SceneNode::getType() const { return type; }
+
+  Layer SceneNode::getLayer() const { return layer; }
+
+  bool SceneNode::typeIs(Type t) const { return type == t; }
+
+  void SceneNode::setLayer(smol::Layer l) { layer = l; }
 }

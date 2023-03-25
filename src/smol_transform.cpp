@@ -1,6 +1,7 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_scene_nodes.h>
 #include <smol/smol_systems_root.h>
+#include <smol/smol_scene.h>
 
 namespace smol
 {
@@ -9,10 +10,7 @@ namespace smol
   {
   }
 
-  const Mat4& Transform::getMatrix() const
-  {
-    return model; 
-  }
+  inline const Mat4& Transform::getMatrix() const { return model; }
 
   void Transform::setPosition(float x, float y, float z) 
   { 
@@ -62,41 +60,38 @@ namespace smol
     dirty = true;
   }
 
-  Handle<SceneNode> Transform::getParent()
-  {
-    return parent;
-  }
+  inline const Vector3& Transform::getPosition() const { return position; }
 
-  const Vector3& Transform::getPosition() const { return position; }
+  inline const Vector3& Transform::getScale() const { return scale; }
 
-  const Vector3& Transform::getScale() const { return scale; }
+  inline const Vector3& Transform::getRotation() const { return rotation; }
 
-  const Vector3& Transform::getRotation() const { return rotation; }
+  inline Handle<SceneNode> Transform::getParent() const { return parent; }
 
-  bool Transform::isDirty(const HandleList<SceneNode>& nodes) const 
+  bool Transform::isDirty(const Scene& scene) const
   {
     // the Dirty flag is meant to allow us to skip matrix calculations
     // if neither the node or it's parents have changed
-    SceneNode* parentNode = nodes.lookup(parent);
-    if (parentNode && !parentNode->typeIs(SceneNode::ROOT))
+    SceneNode& parentNode = scene.getNode(parent);
+    if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
     {
-      return parentNode->transform.isDirty(nodes) || dirty;
+      return parentNode.transform.isDirty(scene) || dirty;
     }
     return dirty;
   }
 
-  void Transform::update(const HandleList<SceneNode>& nodes)
+  void Transform::update(const Scene& scene)
   {
-    SceneNode* parentNode = nodes.lookup(parent);
+    SceneNode& parentNode = scene.getNode(parent);
     Mat4 parentMatrix;
 
     // Do nothing if nothing changed
-    if (isDirty(nodes))
+    if (isDirty(scene))
     {
-      if (parentNode && !parentNode->typeIs(SceneNode::ROOT))
+      if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
       {
-        parentNode->transform.update(nodes);
-        parentMatrix = parentNode->transform.model;
+        parentNode.transform.update(scene);
+        parentMatrix = parentNode.transform.model;
       }
       else
       {

@@ -252,7 +252,7 @@ namespace smol
     return newHandle;
   }
 
-  SceneNode& Scene::getNode(Handle<SceneNode> handle)
+  SceneNode& Scene::getNode(Handle<SceneNode> handle) const
   {
     SceneNode* node = nodes.lookup(handle);
     if(node)

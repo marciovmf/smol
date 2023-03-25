@@ -107,7 +107,7 @@ namespace smol
     //
     // misc
     //
-    SceneNode& getNode(Handle<SceneNode> handle);
+    SceneNode& getNode(Handle<SceneNode> handle) const;
   };
 }
 

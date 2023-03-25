@@ -11,6 +11,7 @@
 namespace smol
 {
   struct SceneNode;
+  struct Scene;
 
   class SMOL_ENGINE_API Transform
   {
@@ -29,7 +30,7 @@ namespace smol
         Vector3 scale     = Vector3{1.0f, 1.0f, 1.0f}, 
         Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
 
-    void update(const HandleList<SceneNode>& nodes);
+    void update(const Scene& scene);
 
     const Mat4& getMatrix() const;
 
@@ -47,18 +48,18 @@ namespace smol
 
     void setParent(Handle<SceneNode> parent);
 
-    Handle<SceneNode> getParent();
-
     const Vector3& getPosition() const;
 
     const Vector3& getScale() const;
 
     const Vector3& getRotation() const;
 
-    inline void clearDirtyFlag() { dirty = false; }
+    Handle<SceneNode> Transform::getParent() const;
+
+    void clearDirtyFlag() { dirty = false; }
 
     private:
-    bool isDirty(const HandleList<SceneNode>& nodes) const;
+    bool isDirty(const Scene& scene) const;
 
   };
 }

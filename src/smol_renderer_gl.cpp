@@ -1114,7 +1114,7 @@ namespace smol
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->transform.update(scene.nodes);
+      node->transform.update(scene);
       Renderable* renderable = nullptr;
       bool discard = false;
 
