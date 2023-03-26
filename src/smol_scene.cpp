@@ -13,10 +13,10 @@
 
 namespace smol
 {
-  const size_t SpriteBatcher::positionsSize = 4 * sizeof(Vector3);
-  const size_t SpriteBatcher::colorsSize = 4 * sizeof(Color);
-  const size_t SpriteBatcher::uvsSize = 4 * sizeof(Vector2);
-  const size_t SpriteBatcher::indicesSize = 6 * sizeof(unsigned int);
+  const size_t SpriteBatcher::positionsSize   = 4 * sizeof(Vector3);
+  const size_t SpriteBatcher::colorsSize      = 4 * sizeof(Color);
+  const size_t SpriteBatcher::uvsSize         = 4 * sizeof(Vector2);
+  const size_t SpriteBatcher::indicesSize     = 6 * sizeof(unsigned int);
   const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
 
   // First node handle always points to the ROOT scene node

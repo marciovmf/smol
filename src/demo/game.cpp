@@ -19,6 +19,7 @@ smol::Handle<smol::ShaderProgram> shader;
 smol::Handle<smol::Material> checkersMaterial;
 smol::Handle<smol::Mesh> mesh;
 smol::Handle<smol::SpriteBatcher> batcher;
+float vpsize = 0.2f;
 
 int shape = 0;
 
@@ -87,9 +88,9 @@ void onStart()
 
   // camera
   smol::Transform t;
-  smol::Rect viewport =
-    root->renderer.getViewport();
+  smol::Rect viewport = root->renderer.getViewport();
   cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  scene.getNode(cameraNode).camera.setViewportRect(smol::Rectf(0.0f, 0.5f, 0.5f, 0.5f));
   scene.setMainCamera(cameraNode);
 
   smol::SceneNode& pCameraNode = scene.getNode(cameraNode);
@@ -236,6 +237,14 @@ void onUpdate(float deltaTime)
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
       }
     }
+  }
+
+
+  if (keyboard.getKeyDown(smol::KEYCODE_V) )
+  {
+    vpsize += 0.2f;
+    if (vpsize > 1.0f) vpsize = 0.2f;
+    scene.getNode(cameraNode).camera.setViewportRect(smol::Rectf(0.0f, 0.0f, vpsize, vpsize));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }

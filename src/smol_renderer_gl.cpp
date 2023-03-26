@@ -1008,8 +1008,6 @@ namespace smol
     this->viewport.h = height;
     Scene& scene = *this->scene;
 
-    glViewport(0, 0, width, height);
-
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
@@ -1018,7 +1016,15 @@ namespace smol
     if (node)
     {
       Camera& camera = node->camera;
-      camera.setPerspective(camera.fov, width/(float)height, camera.zNear, camera.zFar);
+
+      const smol::Rectf& cameraRect = camera.getViewportRect();
+      glViewport(
+          (GLsizei) (width * cameraRect.x),
+          (GLsizei) (height * cameraRect.y),
+          (GLsizei) (width * cameraRect.w),
+          (GLsizei) (height * cameraRect.h));
+
+      camera.setPerspective(camera.getFOV(), width/(float)height, camera.getNearClipDistance(), camera.getFarClipDistance());
       scene.projectionMatrix = camera.getProjectionMatrix();
     }
     else
@@ -1065,8 +1071,28 @@ namespace smol
 
     //TODO(marcio): support multiple cameras
     // find the main camera
-    const SceneNode* cameraNode = scene.nodes.lookup(scene.mainCamera);
+    SceneNode* cameraNode = scene.nodes.lookup(scene.mainCamera);
     uint32 cameraLayers = cameraNode->camera.getLayerMask();
+
+    // ----------------------------------------------------------------------
+    // Update viewport and projection if necessary
+    // This must be done per camera when we support multiple cameras
+    unsigned int cameraFlags = cameraNode->camera.getFlags();
+    cameraNode->camera.clearFlags();
+    if (cameraFlags | Camera::Flag::VIEWPORT_CHANGED)
+    {
+      const Rectf& cameraRect = cameraNode->camera.getViewportRect();
+      glViewport(
+          (GLsizei) (viewport.w * cameraRect.x),
+          (GLsizei) (viewport.h * cameraRect.y),
+          (GLsizei) (viewport.w * cameraRect.w),
+          (GLsizei) (viewport.h * cameraRect.h));
+    }
+
+    if (cameraFlags | Camera::Flag::PROJECTION_CHANGED)
+    {
+      resize(viewport.w, viewport.h);
+    }
 
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
