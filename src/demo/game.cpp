@@ -44,15 +44,16 @@ void onStart()
       smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
 
   resourceManager.getMaterial(checkersMaterial)
-    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
 
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
+  resourceManager.getMaterial(floorMaterial)
+    .setVec4("color",(const smol::Vector4&)  smol::Color(210, 227, 70));
+
+
   auto floor = scene.createRenderable(floorMaterial,
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
-
-  resourceManager.getMaterial(floorMaterial)
-    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
@@ -90,6 +91,7 @@ void onStart()
   smol::Transform t;
   smol::Rect viewport = root->renderer.getViewport();
   cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  //cameraNode = scene.createOrthographicCameraNode(0.0f, (float)viewport.w, (float)viewport.h, 0.0f, 0.01f, 3000.0f, t);
   scene.setMainCamera(cameraNode);
 
   smol::SceneNode& pCameraNode = scene.getNode(cameraNode);
@@ -107,7 +109,7 @@ void onStart()
       resourceManager.loadMaterial("assets/grass_02.material"),
       scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
-  const int changeLimit = 3;
+  const int changeLimit = 20;
   int nextChange = 0;
 
   for (int i = 0; i < 3000; i++)
@@ -116,17 +118,28 @@ void onStart()
     float randZ = (rand() % 100 - rand() % 100) * 1.0f;
 
     float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
-    float randScale = (rand() % 30 - rand() % 30) / 30.0f;
-    randScale *= 1.5f;
+    float randScale = (rand() % 30) / 30.0f;
 
     smol::Transform t;
     nextChange = ++nextChange % changeLimit;
+
+    bool isTallGrass;
+    if (nextChange == 0)
+    {
+      isTallGrass = true;
+      randScale *= 5.0f;
+    }
+    else
+    {
+      isTallGrass = false;
+      randScale *= 3.0f;
+    }
+
     t.setPosition(randX, -2.0f, randZ);
     t.setRotation(0.0f, randAngle, 0.0f);
-    t.setScale(2.0f + randScale, 2.0f + randScale, 2.0f + randScale);
+    t.setScale(randScale, randScale, randScale);
 
-    scene.createMeshNode(
-        (nextChange == 0) ? grassRenderable1 : grassRenderable2, t);
+    scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
   }
 
   // sprites
@@ -249,12 +262,12 @@ void onUpdate(float deltaTime)
   if (keyboard.getKeyDown(smol::KEYCODE_F2)) {
     scene.getNode(cameraNode).camera
       .setClearOperation((smol::Camera::ClearOperation::DEPTH | smol::Camera::ClearOperation::COLOR));
-   }
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F3)) {
     scene.getNode(cameraNode).camera
       .setClearOperation((unsigned int)smol::Camera::ClearOperation::DEPTH);
-   }
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
 
@@ -349,7 +362,6 @@ void onUpdate(float deltaTime)
 
   // bounce sprite1 across the screen borders
   transform = &scene.getNode(sprite1).transform;
-
   smol::Vector3 position = transform->getPosition();
   smol::Rect viewport = renderer.getViewport();
 
