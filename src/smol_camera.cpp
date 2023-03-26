@@ -4,6 +4,13 @@
 
 namespace smol
 {
+  Camera::Camera():
+    flags(Flag::CLEAR_COLOR_CHANGED),
+    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    clearColor(Color::WHITE)
+  {
+  }
+
   Camera& Camera::setPerspective(float fov, float aspect, float zNear, float zFar)
   {
     this->type = Camera::PERSPECTIVE;
@@ -68,8 +75,27 @@ namespace smol
 
   Camera::Type Camera::getCameraType() const { return type; }
 
-  unsigned int Camera::getFlags() const { return flags; }
+  unsigned int Camera::getStatusFlags() const { return flags; }
 
-  void Camera::clearFlags() { flags = 0; };
+  void Camera::resetStatusFlags() { flags = 0; };
+
+  unsigned int Camera::getClearOperation() const { return clearOperation; }
+
+  Camera& Camera::setClearOperation(unsigned int operation)
+  {
+    this->clearOperation = operation;
+    return *this;
+  }
+
+  const Color& Camera::getClearColor() const
+  {
+    return clearColor;
+  }
+
+  Camera& Camera::setClearColor(const Color& color)
+  {
+    clearColor = color;
+    return *this;
+  }
 
 }

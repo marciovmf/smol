@@ -2,6 +2,7 @@
 #define SMOL_CAMERA_H
 
 #include <smol/smol_engine.h>
+#include <smol/smol_color.h>
 #include <smol/smol_mat4.h>
 #include <smol/smol_rect.h>
 namespace smol
@@ -13,12 +14,20 @@ namespace smol
       NONE                = 0,
       VIEWPORT_CHANGED    = 1 << 1,
       PROJECTION_CHANGED  = 1 << 2,
+      CLEAR_COLOR_CHANGED = 1 << 3
     };
 
     enum Type
     {
-      PERSPECTIVE = 0,
-      ORTHOGRAPHIC = 1
+      PERSPECTIVE       = 0,
+      ORTHOGRAPHIC      = 1
+    };
+
+    enum ClearOperation
+    {
+      DONT_CLEAR        = 0,
+      COLOR             = 1 << 0,
+      DEPTH             = 1 << 1
     };
 
     private:
@@ -35,8 +44,11 @@ namespace smol
     uint32 layers;
     Mat4 viewMatrix;
     unsigned int flags;
+    unsigned int clearOperation;
+    Color clearColor;
 
     public:
+    Camera::Camera();
     Camera& setPerspective(float fov, float aspect, float zNear, float zFar);
     Camera& setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar);
     Camera& setLayerMask(uint32 layers);
@@ -51,8 +63,15 @@ namespace smol
     float getNearClipDistance() const;
     float getFarClipDistance() const;
     Camera::Type getCameraType() const;
-    unsigned int getFlags() const;
-    void clearFlags();
+    unsigned int getStatusFlags() const;
+    void resetStatusFlags();
+
+    unsigned int getClearOperation() const;
+    Camera& setClearOperation(unsigned int operation);
+
+    const Color& getClearColor() const;
+    Camera& setClearColor(const Color& color);
+
   };
 }
 #endif  // SMOL_CAMERA_H

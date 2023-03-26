@@ -56,6 +56,7 @@ namespace smol
     Layer layer;
 
     public:
+    SceneNode();
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     void setActive(bool status);
     void setDirty(bool value);

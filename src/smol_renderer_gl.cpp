@@ -1047,22 +1047,6 @@ namespace smol
     const GLuint defaultTextureId = resourceManager.getDefaultTexture().textureObject;
     const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
-    // ----------------------------------------------------------------------
-    // CLEAR
-    if (scene.clearOperation != Scene::DONT_CLEAR)
-    {
-      GLuint glClearFlags = 0;
-
-      if (scene.clearOperation & Scene::COLOR_BUFFER)
-        glClearFlags |= GL_COLOR_BUFFER_BIT;
-
-      if (scene.clearOperation & Scene::DEPTH_BUFFER)
-        glClearFlags |= GL_DEPTH_BUFFER_BIT;
-
-      glClearColor(scene.clearColor.x, scene.clearColor.y, scene.clearColor.z, 1.0f);
-      glClear(glClearFlags);
-    }
-
     const SceneNode* allNodes = scene.nodes.getArray();
     int numNodes = scene.nodes.count();
 
@@ -1075,11 +1059,11 @@ namespace smol
     uint32 cameraLayers = cameraNode->camera.getLayerMask();
 
     // ----------------------------------------------------------------------
-    // Update viewport and projection if necessary
-    // This must be done per camera when we support multiple cameras
-    unsigned int cameraFlags = cameraNode->camera.getFlags();
-    cameraNode->camera.clearFlags();
-    if (cameraFlags | Camera::Flag::VIEWPORT_CHANGED)
+    // VIEWPORT (per camera)
+    unsigned int cameraStatus = cameraNode->camera.getStatusFlags();
+    cameraNode->camera.resetStatusFlags();
+
+    if (cameraStatus & Camera::Flag::VIEWPORT_CHANGED)
     {
       const Rectf& cameraRect = cameraNode->camera.getViewportRect();
       glViewport(
@@ -1089,10 +1073,34 @@ namespace smol
           (GLsizei) (viewport.h * cameraRect.h));
     }
 
-    if (cameraFlags | Camera::Flag::PROJECTION_CHANGED)
+    if (cameraStatus & Camera::Flag::PROJECTION_CHANGED)
     {
       resize(viewport.w, viewport.h);
     }
+
+
+    // ----------------------------------------------------------------------
+    // CLEAR (per camera)
+    if (cameraStatus & Camera::Flag::CLEAR_COLOR_CHANGED)
+    {
+      const Color& clearColor = cameraNode->camera.getClearColor();
+      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+    }
+
+    unsigned int clearOperation = cameraNode->camera.getClearOperation();
+    if (clearOperation != Camera::ClearOperation::DONT_CLEAR)
+    {
+      GLuint glClearFlags = 0;
+
+      if (clearOperation & Camera::ClearOperation::COLOR)
+        glClearFlags |= GL_COLOR_BUFFER_BIT;
+
+      if (clearOperation & Camera::ClearOperation::DEPTH)
+        glClearFlags |= GL_DEPTH_BUFFER_BIT;
+
+      glClear(glClearFlags);
+    }
+
 
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys

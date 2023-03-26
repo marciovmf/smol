@@ -28,13 +28,6 @@ namespace smol
   {
     static const Handle<SceneNode> ROOT;
 
-    enum ClearOperation
-    {
-      DONT_CLEAR = 0,
-      COLOR_BUFFER = 1,
-      DEPTH_BUFFER = 1 << 1
-    };
-
     HandleList<smol::Mesh> meshes;
     HandleList<smol::Renderable> renderables;
     HandleList<smol::SceneNode> nodes;
@@ -48,8 +41,6 @@ namespace smol
     Mat4 projectionMatrix;
     Handle<SceneNode> mainCamera;
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
-    Vector3 clearColor;
-    ClearOperation clearOperation;
     const smol::SceneNode nullSceneNode;
 
     Scene(ResourceManager& resourceManager);

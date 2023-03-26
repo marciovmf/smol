@@ -29,10 +29,8 @@ namespace smol
     batchers(8 * sizeof(SpriteBatcher)),
     renderKeys(1024 * sizeof(uint64)),
     renderKeysSorted(1024 * sizeof(uint64)),
-    clearColor(160/255.0f, 165/255.0f, 170/255.0f),
     mainCamera(INVALID_HANDLE(SceneNode)),
-    clearOperation((ClearOperation)(COLOR_BUFFER | DEPTH_BUFFER)),
-    nullSceneNode(SceneNode(this, SceneNode::Type::INVALID))
+    nullSceneNode(this, SceneNode::Type::INVALID)
   {
     viewMatrix = Mat4::initIdentity();
 
@@ -213,6 +211,7 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
+    node->camera = Camera();
     node->camera.setPerspective(fov, aspect, zNear, zFar);
     node->camera.setLayerMask((uint32) Layer::LAYER_0);
     return handle;
@@ -222,6 +221,7 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
+    node->camera = Camera();
     node->camera.setOrthographic(left, right, top, bottom, zNear, zFar);
     node->camera.setLayerMask((uint32) Layer::LAYER_0);
     return handle;

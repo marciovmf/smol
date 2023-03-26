@@ -27,6 +27,7 @@ namespace smol
 
     Color(int r, int g, int b, int a = 255);
     Color(float r, float g, float b, float a = 1.0f);
+    Color(const Color& other);
   };
 }
 
