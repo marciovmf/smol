@@ -1,7 +1,6 @@
 #ifndef SMOL_TEXTURE_H
 #define SMOL_TEXTURE_H
 
-//TODO(marcio): Get rid of GL specific types on this header
 namespace smol
 {
   struct SMOL_ENGINE_API Texture
@@ -33,7 +32,11 @@ namespace smol
 
     int width;
     int height;
-    unsigned int textureObject;  //TODO(marcio): Make it explicit that this is for GL only
+    union
+    {
+      unsigned int glTextureObject;
+      // Other Renderer API specific goes here...
+    };
   };
 }
 

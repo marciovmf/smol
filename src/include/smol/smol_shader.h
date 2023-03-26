@@ -23,14 +23,24 @@ namespace smol
 
       Type type;
       char name[SMOL_MAX_SHADER_PARAMETER_NAME_LEN];
-      unsigned int location;  //TODO(marcio): Make it explicit that this is for GL only
+
+      union
+      {
+        unsigned int glUniformLocation;
+        // Other Renderer API specific goes here...
+      };
   };
 
 #define SMOL_MAX_SHADER_PARAMETERS 16
   struct SMOL_ENGINE_API ShaderProgram
   {
     bool valid;
-    unsigned int programId; //TODO(marcio): Make it explicit that this is for GL only
+    union
+    {
+      unsigned int glProgramId;
+      // Other Renderer API specific goes here...
+    };
+
     ShaderParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
     int parameterCount;
   };

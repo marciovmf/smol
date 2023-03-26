@@ -85,14 +85,14 @@ namespace smol
     if(shader.valid)
     {
       // use WHITE as default color for vertex attribute when using a valid shader
-      shaderProgramId = shader.programId;
+      shaderProgramId = shader.glProgramId;
       glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
     }
     else
     {
       // use MAGENTA as default color for vertex attribute when using the default shader
       //
-      shaderProgramId = resourceManager.getShader(scene->defaultShader).programId;
+      shaderProgramId = resourceManager.getShader(scene->defaultShader).glProgramId;
       glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
     }
 
@@ -124,32 +124,32 @@ namespace smol
             Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
             Texture& texture = resourceManager.getTexture(hTexture);
             glActiveTexture(GL_TEXTURE0 + textureIndex);
-            GLuint textureId = texture.textureObject;
+            GLuint textureId = texture.glTextureObject;
             glBindTexture(GL_TEXTURE_2D, textureId);
           }
           break;
         case ShaderParameter::FLOAT:
-          glUniform1f(parameter.location, parameter.floatValue);
+          glUniform1f(parameter.glUniformLocation, parameter.floatValue);
           break;
 
         case ShaderParameter::VECTOR2:
-          glUniform2f(parameter.location, parameter.vec2Value.x, parameter.vec2Value.y);
+          glUniform2f(parameter.glUniformLocation, parameter.vec2Value.x, parameter.vec2Value.y);
           break;
 
         case ShaderParameter::VECTOR3:
-          glUniform3f(parameter.location, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
+          glUniform3f(parameter.glUniformLocation, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
           break;
 
         case ShaderParameter::VECTOR4:
-          glUniform4f(parameter.location, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
+          glUniform4f(parameter.glUniformLocation, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
           break;
 
         case ShaderParameter::INT:
-          glUniform1i(parameter.location, parameter.intValue);
+          glUniform1i(parameter.glUniformLocation, parameter.intValue);
           break;
 
         case ShaderParameter::UNSIGNED_INT:
-          glUniform1ui(parameter.location, parameter.uintValue);
+          glUniform1ui(parameter.glUniformLocation, parameter.uintValue);
           break;
 
         default:
@@ -157,7 +157,7 @@ namespace smol
           break;
       }
     }
-  
+
     return shaderProgramId;
   }
 
@@ -435,8 +435,8 @@ namespace smol
       textureType = GL_UNSIGNED_SHORT_5_6_5;
     }
 
-    glGenTextures(1, &outTexture->textureObject);
-    glBindTexture(GL_TEXTURE_2D, outTexture->textureObject);
+    glGenTextures(1, &outTexture->glTextureObject);
+    glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
 
     GLuint mode;
@@ -497,12 +497,12 @@ namespace smol
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    return outTexture->textureObject != 0;
+    return outTexture->glTextureObject != 0;
   }
 
   void Renderer::destroyTexture(Texture* texture)
   {
-    glDeleteTextures(1, &texture->textureObject);
+    glDeleteTextures(1, &texture->glTextureObject);
   }
 
   //
@@ -512,7 +512,7 @@ namespace smol
   bool Renderer::createShaderProgram(ShaderProgram* outShader, const char* vsSource, const char* fsSource, const char* gsSource)
   {
     outShader->valid = false;
-    outShader->programId = 0;
+    outShader->glProgramId = 0;
 
     GLint status;
     const int errorLogSize = 1024;
@@ -637,7 +637,7 @@ namespace smol
           break;
       }
 
-      parameter.location = glGetUniformLocation(program, parameter.name);
+      parameter.glUniformLocation = glGetUniformLocation(program, parameter.name);
       outShader->parameterCount++;
     }
 
@@ -646,7 +646,7 @@ namespace smol
     glDeleteShader(fShader);
     if (gShader) glDeleteShader(gShader);
 
-    outShader->programId = program;
+    outShader->glProgramId = program;
     outShader->valid = true;
     return true;
   }
@@ -682,8 +682,8 @@ namespace smol
 
   void Renderer::destroyShaderProgram(ShaderProgram* program)
   {
-    glDeleteProgram(program->programId);
-    program->programId = -1;
+    glDeleteProgram(program->glProgramId);
+    program->glProgramId = -1;
     program->valid = false;
   }
 
@@ -974,8 +974,8 @@ namespace smol
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
-    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().programId;
-    const GLuint defaultTextureId = resourceManager.getDefaultTexture().textureObject;
+    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().glProgramId;
+    const GLuint defaultTextureId = resourceManager.getDefaultTexture().glTextureObject;
     const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
     const SceneNode* allNodes = scene.nodes.getArray();
