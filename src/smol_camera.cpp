@@ -7,7 +7,8 @@ namespace smol
   Camera::Camera():
     flags(Flag::CLEAR_COLOR_CHANGED),
     clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
-    clearColor(Color::WHITE)
+    clearColor(Color::GRAY),
+    rect(0.0f, 0.0f, 1.0f, 1.0f)
   {
   }
 
