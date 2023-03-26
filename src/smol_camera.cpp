@@ -95,6 +95,7 @@ namespace smol
   Camera& Camera::setClearColor(const Color& color)
   {
     clearColor = color;
+    flags |= Flag::CLEAR_COLOR_CHANGED;
     return *this;
   }
 
