@@ -90,7 +90,6 @@ void onStart()
   smol::Transform t;
   smol::Rect viewport = root->renderer.getViewport();
   cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
-  scene.getNode(cameraNode).camera.setViewportRect(smol::Rectf(0.0f, 0.5f, 0.5f, 0.5f));
   scene.setMainCamera(cameraNode);
 
   smol::SceneNode& pCameraNode = scene.getNode(cameraNode);
@@ -247,6 +246,16 @@ void onUpdate(float deltaTime)
     scene.getNode(cameraNode).camera.setViewportRect(smol::Rectf(0.0f, 0.0f, vpsize, vpsize));
   }
 
+  if (keyboard.getKeyDown(smol::KEYCODE_F2)) {
+    scene.getNode(cameraNode).camera
+      .setClearOperation((smol::Camera::ClearOperation::DEPTH | smol::Camera::ClearOperation::COLOR));
+   }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F3)) {
+    scene.getNode(cameraNode).camera
+      .setClearOperation((unsigned int)smol::Camera::ClearOperation::DEPTH);
+   }
+
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F7)) { root->resourceManager.destroyMaterial(checkersMaterial); }
@@ -265,6 +274,34 @@ void onUpdate(float deltaTime)
       selectedNode = cameraNode;
     else if (selectedNode == cameraNode)
       selectedNode = node1;
+  }
+
+
+  if (keyboard.getKeyDown(smol::KEYCODE_R)) 
+  {
+    smol::SceneNode& camera = scene.getNode(cameraNode);
+    smol::Color color = camera.camera.getClearColor();
+    color.r+=0.2f;
+    if (color.r > 1.0f) color.r = 0.0f;
+    camera.camera.setClearColor(color);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_G))
+  {
+    smol::SceneNode& camera = scene.getNode(cameraNode);
+    smol::Color color = camera.camera.getClearColor();
+    color.g+=0.2f;
+    if (color.g > 1.0f) color.g = 0.0f;
+    camera.camera.setClearColor(color);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_B))
+  {
+    smol::SceneNode& camera = scene.getNode(cameraNode);
+    smol::Color color = camera.camera.getClearColor();
+    color.b+=0.2f;
+    if (color.b > 1.0f) color.b = 0.0f;
+    camera.camera.setClearColor(color);
   }
 
   // left/right
