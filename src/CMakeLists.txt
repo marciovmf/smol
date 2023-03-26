@@ -46,6 +46,10 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
+  ${SOURCE_PATH}/include/smol/smol_shader.h
+  ${SOURCE_PATH}/include/smol/smol_texture.h
+  ${SOURCE_PATH}/include/smol/smol_material.h
+  ${SOURCE_PATH}/smol_material.cpp
   ${SOURCE_PATH}/include/smol/smol_handle_list.h
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/smol_systems_root.cpp
