@@ -199,7 +199,6 @@ namespace smol
     {
       // copy the renreable handle to the node level
       node->sprite.renderable = batcherPtr->renderable;
-
       batcherPtr->spriteCount++;
       batcherPtr->dirty = true;
     }
@@ -211,9 +210,7 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera();
-    node->camera.setPerspective(fov, aspect, zNear, zFar);
-    node->camera.setLayerMask((uint32) Layer::LAYER_0);
+    node->camera = Camera(fov, aspect, zNear, zFar);
     return handle;
   }
 
@@ -221,9 +218,7 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera();
-    node->camera.setOrthographic(left, right, top, bottom, zNear, zFar);
-    node->camera.setLayerMask((uint32) Layer::LAYER_0);
+    node->camera = Camera(left, right, top, bottom, zNear, zFar);
     return handle;
   }
 
@@ -235,7 +230,6 @@ namespace smol
 
     mainCamera = handle;
   }
-
 
   Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
   {

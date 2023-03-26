@@ -48,7 +48,10 @@ namespace smol
     Color clearColor;
 
     public:
-    Camera::Camera();
+
+    Camera(float left, float right, float top, float bottom, float zNear, float zFar);
+    Camera(float fov, float aspect, float zNear, float zFar);
+
     Camera& setPerspective(float fov, float aspect, float zNear, float zFar);
     Camera& setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar);
     Camera& setLayerMask(uint32 layers);

@@ -4,12 +4,24 @@
 
 namespace smol
 {
-  Camera::Camera():
-    flags(Flag::CLEAR_COLOR_CHANGED),
+  Camera::Camera(float left, float right, float top, float bottom, float zNear, float zFar)
+    :flags(Flag::CLEAR_COLOR_CHANGED),
     clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
     clearColor(Color::GRAY),
+    layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f)
   {
+    setOrthographic(left, right, top, bottom, zNear, zFar);
+  }
+
+  Camera::Camera(float fov, float aspect, float zNear, float zFar)
+    :flags(Flag::CLEAR_COLOR_CHANGED),
+    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    clearColor(Color::GRAY),
+    layers(Layer::LAYER_0),
+    rect(0.0f, 0.0f, 1.0f, 1.0f)
+  {
+    setPerspective(fov, aspect, zNear, zFar);
   }
 
   Camera& Camera::setPerspective(float fov, float aspect, float zNear, float zFar)
@@ -27,6 +39,8 @@ namespace smol
   Camera& Camera::setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar)
   {
     this->type = Camera::ORTHOGRAPHIC;
+    this->zNear = zNear;
+    this->zFar = zFar;
     this->left = left;
     this->right = right;
     this->top = top;
