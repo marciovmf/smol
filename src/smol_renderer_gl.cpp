@@ -1008,7 +1008,6 @@ namespace smol
     this->viewport.h = height;
     Scene& scene = *this->scene;
 
-    glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
 
