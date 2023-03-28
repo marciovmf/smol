@@ -30,7 +30,7 @@ namespace smol
         Vector3 scale     = Vector3{1.0f, 1.0f, 1.0f}, 
         Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
 
-    void update(const Scene& scene);
+    bool update(const Scene& scene);
 
     const Mat4& getMatrix() const;
 
@@ -56,9 +56,9 @@ namespace smol
 
     Handle<SceneNode> Transform::getParent() const;
 
-    void clearDirtyFlag() { dirty = false; }
+    void setDirty(bool value);
 
-    private:
+    // returns true if the node or it's parents have changed this frame.
     bool isDirty(const Scene& scene) const;
 
   };

@@ -147,7 +147,7 @@ void onStart()
   auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
 
   resourceManager.getMaterial(smolMaterial)
-    .setVec4("color", smol::Vector4(0.0f, 0.5f, 0.3f, 0.8f));
+    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   batcher = scene.createSpriteBatcher(smolMaterial);
   sprite1 = scene.createSpriteNode(batcher,

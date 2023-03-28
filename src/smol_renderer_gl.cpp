@@ -265,6 +265,7 @@ namespace smol
     // do we need to update the data on the GPU ?
     if (batcher->dirty)
     {
+      batcher->dirty = false;
       ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
       Material& material = resourceManager.getMaterial(renderable->material);
@@ -349,7 +350,6 @@ namespace smol
           indices, 6 * batcher->spriteCount, colors, nullptr, uvs);
 
       Renderer::updateMesh(mesh, &meshData);
-      batcher->dirty = false;
     }
 
     return batcher->spriteCount;
@@ -1038,9 +1038,9 @@ namespace smol
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->transform.update(scene);
       Renderable* renderable = nullptr;
       bool discard = false;
+      bool updateTransform = true;
 
       switch(node->getType())
       {
@@ -1051,7 +1051,7 @@ namespace smol
         case SceneNode::SPRITE:
           renderable = scene.renderables.lookup(node->sprite.renderable);
 
-          if (node->isDirty())
+          if (node->transform.isDirty(scene) || node->isDirty())
           {
             SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
             batcher->dirty = true;
@@ -1060,14 +1060,17 @@ namespace smol
 
         case SceneNode::ROOT:
           discard = true;
+          updateTransform = false;
           break;
 
         case SceneNode::CAMERA:
           discard = true;
+          updateTransform = true;
           break;
 
         default:
           discard = true;
+          updateTransform = false;
           break;
       }
 
@@ -1091,7 +1094,9 @@ namespace smol
             materialPtr.renderQueue, i);
       }
 
-      node->setDirty(false);
+      if (updateTransform)
+        node->transform.update(scene);
+
     }
 
     // ----------------------------------------------------------------------
@@ -1108,6 +1113,7 @@ namespace smol
     GLuint uniformLocationProj = 0;
     GLuint uniformLocationView = 0;
     GLuint uniformLocationModel = 0;
+    Mat4 identity = Mat4::initIdentity();
 
     for(int i = 0; i < numKeys; i++)
     {
@@ -1115,7 +1121,8 @@ namespace smol
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
       SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
 
-      node->transform.clearDirtyFlag(); // reset transform dirty flag
+      node->setDirty(false);
+      node->transform.setDirty(false); // reset transform dirty flag
 
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
@@ -1153,8 +1160,19 @@ namespace smol
       }
       else if (node->typeIs(SceneNode::SPRITE))
       {
-        //TODO(marcio): get the view matrix from a camera!
+
+        Transform t;
+
+        // Relative to SCREEN
         glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) scene.projectionMatrix2D.e);
+        glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) t.getMatrix().inverse().e);
+        glUniformMatrix4fv(uniformLocationModel,   1, 0, (const float*) identity.e);
+        
+
+        // Relative to current Camera
+        //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
+        //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
+        //glUniformMatrix4fv(uniformLocationModel,   1, 0, (const float*) identity.e);
 
         SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
         if(batcher->dirty)

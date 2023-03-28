@@ -82,12 +82,18 @@ namespace smol
     SceneNode& parentNode = scene.getNode(parent);
     if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
     {
-      return parentNode.transform.isDirty(scene) || dirty;
+      return dirty || parentNode.transform.isDirty(scene);
     }
     return dirty;
   }
 
-  void Transform::update(const Scene& scene)
+
+  void Transform::setDirty(bool value)
+  {
+    dirty = value;
+  }
+
+  bool Transform::update(const Scene& scene)
   {
     SceneNode& parentNode = scene.getNode(parent);
     Mat4 parentMatrix;
@@ -112,6 +118,9 @@ namespace smol
       Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
       transformed = Mat4::mul(translationMatrix, transformed);
       model = Mat4::mul(parentMatrix, transformed);
+      return true; // changed this frame
     }
+
+    return false;
   }
 }

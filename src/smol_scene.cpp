@@ -197,7 +197,7 @@ namespace smol
     SpriteBatcher* batcherPtr = batchers.lookup(batcher);
     if (batcherPtr)
     {
-      // copy the renreable handle to the node level
+      // copy the renderable handle to the node level
       node->sprite.renderable = batcherPtr->renderable;
       batcherPtr->spriteCount++;
       batcherPtr->dirty = true;
