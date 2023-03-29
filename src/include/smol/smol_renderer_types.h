@@ -22,42 +22,6 @@
 
 namespace smol
 {
-  enum Layer
-  {
-    LAYER_0 = 1 << 0,
-    LAYER_1 = 1 << 1,
-    LAYER_2 = 1 << 2,
-    LAYER_3 = 1 << 3,
-    LAYER_4 = 1 << 4,
-    LAYER_5 = 1 << 5,
-    LAYER_6 = 1 << 6,
-    LAYER_7 = 1 << 7,
-    LAYER_8 = 1 << 8,
-    LAYER_9 = 1 << 9,
-    LAYER_10 = 1 << 10,
-    LAYER_11 = 1 << 11,
-    LAYER_12 = 1 << 12,
-    LAYER_13 = 1 << 13,
-    LAYER_14 = 1 << 14,
-    LAYER_15 = 1 << 15,
-    LAYER_16 = 1 << 16,
-    LAYER_17 = 1 << 17,
-    LAYER_18 = 1 << 18,
-    LAYER_19 = 1 << 19,
-    LAYER_20 = 1 << 20,
-    LAYER_21 = 1 << 21,
-    LAYER_22 = 1 << 22,
-    LAYER_23 = 1 << 23,
-    LAYER_24 = 1 << 24,
-    LAYER_25 = 1 << 25,
-    LAYER_26 = 1 << 26,
-    LAYER_27 = 1 << 27,
-    LAYER_28 = 1 << 28,
-    LAYER_29 = 1 << 29,
-    LAYER_30 = 1 << 30,
-    LAYER_31 = 1 << 31
-  };
-
   enum RenderQueue : char
   {
     QUEUE_OPAQUE = 10,
@@ -87,6 +51,7 @@ namespace smol
       INDEX // this one does not point to an attribute buffer
     };
     bool dynamic;
+
     GLuint glPrimitive;
     GLuint vao;
     GLuint ibo;
