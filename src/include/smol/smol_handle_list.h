@@ -73,6 +73,7 @@ namespace smol
       HandleList(int initialCapacity);
       Handle<T> reserve();
       Handle<T> add(const T&);
+      Handle<T> add(T&&);
       T* lookup(Handle<T> handle) const;
       void remove(Handle<T> handle);
       void reset();
@@ -133,6 +134,14 @@ namespace smol
       Handle<T> handle;
       handle.slotIndex = getSlotIndex(slotInfo);
       handle.version = slotInfo->version;
+      return handle;
+    }
+
+  template<typename T>
+    Handle<T> HandleList<T>::add(T&& t)
+    {
+      Handle<T> handle = add(t);
+      memset((void*) &t, 0, sizeof(t));
       return handle;
     }
 

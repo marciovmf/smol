@@ -4,19 +4,47 @@
 #include <smol/smol_log.h>
 #include <math.h>
 
+// Note the Arena does not care about constructors or destructors of the objects
+// it stores. For the arena anything it stores is plain data.
+// Keep that in mind when using it.
+
 namespace smol
 {
-  Arena::Arena(): capacity(0), used(0), data(nullptr) { }
 
-  Arena::Arena(size_t initialSize) { initialize(initialSize); }
+  Arena::Arena():
+    used(0), capacity(0), data(nullptr) { }
 
-  Arena::~Arena() { Platform::freeMemory(data, capacity); }
+  Arena::Arena(size_t initialSize) 
+  {
+    initialize(initialSize); 
+  }
+
+  Arena::Arena(Arena&& other)
+  { 
+    this->~Arena();
+
+    capacity = other.capacity;
+    used = other.used;
+    data = other.data;
+
+    other.data = nullptr;
+    other.used = 0;
+    other.capacity = 0;
+  }
+
+  Arena::~Arena() 
+  {
+    Platform::freeMemory(data, capacity); 
+  }
 
   void Arena::initialize(size_t initialSize)
   {
     capacity = initialSize;
     used = 0;
-    data = (char*) Platform::getMemory(capacity);
+    if (initialSize > 0)
+      data = (char*) Platform::getMemory(capacity);
+    else
+      data = nullptr;
   }
 
   char* Arena::pushSize(size_t size)

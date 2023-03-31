@@ -44,6 +44,11 @@ list(APPEND srcs
   # Core Engine
   ${SOURCE_PATH}/include/smol/smol_point.h
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
+  ${SOURCE_PATH}/include/smol/smol_mesh.h
+  ${SOURCE_PATH}/include/smol/smol_sprite_batcher.h
+  ${SOURCE_PATH}/smol_sprite_batcher.cpp
+  ${SOURCE_PATH}/include/smol/smol_renderable.h
+  ${SOURCE_PATH}/smol_renderable.cpp
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
   ${SOURCE_PATH}/include/smol/smol_shader.h

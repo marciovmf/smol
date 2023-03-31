@@ -242,7 +242,7 @@ namespace smol
   // This function assumes a material is already bound
   static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
   {
-    Mesh* mesh = scene->meshes.lookup(renderable->mesh);
+    Mesh* mesh = SystemsRoot::get()->resourceManager.getMesh(renderable->mesh);
 
     glBindVertexArray(mesh->vao);
 
@@ -276,7 +276,7 @@ namespace smol
         resourceManager.getTexture(material.textureDiffuse[0]) :
         resourceManager.getDefaultTexture();
 
-      Mesh* mesh = scene->meshes.lookup(renderable->mesh);
+      Mesh* mesh = resourceManager.getMesh(renderable->mesh);
 
       const float textureWidth  = (float) texture.width;
       const float textureHeight = (float) texture.height;
@@ -365,32 +365,6 @@ namespace smol
     resize(width, height);
   }
 
-  Renderer::~Renderer()
-  {
-    int numMeshes = scene->meshes.count();
-    const Mesh* allMeshes = scene->meshes.getArray();
-    for (int i=0; i < numMeshes; i++) 
-    {
-      const Mesh* mesh = &allMeshes[i];
-      scene->destroyMesh((Mesh*) mesh);
-    }
-
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    int numTextures;
-    Texture* allTextures = resourceManager.getTextures(&numTextures);
-    for (int i=0; i < numTextures; i++) 
-    {
-      const Texture* texture = &allTextures[i];
-      destroyTexture((Texture*) texture);
-    }
-
-    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, sprite batchers: %d, scene nodes: %d.", 
-        numTextures, numMeshes,
-        scene->renderables.count(),
-        scene->batchers.count(),
-        scene->nodes.count());
-  }
-
   void Renderer::setScene(Scene& scene)
   {
     if (this->scene)
@@ -400,7 +374,6 @@ namespace smol
 
     this->scene = &scene;
   }
-
 
   Scene& Renderer::getLoadedScene()
   {
@@ -1167,7 +1140,7 @@ namespace smol
         glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) scene.projectionMatrix2D.e);
         glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) t.getMatrix().inverse().e);
         glUniformMatrix4fv(uniformLocationModel,   1, 0, (const float*) identity.e);
-        
+
 
         // Relative to current Camera
         //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);

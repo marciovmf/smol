@@ -36,7 +36,7 @@ void onStart()
 
   smol::Scene& scene = root->loadedScene;
 
-  mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
+  mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
   shader = resourceManager.loadShader("assets/default.shader");
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
@@ -53,37 +53,41 @@ void onStart()
 
 
   auto floor = scene.createRenderable(floorMaterial,
-      scene.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
+      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
   floorNode = scene.createMeshNode(floor, 
-      smol::Transform(
-        smol::Vector3(0.0f, -5.0f, -0.0f),
-        smol::Vector3(-90, 0.0f, 0.0f),
-        smol::Vector3(100.0f, 100.0f, 100.0f)));
+      smol::Transform()
+      .setPosition(0.0f, -5.0f, -0.0f)
+      .setRotation(-90, 0.0f, 0.0f)
+      .setScale(100.0f, 100.0f, 100.0f)
+      );
 
   // center cube
   node1 = scene.createMeshNode(renderable2,
-      smol::Transform(
-        smol::Vector3{0.0f, -1.0f, 0.0f},
-        smol::Vector3(0.0f, 0.0f, 0.0f),
-        smol::Vector3{2.0f, 2.0f, 2.0f}));
+      smol::Transform()
+      .setPosition(0.0f, -1.0f, 0.0f)
+      .setRotation(0.0f, 0.0f, 0.0f)
+      .setScale(2.0f, 2.0f, 2.0f)
+      );
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Transform(
-        smol::Vector3(0.0f, 1.0f, -10.0f),
-        smol::Vector3(1.0f, 1.0f, 1.0f),
-        smol::Vector3(0.8f, 0.8f, 0.8f),
-        node1));
+      smol::Transform()
+      .setPosition(0.0f, 1.0f, -10.0f)
+      .setRotation(1.0f, 1.0f, 1.0f)
+      .setScale(0.8f, 0.8f, 0.8f)
+      .setParent(node1)
+      );
 
   // right cube
   scene.createMeshNode(renderable2, 
-      smol::Transform(
-        smol::Vector3(4.0f, 3.0f, -10.0f),
-        smol::Vector3(0.8f, 0.8f, 0.8f)));
+      smol::Transform()
+      .setPosition(4.0f, 3.0f, -10.0f)
+      .setRotation(0.8f, 0.8f, 0.8f)
+      );
 
   scene.getNode(floorNode).setLayer(smol::Layer::LAYER_1);
 
@@ -103,11 +107,11 @@ void onStart()
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
-      scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   auto grassRenderable2 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_02.material"),
-      scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   const int changeLimit = 20;
   int nextChange = 0;
@@ -218,7 +222,7 @@ void onUpdate(float deltaTime)
         break;
     }
 
-    scene.updateMesh(mesh, &m);
+    smol::SystemsRoot::get()->resourceManager.updateMesh(mesh, &m);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)

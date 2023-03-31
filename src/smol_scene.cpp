@@ -10,20 +10,14 @@
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_systems_root.h>
 #include <string.h>
+#include <utility>
 
 namespace smol
 {
-  const size_t SpriteBatcher::positionsSize   = 4 * sizeof(Vector3);
-  const size_t SpriteBatcher::colorsSize      = 4 * sizeof(Color);
-  const size_t SpriteBatcher::uvsSize         = 4 * sizeof(Vector2);
-  const size_t SpriteBatcher::indicesSize     = 6 * sizeof(unsigned int);
-  const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
-
   // First node handle always points to the ROOT scene node
   const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
 
   Scene::Scene(ResourceManager& resourceManager):
-    meshes(32 * sizeof(Mesh)),
     renderables(1024 * sizeof(Renderable)),
     nodes(1024 * sizeof(SceneNode)), 
     batchers(8 * sizeof(SpriteBatcher)),
@@ -42,65 +36,14 @@ namespace smol
   // Scene
   //---------------------------------------------------------------------------
 
-  Handle<Mesh> Scene::createMesh(bool dynamic, const MeshData& meshData)
-  {
-    return createMesh(dynamic,
-        Primitive::TRIANGLE,
-        meshData.positions, meshData.numPositions,
-        meshData.indices, meshData.numIndices,
-        meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
-  }
-
-  Handle<Mesh> Scene::createMesh(bool dynamic, Primitive primitive,
-      const Vector3* vertices, int numVertices,
-      const unsigned int* indices, int numIndices,
-      const Color* color,
-      const Vector2* uv0,
-      const Vector2* uv1,
-      const Vector3* normals)
-  {
-    Handle<Mesh> handle = meshes.reserve();
-    Mesh* mesh = meshes.lookup(handle);
-    Renderer::createMesh(mesh, dynamic, primitive, vertices, numVertices, indices, numIndices, color, uv0, uv1, normals);
-    return handle;
-  }
-
-  void Scene::updateMesh(Handle<Mesh> handle, MeshData* meshData)
-  {
-    Mesh* mesh = meshes.lookup(handle);
-    Renderer::updateMesh(mesh, meshData);
-  }
-
-  void Scene::destroyMesh(Mesh* mesh)
-  {
-    Renderer::destroyMesh(mesh);
-  }
-
-  void Scene::destroyMesh(Handle<Mesh> handle)
-  {
-    Mesh* mesh = meshes.lookup(handle);
-    if(!mesh)
-    {
-      warnInvalidHandle("Mesh");
-    }
-    else
-    {
-      destroyMesh(mesh);
-      meshes.remove(handle);
-    }
-  }
-
   Handle<Renderable> Scene::createRenderable(Handle<Material> material, Handle<Mesh> mesh)
   {
-    Handle<Renderable> handle = renderables.reserve();
+    Handle<Renderable> handle = renderables.add(Renderable(material, mesh));
     Renderable* renderable = renderables.lookup(handle);
     if (!renderable)
     {
       return INVALID_HANDLE(Renderable);
     }
-
-    renderable->material = material;
-    renderable->mesh = mesh;
     return handle;
   }
 
@@ -122,24 +65,7 @@ namespace smol
   // ##################################################################
   Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
   {
-    Handle<SpriteBatcher> handle = batchers.reserve();
-    SpriteBatcher* batcher =  batchers.lookup(handle);
-    batcher->arena.initialize(capacity * SpriteBatcher::totalSpriteSize + 1);
-
-    // It doesn't matter the contents of memory. Nothing is read from this pointer. It's just necessary to create a valid MeshData;
-    char* memory = batcher->arena.pushSize(capacity * SpriteBatcher::totalSpriteSize);
-    MeshData meshData((Vector3*)memory, capacity, 
-        (unsigned int*)memory, capacity * 6,
-        (Color*) memory, nullptr,
-        (Vector2*) memory, nullptr);
-    Handle<Renderable> renderable = createRenderable(material, createMesh(true, meshData));
-
-    batcher->renderable = renderable;
-    batcher->spriteCount = 0;
-    batcher->spriteCapacity = capacity;
-    batcher->dirty = false;
-
-    return handle;
+    return batchers.add(std::move(SpriteBatcher(material, capacity)));
   }
 
 
@@ -250,6 +176,15 @@ namespace smol
 
     return (SceneNode&) nullSceneNode;
   }
+
+  Scene::~Scene()
+  {
+    debugLogInfo("Scene Released Renderable x%d, SpriteBatcher x%d, SceneNode x%d.", 
+        renderables.count(),
+        batchers.count(),
+        nodes.count());
+  }
+
 }
 
 #undef INVALID_HANDLE

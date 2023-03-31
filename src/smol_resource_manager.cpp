@@ -35,7 +35,7 @@ namespace smol
   // Texture Resources
   //
 
-  ResourceManager::ResourceManager(): textures(64), shaders(32), materials(32)
+  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
   {
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
@@ -137,11 +137,6 @@ namespace smol
     return *defaultTexture;
   }
 
-  void ResourceManager::destroyTexture(Texture* texture)
-  {
-    Renderer::destroyTexture(texture);
-  }
-
   void ResourceManager::destroyTexture(Handle<Texture> handle)
   {
     Texture* texture = textures.lookup(handle);
@@ -151,9 +146,21 @@ namespace smol
     }
     else
     {
-      destroyTexture(texture);
+      Renderer::destroyTexture(texture);
       textures.remove(handle);
     }
+  }
+
+  Mesh* ResourceManager::getMesh(Handle<Mesh> handle) const
+  {
+    return meshes.lookup(handle);
+  }
+    
+  Mesh* ResourceManager::getMeshes(int* count) const
+  {
+    if (count)
+      *count = meshes.count();
+    return (Mesh*) meshes.getArray();
   }
 
 
@@ -224,12 +231,12 @@ namespace smol
 
   inline ShaderProgram& ResourceManager::getShader(Handle<ShaderProgram> handle) const
   {
-     ShaderProgram* shaderProgram = shaders.lookup(handle);
-     if (shaderProgram)
-       return *shaderProgram;
+    ShaderProgram* shaderProgram = shaders.lookup(handle);
+    if (shaderProgram)
+      return *shaderProgram;
 
-     debugLogWarning("Could not get Shader from Handle. Returning default Shader.");
-     return getDefaultShader();
+    debugLogWarning("Could not get Shader from Handle. Returning default Shader.");
+    return getDefaultShader();
 
   }
 
@@ -437,6 +444,54 @@ namespace smol
     return *defaultMaterial;
   }
 
+
+  //
+  // Mesh Resources
+  //
+
+  Handle<Mesh> ResourceManager::createMesh(bool dynamic, const MeshData& meshData)
+  {
+    return createMesh(dynamic,
+        Primitive::TRIANGLE,
+        meshData.positions, meshData.numPositions,
+        meshData.indices, meshData.numIndices,
+        meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
+  }
+
+  Handle<Mesh> ResourceManager::createMesh(bool dynamic, Primitive primitive,
+      const Vector3* vertices, int numVertices,
+      const unsigned int* indices, int numIndices,
+      const Color* color,
+      const Vector2* uv0,
+      const Vector2* uv1,
+      const Vector3* normals)
+  {
+    Handle<Mesh> handle = meshes.reserve();
+    Mesh* mesh = meshes.lookup(handle);
+    Renderer::createMesh(mesh, dynamic, primitive, vertices, numVertices, indices, numIndices, color, uv0, uv1, normals);
+    return handle;
+  }
+
+  void ResourceManager::updateMesh(Handle<Mesh> handle, MeshData* meshData)
+  {
+    Mesh* mesh = meshes.lookup(handle);
+    Renderer::updateMesh(mesh, meshData);
+  }
+
+  void ResourceManager::destroyMesh(Handle<Mesh> handle)
+  {
+    Mesh* mesh = meshes.lookup(handle);
+    if(!mesh)
+    {
+      debugLogWarning((const char*)"Attempting to destroy a 'Mesh' resource from an invalid handle.");
+    }
+    else
+    {
+      Renderer::destroyMesh(mesh);
+      meshes.remove(handle);
+    }
+  }
+
   //
   // Static utility functions
   //
@@ -562,4 +617,38 @@ namespace smol
     Platform::unloadFileBuffer((const char*)image);
   }
 
+
+  ResourceManager::~ResourceManager()
+  {
+    int numObjects;
+    const Mesh* allMeshes = getMeshes(&numObjects);
+    debugLogInfo("ResourceManager: Releasing Mesh x%d ", numObjects);
+    for (int i=0; i < numObjects; i++) 
+    {
+      const Mesh* mesh = &allMeshes[i];
+      Renderer::destroyMesh((Mesh*) mesh);
+    }
+
+    Texture* allTextures = getTextures(&numObjects);
+    debugLogInfo("ResourceManager: Releasing Texture x%d", numObjects);
+    for (int i=0; i < numObjects; i++) 
+    {
+      const Texture* texture = &allTextures[i];
+      Renderer::destroyTexture((Texture*) texture);
+    }
+
+    ShaderProgram* allShaders = getShaders(&numObjects);
+    debugLogInfo("ResourceManager: Releasing ShaderProgram %x%d", numObjects);
+    for (int i=0; i < numObjects; i++) 
+    {
+      const ShaderProgram* shader = &allShaders[i];
+      Renderer::destroyShaderProgram((ShaderProgram*) shader);
+    }
+
+    meshes.reset();
+    textures.reset();
+    shaders.reset();
+
+    debugLogInfo("ResourceManager: Cleanup done");
+  }
 }

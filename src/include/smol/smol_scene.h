@@ -11,7 +11,6 @@
 #include <smol/smol_color.h>
 #include <smol/smol_scene_nodes.h>
 
-
 #define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
 
 template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
@@ -28,7 +27,6 @@ namespace smol
   {
     static const Handle<SceneNode> ROOT;
 
-    HandleList<smol::Mesh> meshes;
     HandleList<smol::Renderable> renderables;
     HandleList<smol::SceneNode> nodes;
     HandleList<smol::SpriteBatcher> batchers;
@@ -44,25 +42,11 @@ namespace smol
     const smol::SceneNode nullSceneNode;
 
     Scene(ResourceManager& resourceManager);
+    ~Scene();
 
     //
     // Resources
     //
-   
-    Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
-    Handle<Mesh> createMesh(bool dynamic,
-        Primitive primitive,
-        const Vector3* vertices, int numVertices,
-        const unsigned int* indices, int numIndices,
-        const Color* color = nullptr,
-        const Vector2* uv0 = nullptr,
-        const Vector2* uv1 = nullptr,
-        const Vector3* normals = nullptr);
-
-    void updateMesh(Handle<Mesh> handle, MeshData* meshData);
-
-    void destroyMesh(Handle<Mesh> handle);
-    void destroyMesh(Mesh* mesh);
 
     Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
     void destroyRenderable(Handle<Renderable> handle);

@@ -21,12 +21,19 @@ namespace smol
     int numIndices;
 
     MeshData();
+    MeshData(Vector3* positions, int numPositions, unsigned int* indices = nullptr, int numIndices = 0);
     MeshData(Vector3* positions, int numPositions,
         unsigned int* indices = nullptr, int numIndices = 0,
         Color* colors = nullptr,
         Vector3* normals = nullptr, 
         Vector2* uv0 = nullptr, 
         Vector2* uv1 = nullptr);
+
+    MeshData& setPosition(Vector3* positions);
+    MeshData& setColors(Color* colors);
+    MeshData& setUV0(Vector2* uvs);
+    MeshData& setUV1(Vector2* uvs);
+    MeshData& setIndices(unsigned int* indices);
 
     MeshData(const MeshData& other);
 
