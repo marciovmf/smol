@@ -35,17 +35,23 @@ namespace smol
   // Texture Resources
   //
 
-  ResourceManager::ResourceManager(): textures(64), shaders(32), materials(32)
+  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
   {
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
-    defaultTexture = createTexture(*img);
+    Handle<Texture> defaultTextureHandle = createTexture(*img);
     ResourceManager::unloadImage(img);
 
-    // Make the default shader program
-    ShaderProgram program = Renderer::getDefaultShaderProgram();
-    defaultShader = shaders.add(program);
-    defaultMaterial = createMaterial(defaultShader, &defaultTexture, 1);
+    // Make the default ShaderProgram
+    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
+
+    // Make the default Material
+    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
+
+    defaultTexture = textures.lookup(defaultTextureHandle);
+    defaultShader = shaders.lookup(defaultShaderHandle);
+    defaultMaterial = materials.lookup(defaultMaterialHandle);
   }
 
   Handle<Texture> ResourceManager::loadTexture(const char* path)
@@ -109,26 +115,26 @@ namespace smol
     return INVALID_HANDLE(Texture);
   }
 
-  inline Texture* ResourceManager::getTexture(Handle<Texture> handle)
+  inline Texture& ResourceManager::getTexture(Handle<Texture> handle) const
   {
-    return textures.lookup(handle);
+    Texture* texture = textures.lookup(handle);
+    if (texture)
+      return *texture;
+
+    debugLogWarning("Could not get Texture from Handle. Returning default Texture.");
+    return getDefaultTexture();
   }
 
-  inline Texture* ResourceManager::getTextures(int* count)
+  inline Texture* ResourceManager::getTextures(int* count) const
   {
     if (count)
       *count = textures.count();
     return (Texture*) textures.getArray();
   }
 
-  inline Handle<Texture> ResourceManager::getDefaultTexture()
+  inline Texture& ResourceManager::getDefaultTexture() const
   {
-    return defaultTexture;
-  }
-
-  void ResourceManager::destroyTexture(Texture* texture)
-  {
-    Renderer::destroyTexture(texture);
+    return *defaultTexture;
   }
 
   void ResourceManager::destroyTexture(Handle<Texture> handle)
@@ -136,13 +142,25 @@ namespace smol
     Texture* texture = textures.lookup(handle);
     if (!texture)
     {
-      debugLogWarning((const char*)"Attempting to destroy a 'Texture' resource from an invalid handle");
+      debugLogWarning((const char*)"Attempting to destroy a 'Texture' resource from an invalid handle.");
     }
     else
     {
-      destroyTexture(texture);
+      Renderer::destroyTexture(texture);
       textures.remove(handle);
     }
+  }
+
+  Mesh* ResourceManager::getMesh(Handle<Mesh> handle) const
+  {
+    return meshes.lookup(handle);
+  }
+    
+  Mesh* ResourceManager::getMeshes(int* count) const
+  {
+    if (count)
+      *count = meshes.count();
+    return (Mesh*) meshes.getArray();
   }
 
 
@@ -202,7 +220,7 @@ namespace smol
     ShaderProgram* program = shaders.lookup(handle);
     if (!program)
     {
-      debugLogWarning((const char*)"Attempting to destroy a 'Shader' resource from an invalid handle");
+      debugLogWarning((const char*)"Attempting to destroy a 'Shader' resource from an invalid handle.");
     }
     else
     {
@@ -211,21 +229,27 @@ namespace smol
     }
   }
 
-  inline ShaderProgram* ResourceManager::getShader(Handle<ShaderProgram> handle)
+  inline ShaderProgram& ResourceManager::getShader(Handle<ShaderProgram> handle) const
   {
-    return shaders.lookup(handle);
+    ShaderProgram* shaderProgram = shaders.lookup(handle);
+    if (shaderProgram)
+      return *shaderProgram;
+
+    debugLogWarning("Could not get Shader from Handle. Returning default Shader.");
+    return getDefaultShader();
+
   }
 
-  inline ShaderProgram* ResourceManager::getShaders(int* count)
+  inline ShaderProgram* ResourceManager::getShaders(int* count) const
   {
     if (count)
       *count = shaders.count();
     return (ShaderProgram*) shaders.getArray();
   }
 
-  inline Handle<ShaderProgram> ResourceManager::getDefaultShader()
+  inline ShaderProgram& ResourceManager::getDefaultShader() const
   {
-    return defaultShader;
+    return *defaultShader;
   }
 
 
@@ -282,7 +306,7 @@ namespace smol
     }
 
     Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
-    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::DepthTest) Material::CullFace::BACK);
+    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::CullFace) Material::CullFace::BACK);
 
     Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest, cullFace);
     Material* material = materials.lookup(handle);
@@ -316,7 +340,7 @@ namespace smol
           param.vec4Value = materialEntry->getVariableVec4(param.name);
           break;
         case ShaderParameter::FLOAT:
-          param.floatValue = materialEntry->getVariableNumber(param.name);
+          param.floatValue = (float) materialEntry->getVariableNumber(param.name);
           break;
         case ShaderParameter::INT:
           param.intValue = (int) materialEntry->getVariableNumber(param.name);
@@ -333,7 +357,7 @@ namespace smol
   }
 
   Handle<Material> ResourceManager::createMaterial(
-      Handle<ShaderProgram> shader,
+      Handle<ShaderProgram> shaderHandle,
       Handle<Texture>* diffuseTextures,
       int diffuseTextureCount,
       int renderQueue,
@@ -343,30 +367,30 @@ namespace smol
     SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
-    Material* material = materials.lookup(handle);
-    memset(material, 0, sizeof(Material));
-    material->depthTest = depthTest;
-    material->renderQueue = renderQueue;
-    material->cullFace = cullFace;
+    Material& material = *materials.lookup(handle);
+    memset(&material, 0, sizeof(Material));
+    material.depthTest = depthTest;
+    material.renderQueue = renderQueue;
+    material.cullFace = cullFace;
 
     if (diffuseTextureCount)
     {
       size_t copySize = diffuseTextureCount * sizeof(Handle<Texture>);
-      material->shader = shader;
-      material->diffuseTextureCount = diffuseTextureCount;
-      memcpy(material->textureDiffuse, diffuseTextures, copySize);
+      material.shader = shaderHandle;
+      material.diffuseTextureCount = diffuseTextureCount;
+      memcpy(material.textureDiffuse, diffuseTextures, copySize);
     }
 
-    ShaderProgram* shaderPtr = getShader(shader);
-    if (shaderPtr)
+    ShaderProgram& shader = getShader(shaderHandle);
+    if (shader.valid)
     {
-      material->parameterCount = shaderPtr->parameterCount;
+      material.parameterCount = shader.parameterCount;
       uint32 texturesAssigned = 0;
 
-      for(int i = 0; i < shaderPtr->parameterCount; i++)
+      for(int i = 0; i < shader.parameterCount; i++)
       {
-        MaterialParameter& materialParam = material->parameter[i];
-        const ShaderParameter& shaderParam = shaderPtr->parameter[i];
+        MaterialParameter& materialParam = material.parameter[i];
+        const ShaderParameter& shaderParam = shader.parameter[i];
         //We copy sizeof(ShaderParameter) to the MaterialParameter so the values remain untouched.
         //This is intentional since we memset(0) the whole material after allocating it.
         memcpy(&materialParam, &shaderParam, sizeof(ShaderParameter));
@@ -390,7 +414,7 @@ namespace smol
     Material* material = materials.lookup(handle);
     if(!material)
     {
-      debugLogWarning((const char*)"Attempting to destroy a 'Material' resource from an invalid handle");
+      debugLogWarning((const char*)"Attempting to destroy a 'Material' resource from an invalid handle.");
     }
     else
     {
@@ -398,21 +422,74 @@ namespace smol
     }
   }
 
-  inline Material* ResourceManager::getMaterial(Handle<Material> handle)
+  inline Material& ResourceManager::getMaterial(Handle<Material> handle) const
   {
-    return materials.lookup(handle);
+    Material* material = materials.lookup(handle);
+    if (material)
+      return *material;
+
+    debugLogWarning("Could not get Material from Handle. Returning default Material.");
+    return getDefaultMaterial();
   }
 
-  inline Material* ResourceManager::getMaterials(int* count)
+  inline Material* ResourceManager::getMaterials(int* count) const
   {
     if (count)
       *count = materials.count();
     return (Material*) materials.getArray();
   }
 
-  inline Handle<Material> ResourceManager::getDefaultMaterial()
+  inline Material& ResourceManager::getDefaultMaterial() const
   {
-    return defaultMaterial;
+    return *defaultMaterial;
+  }
+
+
+  //
+  // Mesh Resources
+  //
+
+  Handle<Mesh> ResourceManager::createMesh(bool dynamic, const MeshData& meshData)
+  {
+    return createMesh(dynamic,
+        Primitive::TRIANGLE,
+        meshData.positions, meshData.numPositions,
+        meshData.indices, meshData.numIndices,
+        meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
+  }
+
+  Handle<Mesh> ResourceManager::createMesh(bool dynamic, Primitive primitive,
+      const Vector3* vertices, int numVertices,
+      const unsigned int* indices, int numIndices,
+      const Color* color,
+      const Vector2* uv0,
+      const Vector2* uv1,
+      const Vector3* normals)
+  {
+    Handle<Mesh> handle = meshes.reserve();
+    Mesh* mesh = meshes.lookup(handle);
+    Renderer::createMesh(mesh, dynamic, primitive, vertices, numVertices, indices, numIndices, color, uv0, uv1, normals);
+    return handle;
+  }
+
+  void ResourceManager::updateMesh(Handle<Mesh> handle, MeshData* meshData)
+  {
+    Mesh* mesh = meshes.lookup(handle);
+    Renderer::updateMesh(mesh, meshData);
+  }
+
+  void ResourceManager::destroyMesh(Handle<Mesh> handle)
+  {
+    Mesh* mesh = meshes.lookup(handle);
+    if(!mesh)
+    {
+      debugLogWarning((const char*)"Attempting to destroy a 'Mesh' resource from an invalid handle.");
+    }
+    else
+    {
+      Renderer::destroyMesh(mesh);
+      meshes.remove(handle);
+    }
   }
 
   //
@@ -540,4 +617,38 @@ namespace smol
     Platform::unloadFileBuffer((const char*)image);
   }
 
+
+  ResourceManager::~ResourceManager()
+  {
+    int numObjects;
+    const Mesh* allMeshes = getMeshes(&numObjects);
+    debugLogInfo("ResourceManager: Releasing Mesh x%d ", numObjects);
+    for (int i=0; i < numObjects; i++) 
+    {
+      const Mesh* mesh = &allMeshes[i];
+      Renderer::destroyMesh((Mesh*) mesh);
+    }
+
+    Texture* allTextures = getTextures(&numObjects);
+    debugLogInfo("ResourceManager: Releasing Texture x%d", numObjects);
+    for (int i=0; i < numObjects; i++) 
+    {
+      const Texture* texture = &allTextures[i];
+      Renderer::destroyTexture((Texture*) texture);
+    }
+
+    ShaderProgram* allShaders = getShaders(&numObjects);
+    debugLogInfo("ResourceManager: Releasing ShaderProgram x%d", numObjects);
+    for (int i=0; i < numObjects; i++) 
+    {
+      const ShaderProgram* shader = &allShaders[i];
+      Renderer::destroyShaderProgram((ShaderProgram*) shader);
+    }
+
+    meshes.reset();
+    textures.reset();
+    shaders.reset();
+
+    debugLogInfo("ResourceManager: Cleanup done");
+  }
 }

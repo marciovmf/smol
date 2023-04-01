@@ -10,6 +10,7 @@ namespace smol
     int x, y, w, h;
     Rect();
     Rect(int x, int y, int w, int h);
+    Rect(const Rect& other);
   };
 
   struct SMOL_ENGINE_API Rectf
@@ -17,6 +18,7 @@ namespace smol
     float x, y, w, h;
     Rectf();
     Rectf(float x, float y, float w, float h);
+    Rectf(const Rectf& other);
   };
 }
 

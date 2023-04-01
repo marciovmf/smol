@@ -7,6 +7,8 @@
 #include <time.h>
 
 smol::SystemsRoot* root;
+smol::Handle<smol::SceneNode> cameraNode;
+smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
 smol::Handle<smol::SceneNode> sprite1;
@@ -17,6 +19,7 @@ smol::Handle<smol::ShaderProgram> shader;
 smol::Handle<smol::Material> checkersMaterial;
 smol::Handle<smol::Mesh> mesh;
 smol::Handle<smol::SpriteBatcher> batcher;
+float vpsize = 0.2f;
 
 int shape = 0;
 
@@ -26,92 +29,121 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
 
-  //smol::ConfigEntry* gameConfig = root->config.findEntry("game");
-  uint32 seed = 1655119152; //(uint32) time(0);
+  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  uint32 seed = (uint32) gameConfig->getVariableNumber("seed", 0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
 
   smol::Scene& scene = root->loadedScene;
 
-  mesh = scene.createMesh(true,  smol::MeshData::getPrimitiveCube());
+  mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
   shader = resourceManager.loadShader("assets/default.shader");
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
-  checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
+  checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
+      smol::Texture::Filter::NEAREST,
+      smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
 
   resourceManager.getMaterial(checkersMaterial)
-    ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
 
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
-  auto floor = scene.createRenderable(floorMaterial,
-      scene.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
-
   resourceManager.getMaterial(floorMaterial)
-    ->setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    .setVec4("color",(const smol::Vector4&)  smol::Color(210, 227, 70));
+
+
+  auto floor = scene.createRenderable(floorMaterial,
+      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  scene.createMeshNode(floor, 
-      smol::Transform(
-        smol::Vector3(0.0f, -5.0f, -5.0f),
-        smol::Vector3(-90, 0.0f, 0.0f),
-        smol::Vector3(100.0f, 100.0f, 100.0f)));
+  floorNode = scene.createMeshNode(floor, 
+      smol::Transform()
+      .setPosition(0.0f, -5.0f, -0.0f)
+      .setRotation(-90, 0.0f, 0.0f)
+      .setScale(100.0f, 100.0f, 100.0f)
+      );
 
   // center cube
   node1 = scene.createMeshNode(renderable2,
-      smol::Transform(
-        smol::Vector3{0.0f, -1.0f, -15.0f},
-        smol::Vector3(0.0f, 0.0f, 0.0f),
-        smol::Vector3{2.0f, 2.0f, 2.0f}));
+      smol::Transform()
+      .setPosition(0.0f, -1.0f, 0.0f)
+      .setRotation(0.0f, 0.0f, 0.0f)
+      .setScale(2.0f, 2.0f, 2.0f)
+      );
 
   // left cube
   node2 = scene.createMeshNode(renderable2, 
-      smol::Transform(
-        smol::Vector3(0.0f, 1.0f, 0.0f),
-        smol::Vector3(1.0f, 1.0f, 1.0f),
-        smol::Vector3(0.8f, 0.8f, 0.8f),
-        node1));
+      smol::Transform()
+      .setPosition(0.0f, 1.0f, -10.0f)
+      .setRotation(1.0f, 1.0f, 1.0f)
+      .setScale(0.8f, 0.8f, 0.8f)
+      .setParent(node1)
+      );
 
   // right cube
   scene.createMeshNode(renderable2, 
-      smol::Transform(
-        smol::Vector3(4.0f, 3.0f, -10.0f),
-        smol::Vector3(0.8f, 0.8f, 0.8f)));
+      smol::Transform()
+      .setPosition(4.0f, 3.0f, -10.0f)
+      .setRotation(0.8f, 0.8f, 0.8f)
+      );
+
+  scene.getNode(floorNode).setLayer(smol::Layer::LAYER_1);
+
+  // camera
+  smol::Transform t;
+  smol::Rect viewport = root->renderer.getViewport();
+  cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  //cameraNode = scene.createOrthographicCameraNode(0.0f, (float)viewport.w, (float)viewport.h, 0.0f, 0.01f, 3000.0f, t);
+  scene.setMainCamera(cameraNode);
+
+  smol::SceneNode& pCameraNode = scene.getNode(cameraNode);
+  pCameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  pCameraNode.transform
+    .setRotation(-30.0f, 0.0f, 0.0f)
+    .setPosition(0.0f, 10.0f, 15.0f);
 
   // Create a grass field
-
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
-      scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
   auto grassRenderable2 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_02.material"),
-      scene.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
 
-  float minZ = -90.0f;
-  const int changeLimit = 3;
+  const int changeLimit = 20;
   int nextChange = 0;
 
-  smol::Transform t;
-  for (int i = 0; i < 5000; i++)
+  for (int i = 0; i < 3000; i++)
   {
-    float randX = (rand() % 1000 - rand() % 1000) / 1000.0f;
-    float randZ = minZ + ((rand() % 1000) / 1000.0f) * 0.5f;
-    minZ = randZ;
+    float randX = (rand() % 100 - rand() % 100) * 1.0f;
+    float randZ = (rand() % 100 - rand() % 100) * 1.0f;
 
     float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
-    float randScale = (rand() % 30 - rand() % 30) / 30.0f;
-    randScale *= 1.5f;
+    float randScale = (rand() % 30) / 30.0f;
 
     smol::Transform t;
     nextChange = ++nextChange % changeLimit;
-    t.setPosition(100 * randX, -2.0f, randZ);
-    t.setRotation(0.0f, randAngle, 0.0f);
-    t.setScale(2.0f + randScale, 2.0f + randScale, 2.0f + randScale);
 
-    scene.createMeshNode(
-        (nextChange == 0) ? grassRenderable1 : grassRenderable2, t);
+    bool isTallGrass;
+    if (nextChange == 0)
+    {
+      isTallGrass = true;
+      randScale *= 5.0f;
+    }
+    else
+    {
+      isTallGrass = false;
+      randScale *= 3.0f;
+    }
+
+    t.setPosition(randX, -2.0f, randZ);
+    t.setRotation(0.0f, randAngle, 0.0f);
+    t.setScale(randScale, randScale, randScale);
+
+    scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
   }
 
   // sprites
@@ -119,7 +151,7 @@ void onStart()
   auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
 
   resourceManager.getMaterial(smolMaterial)
-    ->setVec4("color", smol::Vector4(0.0f, 0.5f, 0.3f, 0.8f));
+    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   batcher = scene.createSpriteBatcher(smolMaterial);
   sprite1 = scene.createSpriteNode(batcher,
@@ -138,7 +170,7 @@ void onStart()
       smol::Vector3(400.0f, 200.0f, 0.0f),
       100.0f, 100.0f, smol::Color::BLUE);
 
-  selectedNode = node2;
+  selectedNode = cameraNode;
 }
 
 unsigned int angle = 0;
@@ -153,6 +185,7 @@ void onUpdate(float deltaTime)
   smol::Mouse& mouse = root->mouse;
   smol::Scene& scene = root->loadedScene;
   smol::Renderer& renderer = root->renderer;
+  smol::ResourceManager& resourceManager = root->resourceManager;
 
   int xDirection = 0;
   int yDirection = 0;
@@ -161,7 +194,6 @@ void onUpdate(float deltaTime)
   if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
   {
     smol::Point2 p = mouse.getCursorPosition();
-    //smol::Transform* transform = scene.getTransform(sprite2);
     scene.getNode(sprite2).transform.setPosition((float) p.x, (float) p.y, 0.2f);
   }
 
@@ -191,7 +223,7 @@ void onUpdate(float deltaTime)
         break;
     }
 
-    scene.updateMesh(mesh, &m);
+    smol::SystemsRoot::get()->resourceManager.updateMesh(mesh, &m);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
@@ -224,6 +256,24 @@ void onUpdate(float deltaTime)
     }
   }
 
+
+  if (keyboard.getKeyDown(smol::KEYCODE_V) )
+  {
+    vpsize += 0.2f;
+    if (vpsize > 1.0f) vpsize = 0.2f;
+    scene.getNode(cameraNode).camera.setViewportRect(smol::Rectf(0.0f, 0.0f, vpsize, vpsize));
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F2)) {
+    scene.getNode(cameraNode).camera
+      .setClearOperation((smol::Camera::ClearOperation::DEPTH | smol::Camera::ClearOperation::COLOR));
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_F3)) {
+    scene.getNode(cameraNode).camera
+      .setClearOperation((unsigned int)smol::Camera::ClearOperation::DEPTH);
+  }
+
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F7)) { root->resourceManager.destroyMaterial(checkersMaterial); }
@@ -234,7 +284,43 @@ void onUpdate(float deltaTime)
     node.setActive(!node.isActive());
   }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_TAB)) { selectedNode = (selectedNode == node1) ? node2 : node1; }
+  if (keyboard.getKeyDown(smol::KEYCODE_TAB)) 
+  { 
+    if (selectedNode == node1)
+      selectedNode = node2;
+    else if (selectedNode == node2)
+      selectedNode = cameraNode;
+    else if (selectedNode == cameraNode)
+      selectedNode = node1;
+  }
+
+
+  if (keyboard.getKeyDown(smol::KEYCODE_R)) 
+  {
+    smol::SceneNode& camera = scene.getNode(cameraNode);
+    smol::Color color = camera.camera.getClearColor();
+    color.r+=0.2f;
+    if (color.r > 1.0f) color.r = 0.0f;
+    camera.camera.setClearColor(color);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_G))
+  {
+    smol::SceneNode& camera = scene.getNode(cameraNode);
+    smol::Color color = camera.camera.getClearColor();
+    color.g+=0.2f;
+    if (color.g > 1.0f) color.g = 0.0f;
+    camera.camera.setClearColor(color);
+  }
+
+  if (keyboard.getKeyDown(smol::KEYCODE_B))
+  {
+    smol::SceneNode& camera = scene.getNode(cameraNode);
+    smol::Color color = camera.camera.getClearColor();
+    color.b+=0.2f;
+    if (color.b > 1.0f) color.b = 0.0f;
+    camera.camera.setClearColor(color);
+  }
 
   // left/right
   if (keyboard.getKey(smol::KEYCODE_A)) { xDirection = -1; }
@@ -256,7 +342,7 @@ void onUpdate(float deltaTime)
     smol::Transform* transform = &scene.getNode(selectedNode).transform;
     if (transform)
     {
-      const float amount = 3.0f * deltaTime;
+      const float amount = 15.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();
       transform->setPosition(
@@ -281,7 +367,6 @@ void onUpdate(float deltaTime)
 
   // bounce sprite1 across the screen borders
   transform = &scene.getNode(sprite1).transform;
-
   smol::Vector3 position = transform->getPosition();
   smol::Rect viewport = renderer.getViewport();
 

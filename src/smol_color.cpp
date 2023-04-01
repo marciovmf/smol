@@ -8,6 +8,9 @@ namespace smol
   Color::Color(float r, float g, float b, float a):
    r(r), g(g), b(b), a(a)  { }
 
+  Color::Color(const Color& other):
+    r(other.r), g(other.g), b(other.b), a(other.a) { }
+
   const Color Color::BLACK =    Color(1,0,0);
   const Color Color::WHITE =    Color(255,255,255);
   const Color Color::RED =      Color(255,0,0);

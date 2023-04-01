@@ -11,6 +11,7 @@
 namespace smol
 {
   struct SceneNode;
+  struct Scene;
 
   class SMOL_ENGINE_API Transform
   {
@@ -29,25 +30,23 @@ namespace smol
         Vector3 scale     = Vector3{1.0f, 1.0f, 1.0f}, 
         Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
 
-    bool update(HandleList<SceneNode>* nodes);
+    bool update(const Scene& scene);
 
     const Mat4& getMatrix() const;
 
-    void setPosition(float x, float y, float z);
+    Transform& setPosition(float x, float y, float z);
 
-    void setPosition(const Vector3& position);
+    Transform& setPosition(const Vector3& position);
    
-    void setScale(float x, float y, float z);
+    Transform& setScale(float x, float y, float z);
     
-    void setScale(const Vector3& scale);
+    Transform& setScale(const Vector3& scale);
 
-    void setRotation(float x, float y, float z);
+    Transform& setRotation(float x, float y, float z);
 
-    void setRotation(const Vector3& rotation);
+    Transform& setRotation(const Vector3& rotation);
 
-    void setParent(Handle<SceneNode> parent);
-
-    Handle<SceneNode> getParent();
+    Transform& setParent(Handle<SceneNode> parent);
 
     const Vector3& getPosition() const;
 
@@ -55,7 +54,13 @@ namespace smol
 
     const Vector3& getRotation() const;
 
-    bool isDirty() const;
+    Handle<SceneNode> Transform::getParent() const;
+
+    void setDirty(bool value);
+
+    // returns true if the node or it's parents have changed this frame.
+    bool isDirty(const Scene& scene) const;
+
   };
 }
 #endif  // SMOL_TRANSFORM_H

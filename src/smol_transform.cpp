@@ -1,6 +1,7 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_scene_nodes.h>
 #include <smol/smol_systems_root.h>
+#include <smol/smol_scene.h>
 
 namespace smol
 {
@@ -9,101 +10,117 @@ namespace smol
   {
   }
 
-  const Mat4& Transform::getMatrix() const
-  {
-    return model; 
-  }
+  inline const Mat4& Transform::getMatrix() const { return model; }
 
-  void Transform::setPosition(float x, float y, float z) 
+  Transform& Transform::setPosition(float x, float y, float z) 
   { 
     position.x = x;
     position.y = y;
     position.z = z;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setPosition(const Vector3& position) 
+  Transform& Transform::setPosition(const Vector3& position) 
   {
     this->position = position;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setScale(float x, float y, float z)
+  Transform& Transform::setScale(float x, float y, float z)
   { 
     scale.x = x;
     scale.y = y;
     scale.z = z;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setScale(const Vector3& scale) 
+  Transform& Transform::setScale(const Vector3& scale) 
   {
     this->scale = scale;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setRotation(float x, float y, float z) 
+  Transform& Transform::setRotation(float x, float y, float z) 
   {
     rotation.x = x;
     rotation.y = y;
     rotation.z = z;
     dirty = true;
+    return *this;
   };
 
-  void Transform::setRotation(const Vector3& rotation) 
+  Transform& Transform::setRotation(const Vector3& rotation) 
   {
     this->rotation = rotation;
     dirty = true;
+    return *this;
   }
 
-  void Transform::setParent(Handle<SceneNode> parent)
+  Transform& Transform::setParent(Handle<SceneNode> parent)
   {
     this->parent = parent;
     dirty = true;
+    return *this;
   }
 
-  Handle<SceneNode> Transform::getParent()
+  inline const Vector3& Transform::getPosition() const { return position; }
+
+  inline const Vector3& Transform::getScale() const { return scale; }
+
+  inline const Vector3& Transform::getRotation() const { return rotation; }
+
+  inline Handle<SceneNode> Transform::getParent() const { return parent; }
+
+  bool Transform::isDirty(const Scene& scene) const
   {
-    return parent;
-  }
-
-  const Vector3& Transform::getPosition() const { return position; }
-
-  const Vector3& Transform::getScale() const { return scale; }
-
-  const Vector3& Transform::getRotation() const { return rotation; }
-
-  bool Transform::isDirty() const { return dirty; }
-
-  bool Transform::update(HandleList<SceneNode>* nodes)
-  {
-    SceneNode* parentNode = nodes->lookup(parent);
-    Mat4 parentMatrix = Mat4::initIdentity();
-
-    if(parentNode && !parentNode->typeIs(SceneNode::ROOT)) // Ignores ROOT node transform and assume it's Identity
+    // the Dirty flag is meant to allow us to skip matrix calculations
+    // if neither the node or it's parents have changed
+    SceneNode& parentNode = scene.getNode(parent);
+    if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
     {
-      if (parentNode->transform.update(nodes))
+      return dirty || parentNode.transform.isDirty(scene);
+    }
+    return dirty;
+  }
+
+
+  void Transform::setDirty(bool value)
+  {
+    dirty = value;
+  }
+
+  bool Transform::update(const Scene& scene)
+  {
+    SceneNode& parentNode = scene.getNode(parent);
+    Mat4 parentMatrix;
+
+    // Do nothing if nothing changed
+    if (isDirty(scene))
+    {
+      if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
       {
-        //TODO(marcio): This is bad. It forces the transform to update every frame even if it didin't chage. Fix it!
-        parentNode->transform.dirty = true;     //we keep it dirty so other children nodes can update
+        parentNode.transform.update(scene);
+        parentMatrix = parentNode.transform.model;
+      }
+      else
+      {
+        parentMatrix = Mat4::initIdentity();
       }
 
-      dirty = true;
-      parentMatrix = parentNode->transform.model;
+      Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
+      Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z);
+      Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
+
+      Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
+      transformed = Mat4::mul(translationMatrix, transformed);
+      model = Mat4::mul(parentMatrix, transformed);
+      return true; // changed this frame
     }
 
-    if(!dirty)
-      return false;
-
-    Mat4 scaleMatrix = Mat4::initScale(scale.x, scale.y, scale.z);
-    Mat4 rotationMatrix = Mat4::initRotation(rotation.x, rotation.y, rotation.z);
-    Mat4 translationMatrix = Mat4::initTranslation(position.x, position.y, position.z);
-
-    Mat4 transformed = Mat4::mul(rotationMatrix, scaleMatrix);
-    transformed = Mat4::mul(translationMatrix, transformed);
-    model = Mat4::mul(parentMatrix, transformed);
-
-    dirty = false;
-    return true;
+    return false;
   }
 }

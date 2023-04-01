@@ -15,9 +15,12 @@ namespace smol
     char* data;
 
     public:
+
     Arena();
 
     Arena(size_t initialSize);
+
+    Arena(Arena&& other);
 
     ~Arena();
 
@@ -32,12 +35,6 @@ namespace smol
     size_t getUsed() const;
 
     const char* getData() const;
-
-    Arena(const Arena& other) = delete;
-
-    Arena(const Arena&& other) = delete;
-
-    void operator=(const Arena& other) = delete;
   };
 }
 

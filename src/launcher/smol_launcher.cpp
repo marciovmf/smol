@@ -132,8 +132,8 @@ namespace smol
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
 
-        SystemsRoot::get()->keyboard.update();
-        SystemsRoot::get()->mouse.update();
+        mouseSystem.update();
+        keyboardSystem.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 
@@ -149,7 +149,7 @@ namespace smol
           renderer.resize(windowWidth, windowHeight);
         }
 
-        renderer.render();
+        renderer.render(deltaTime);
         endTime = Platform::getTicks();
       }
 

@@ -1,6 +1,7 @@
 
 #include <smol/smol_gl.h>             // must be included first
 #include <smol/smol_renderer.h>
+#include <smol/smol_material.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
@@ -10,81 +11,157 @@ namespace smol
 {
   ShaderProgram Renderer::defaultShader = {};
 
-  MaterialParameter* Material::getParameter(const char* name, ShaderParameter::Type type)
-  {
-    //TODO(marcio): Hash these strings for faster search
-    for(int i=0; i < parameterCount; i++)
-    {
-      MaterialParameter& p = parameter[i];
-      if (strncmp(name, p.name, strlen(name)) == 0)
-      {
-        if (p.type != type)
-        {
-          debugLogError("Setting shader %X parameter '%s'. Expected a '%d' but found a '%d'.", this, name);
-          return nullptr;
-        }
-
-        return &p;
-      }
-    }
-
-    debugLogError("Setting shader %x parameter '%s'. Parameter not found", this, name);
-    return nullptr;
-  }
-
-  Material* Material::setSampler2D(const char* name, unsigned int value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::SAMPLER_2D);
-    if (param) param->uintValue = value;
-    return this;
-  }
-
-  Material* Material::setUint(const char* name, unsigned int value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::UNSIGNED_INT);
-    if (param) param->uintValue = value;
-    return this;
-  }
-
-  Material* Material::setInt(const char* name, int value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::INT);
-    if (param) param->intValue = value;
-    return this;
-  }
-
-  Material* Material::setFloat(const char* name, float value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::FLOAT);
-    if (param) param->floatValue = value;
-    return this;
-  }
-
-  Material* Material::setVec2(const char* name, const Vector2& value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR2);
-    if (param) param->vec2Value = value;
-    return this;
-  }
-
-  Material* Material::setVec3(const char* name, const Vector3& value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR3);
-    if (param) param->vec3Value = value;
-    return this;
-  }
-
-  Material* Material::setVec4(const char* name, const Vector4& value)
-  {
-    MaterialParameter* param = getParameter(name, ShaderParameter::VECTOR4);
-    if (param) param->vec4Value = value;
-    return this;
-  }
-
-
+  static GLuint globalUbo = 0; // this is the global uniform buffer accessible from any shader program
+  const size_t SMOL_GLOBALUBO_PROJ        = 0;
+  const size_t SMOL_GLOBALUBO_VIEW        = (1 * sizeof(Mat4));
+  const size_t SMOL_GLOBALUBO_MODEL       = (2 * sizeof(Mat4));
+  const size_t SMOL_GLOBALUBO_DELTA_TIME  = (3 * sizeof(Mat4));
+  const size_t SMOL_GLOBALUBO_SIZE        = 3 * sizeof(Mat4) + sizeof(float);
+  const GLuint SMOL_GLOBALUBO_BINDING_POINT = 0;
   //
   // internal utility functions
   //
+
+  static GLuint setMaterial(const Scene* scene, const Material* material, const SceneNode* cameraNode)
+  {
+    GLuint shaderProgramId = 0; 
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    ShaderProgram& shader = resourceManager.getShader(material->shader);
+
+    switch(material->depthTest)
+    {
+      case Material::DISABLE:
+        glDisable(GL_DEPTH_TEST);
+        break;
+      case Material::LESS:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);  
+        break;
+      case Material::LESS_EQUAL:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);  
+        break;
+      case Material::EQUAL:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_EQUAL);  
+        break;
+      case Material::GREATER:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_GREATER);  
+        break;
+      case Material::GREATER_EQUAL:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_GEQUAL);  
+        break;
+      case Material::DIFFERENT:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_NOTEQUAL);  
+        break;
+      case Material::ALWAYS:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_ALWAYS);  
+        break;
+      case Material::NEVER:
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_NEVER);  
+        break;
+    }
+
+    switch(material->cullFace)
+    {
+      case Material::BACK:
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_BACK);
+        break;
+
+      case Material::FRONT:
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_FRONT);
+        break;
+
+      case Material::FRONT_AND_BACK:
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_FRONT_AND_BACK);
+        break;
+
+      case Material::NONE:
+        glDisable(GL_CULL_FACE);
+        break;
+    }
+
+    if(shader.valid)
+    {
+      // use WHITE as default color for vertex attribute when using a valid shader
+      shaderProgramId = shader.glProgramId;
+      glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    else
+    {
+      // use MAGENTA as default color for vertex attribute when using the default shader
+      //
+      shaderProgramId = resourceManager.getShader(scene->defaultShader).glProgramId;
+      glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
+    }
+
+
+    // Bind the global shader uniform buffer
+    GLuint ubIndex = glGetUniformBlockIndex(shaderProgramId, "smol");
+    glUniformBlockBinding(shaderProgramId, ubIndex,  SMOL_GLOBALUBO_BINDING_POINT); // globalUB will always be bound to index 0;
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, globalUbo);
+
+
+    //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
+    glUseProgram(shaderProgramId);
+
+    // Apply uniform values from the material
+    for (int i = 0; i < material->parameterCount; i++)
+    {
+      const MaterialParameter& parameter = material->parameter[i];
+      switch(parameter.type)
+      {
+        case ShaderParameter::SAMPLER_2D:
+          if (parameter.uintValue < (uint32) material->diffuseTextureCount)
+          {
+            int textureIndex = parameter.uintValue;
+            Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
+            Texture& texture = resourceManager.getTexture(hTexture);
+            glActiveTexture(GL_TEXTURE0 + textureIndex);
+            GLuint textureId = texture.glTextureObject;
+            glBindTexture(GL_TEXTURE_2D, textureId);
+          }
+          break;
+        case ShaderParameter::FLOAT:
+          glUniform1f(parameter.glUniformLocation, parameter.floatValue);
+          break;
+
+        case ShaderParameter::VECTOR2:
+          glUniform2f(parameter.glUniformLocation, parameter.vec2Value.x, parameter.vec2Value.y);
+          break;
+
+        case ShaderParameter::VECTOR3:
+          glUniform3f(parameter.glUniformLocation, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
+          break;
+
+        case ShaderParameter::VECTOR4:
+          glUniform4f(parameter.glUniformLocation, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
+          break;
+
+        case ShaderParameter::INT:
+          glUniform1i(parameter.glUniformLocation, parameter.intValue);
+          break;
+
+        case ShaderParameter::UNSIGNED_INT:
+          glUniform1ui(parameter.glUniformLocation, parameter.uintValue);
+          break;
+
+        default:
+          continue;
+          break;
+      }
+    }
+
+    return shaderProgramId;
+  }
 
   //Radix sort 64bit values by the lower 32bit values.
   //param elements - pointer to 64bit integers to be sorted.
@@ -167,7 +244,7 @@ namespace smol
   // This function assumes a material is already bound
   static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
   {
-    Mesh* mesh = scene->meshes.lookup(renderable->mesh);
+    Mesh* mesh = SystemsRoot::get()->resourceManager.getMesh(renderable->mesh);
 
     glBindVertexArray(mesh->vao);
 
@@ -190,21 +267,21 @@ namespace smol
     // do we need to update the data on the GPU ?
     if (batcher->dirty)
     {
+      batcher->dirty = false;
       ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material* material = resourceManager.getMaterial(renderable->material);
-      if (!material) material = resourceManager.getMaterial(scene->defaultMaterial);
+      Material& material = resourceManager.getMaterial(renderable->material);
 
-      Texture* texture = 
-        (material->diffuseTextureCount > 0 
-         && material->textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        resourceManager.getTexture(material->textureDiffuse[0]) :
-        resourceManager.getTexture(scene->defaultTexture);
+      Texture& texture = 
+        (material.diffuseTextureCount > 0 
+         && material.textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
+        resourceManager.getTexture(material.textureDiffuse[0]) :
+        resourceManager.getDefaultTexture();
 
-      Mesh* mesh = scene->meshes.lookup(renderable->mesh);
+      Mesh* mesh = resourceManager.getMesh(renderable->mesh);
 
-      const float textureWidth  = (float) texture->width;
-      const float textureHeight = (float) texture->height;
+      const float textureWidth  = (float) texture.width;
+      const float textureHeight = (float) texture.height;
       const size_t totalSize    = batcher->spriteCount * SpriteBatcher::totalSpriteSize;
 
       batcher->arena.reset();
@@ -228,7 +305,7 @@ namespace smol
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
 
         Transform& transform = sceneNode->transform;
-        SpriteSceneNode& node = sceneNode->spriteNode;
+        SpriteNodeInfo& node = sceneNode->sprite;
 
         // convert UVs from pixels to 0~1 range
         // pixel coords origin is at top left corner
@@ -275,7 +352,6 @@ namespace smol
           indices, 6 * batcher->spriteCount, colors, nullptr, uvs);
 
       Renderer::updateMesh(mesh, &meshData);
-      batcher->dirty = false;
     }
 
     return batcher->spriteCount;
@@ -287,34 +363,13 @@ namespace smol
 
   Renderer::Renderer(Scene& scene, int width, int height)
   {
+    glGenBuffers(1, &globalUbo);
+    glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
+    glBufferData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     setScene(scene);
     resize(width, height);
-  }
-
-  Renderer::~Renderer()
-  {
-    int numMeshes = scene->meshes.count();
-    const Mesh* allMeshes = scene->meshes.getArray();
-    for (int i=0; i < numMeshes; i++) 
-    {
-      const Mesh* mesh = &allMeshes[i];
-      scene->destroyMesh((Mesh*) mesh);
-    }
-
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    int numTextures;
-    Texture* allTextures = resourceManager.getTextures(&numTextures);
-    for (int i=0; i < numTextures; i++) 
-    {
-      const Texture* texture = &allTextures[i];
-      destroyTexture((Texture*) texture);
-    }
-
-    debugLogInfo("Resources released: textures: %d, meshes: %d, renderables: %d, sprite batchers: %d, scene nodes: %d.", 
-        numTextures, numMeshes,
-        scene->renderables.count(),
-        scene->batchers.count(),
-        scene->nodes.count());
   }
 
   void Renderer::setScene(Scene& scene)
@@ -326,7 +381,6 @@ namespace smol
 
     this->scene = &scene;
   }
-
 
   Scene& Renderer::getLoadedScene()
   {
@@ -361,8 +415,8 @@ namespace smol
       textureType = GL_UNSIGNED_SHORT_5_6_5;
     }
 
-    glGenTextures(1, &outTexture->textureObject);
-    glBindTexture(GL_TEXTURE_2D, outTexture->textureObject);
+    glGenTextures(1, &outTexture->glTextureObject);
+    glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
 
     GLuint mode;
@@ -423,12 +477,12 @@ namespace smol
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    return outTexture->textureObject != 0;
+    return outTexture->glTextureObject != 0;
   }
 
   void Renderer::destroyTexture(Texture* texture)
   {
-    glDeleteTextures(1, &texture->textureObject);
+    glDeleteTextures(1, &texture->glTextureObject);
   }
 
   //
@@ -438,7 +492,7 @@ namespace smol
   bool Renderer::createShaderProgram(ShaderProgram* outShader, const char* vsSource, const char* fsSource, const char* gsSource)
   {
     outShader->valid = false;
-    outShader->programId = 0;
+    outShader->glProgramId = 0;
 
     GLint status;
     const int errorLogSize = 1024;
@@ -563,7 +617,7 @@ namespace smol
           break;
       }
 
-      parameter.location = glGetUniformLocation(program, parameter.name);
+      parameter.glUniformLocation = glGetUniformLocation(program, parameter.name);
       outShader->parameterCount++;
     }
 
@@ -572,7 +626,7 @@ namespace smol
     glDeleteShader(fShader);
     if (gShader) glDeleteShader(gShader);
 
-    outShader->programId = program;
+    outShader->glProgramId = program;
     outShader->valid = true;
     return true;
   }
@@ -586,27 +640,34 @@ namespace smol
 
     const char* defaultVShader =
       "#version 330 core\n\
+      layout (std140) uniform smol\n\
+      {\n\
+        mat4 proj;\n\
+        mat4 view;\n\
+        mat4 model;\n\
+        float deltaTime;\n\
+      };\n\
       layout (location = 0) in vec3 vertPos;\n\
       layout (location = 1) in vec2 vertUVIn;\n\
-      uniform mat4 proj;\n\
       out vec2 uv;\n\
-      void main() { gl_Position = proj * vec4(vertPos, 1.0); uv = vertUVIn; }";
+      void main() { gl_Position = proj * view * model * vec4(vertPos, 1.0); uv = vertUVIn; }";
 
     const char* defaultFShader =
       "#version 330 core\n\
       out vec4 fragColor;\n\
       uniform sampler2D mainTex;\n\
       in vec2 uv;\n\
-      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0);}";
+      void main(){ fragColor = texture(mainTex, uv) * vec4(1.0f, 0.0, 1.0, 1.0); }";
 
-    createShaderProgram(&defaultShader, defaultVShader, defaultFShader, nullptr);
+    bool success = createShaderProgram(&defaultShader, defaultVShader, defaultFShader, nullptr);
+    SMOL_ASSERT(success == true, "Failed to create default shader program.");
     return defaultShader;
   }
 
   void Renderer::destroyShaderProgram(ShaderProgram* program)
   {
-    glDeleteProgram(program->programId);
-    program->programId = -1;
+    glDeleteProgram(program->glProgramId);
+    program->glProgramId = -1;
     program->valid = false;
   }
 
@@ -861,97 +922,165 @@ namespace smol
   {
     this->viewport.w = width;
     this->viewport.h = height;
+    Scene& scene = *this->scene;
 
-    glViewport(0, 0, width, height);
-
-    glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-    scene->projectionMatrix = Mat4::perspective(60.0f, width/(float)height, 0.01f, 100.0f);
-    scene->projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
+
+    SceneNode* node = scene.nodes.lookup(scene.mainCamera);
+    if (node)
+    {
+      Camera& camera = node->camera;
+
+      const smol::Rectf& cameraRect = camera.getViewportRect();
+      glViewport(
+          (GLsizei) (width * cameraRect.x),
+          (GLsizei) (height * cameraRect.y),
+          (GLsizei) (width * cameraRect.w),
+          (GLsizei) (height * cameraRect.h));
+
+      camera.setPerspective(camera.getFOV(), width/(float)height, camera.getNearClipDistance(), camera.getFarClipDistance());
+      scene.projectionMatrix = camera.getProjectionMatrix();
+    }
+    else
+    {
+      scene.projectionMatrix = Mat4::perspective(60.0f, width/(float)height, 0.01f, 100.0f);
+    }
+
+    //TODO(marcio); make the renderable find a suitable 2D camera
+    scene.projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
-  void Renderer::render()
+  void Renderer::render(float deltaTime)
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
-    const GLuint defaultShaderProgramId = resourceManager.getShader(scene.defaultShader)->programId;
-    const GLuint defaultTextureId = resourceManager.getTexture(scene.defaultTexture)->textureObject;
-    const Material* defaultMaterial = resourceManager.getMaterial(scene.defaultMaterial);
-
-    // ----------------------------------------------------------------------
-    // CLEAR
-    if (scene.clearOperation != Scene::DONT_CLEAR)
-    {
-      GLuint glClearFlags = 0;
-
-      if (scene.clearOperation & Scene::COLOR_BUFFER)
-        glClearFlags |= GL_COLOR_BUFFER_BIT;
-
-      if (scene.clearOperation & Scene::DEPTH_BUFFER)
-        glClearFlags |= GL_DEPTH_BUFFER_BIT;
-
-      glClearColor(scene.clearColor.x, scene.clearColor.y, scene.clearColor.z, 1.0f);
-      glClear(glClearFlags);
-    }
+    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().glProgramId;
+    const GLuint defaultTextureId = resourceManager.getDefaultTexture().glTextureObject;
+    const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
     const SceneNode* allNodes = scene.nodes.getArray();
     int numNodes = scene.nodes.count();
 
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
+
+    //TODO(marcio): support multiple cameras
+    // find the main camera
+    SceneNode* cameraNode = scene.nodes.lookup(scene.mainCamera);
+    uint32 cameraLayers = cameraNode->camera.getLayerMask();
+
+    // ----------------------------------------------------------------------
+    // VIEWPORT (per camera)
+    unsigned int cameraStatus = cameraNode->camera.getStatusFlags();
+    cameraNode->camera.resetStatusFlags();
+
+    if (cameraStatus & Camera::Flag::VIEWPORT_CHANGED)
+    {
+      const Rectf& cameraRect = cameraNode->camera.getViewportRect();
+      glViewport(
+          (GLsizei) (viewport.w * cameraRect.x),
+          (GLsizei) (viewport.h * cameraRect.y),
+          (GLsizei) (viewport.w * cameraRect.w),
+          (GLsizei) (viewport.h * cameraRect.h));
+    }
+
+    if (cameraStatus & Camera::Flag::PROJECTION_CHANGED)
+    {
+      resize(viewport.w, viewport.h);
+    }
+
+
+    // ----------------------------------------------------------------------
+    // CLEAR (per camera)
+    if (cameraStatus & Camera::Flag::CLEAR_COLOR_CHANGED)
+    {
+      const Color& clearColor = cameraNode->camera.getClearColor();
+      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+    }
+
+    unsigned int clearOperation = cameraNode->camera.getClearOperation();
+    if (clearOperation != Camera::ClearOperation::DONT_CLEAR)
+    {
+      GLuint glClearFlags = 0;
+
+      if (clearOperation & Camera::ClearOperation::COLOR)
+        glClearFlags |= GL_COLOR_BUFFER_BIT;
+
+      if (clearOperation & Camera::ClearOperation::DEPTH)
+        glClearFlags |= GL_DEPTH_BUFFER_BIT;
+
+      glClear(glClearFlags);
+    }
+
+
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
-      node->setDirty(node->isDirty() | node->transform.update(&scene.nodes));
       Renderable* renderable = nullptr;
       bool discard = false;
+      bool updateTransform = true;
 
       switch(node->getType())
       {
         case SceneNode::MESH:
-          renderable = scene.renderables.lookup(node->meshNode.renderable);
+          renderable = scene.renderables.lookup(node->mesh.renderable);
           break;
 
         case SceneNode::SPRITE:
-          renderable = scene.renderables.lookup(node->spriteNode.renderable);
+          renderable = scene.renderables.lookup(node->sprite.renderable);
 
-          if (node->isDirty())
+          if (node->transform.isDirty(scene) || node->isDirty())
           {
-            SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
+            SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
             batcher->dirty = true;
           }
           break;
 
         case SceneNode::ROOT:
           discard = true;
+          updateTransform = false;
+          break;
+
+        case SceneNode::CAMERA:
+          discard = true;
+          updateTransform = true;
           break;
 
         default:
           discard = true;
+          updateTransform = false;
           break;
       }
 
+      // discard if the node is on a layer the camera is not rendering
+      discard |= (cameraLayers & node->getLayer()) == 0;
+
+      // discard if the ndoe is inactive in hierarchy
       if (!discard && !node->isActiveInHierarchy())
         discard = true;
 
+      // discard if the node does not have a renderable
       if (!renderable)
         discard = true;
 
-
+      // save a descriptor key for rendering the node later if it was not discarded
       if(!discard)
       {
-        Material* materialPtr = resourceManager.getMaterial(renderable->material);
+        Material& materialPtr = resourceManager.getMaterial(renderable->material);
         uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
         *keyPtr = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex),
-            materialPtr->renderQueue, i);
+            materialPtr.renderQueue, i);
       }
 
-      node->setDirty(false);
+      if (updateTransform)
+        node->transform.update(scene);
+
     }
 
     // ----------------------------------------------------------------------
@@ -962,157 +1091,66 @@ namespace smol
     // ----------------------------------------------------------------------
     // Draw render keys
 
-    int currentMaterialIndex = - 1;
+    int currentMaterialIndex = -1;
     ShaderProgram* shader = nullptr;
     GLuint shaderProgramId = 0; 
     GLuint uniformLocationProj = 0;
+    GLuint uniformLocationView = 0;
+    GLuint uniformLocationModel = 0;
+    Mat4 identity = Mat4::initIdentity();
+
+    // ONCE per camera:
+    {
+      glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
+
+      // proj
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
+          sizeof(Mat4), cameraNode->camera.getProjectionMatrix().e);
+
+      // view
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
+          sizeof(Mat4), cameraNode->transform.getMatrix().inverse().e);
+
+      // model
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
+          sizeof(Mat4), Mat4::initIdentity().e);
+
+      // delta time
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_DELTA_TIME,
+          sizeof(float), &deltaTime);
+    }
 
     for(int i = 0; i < numKeys; i++)
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
       SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
       SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
+
+      node->setDirty(false);
+      node->transform.setDirty(false); // reset transform dirty flag
+
       int materialIndex = getMaterialIndexFromRenderKey(key);
 
       SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match with render key node type");
 
-      // Change material only if necessary
+      // Change material *if* necessary
       if (currentMaterialIndex != materialIndex)
       {
         currentMaterialIndex = materialIndex;
-        const Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
-        Material* material = resourceManager.getMaterial(renderable->material);
-        shader = resourceManager.getShader(material->shader);
-
-        switch(material->depthTest)
-        {
-          case Material::DISABLE:
-            glDisable(GL_DEPTH_TEST);
-          break;
-          case Material::LESS:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);  
-          break;
-          case Material::LESS_EQUAL:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LEQUAL);  
-          break;
-          case Material::EQUAL:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_EQUAL);  
-          break;
-          case Material::GREATER:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_GREATER);  
-          break;
-          case Material::GREATER_EQUAL:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_GEQUAL);  
-          break;
-          case Material::DIFFERENT:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_NOTEQUAL);  
-          break;
-          case Material::ALWAYS:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_ALWAYS);  
-          break;
-          case Material::NEVER:
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_NEVER);  
-          break;
-        }
-
-
-        switch(material->cullFace)
-        {
-          case Material::BACK:
-            glEnable(GL_CULL_FACE); 
-            glCullFace(GL_BACK);
-            break;
-
-          case Material::FRONT:
-            glEnable(GL_CULL_FACE); 
-            glCullFace(GL_FRONT);
-            break;
-
-          case Material::FRONT_AND_BACK:
-            glEnable(GL_CULL_FACE); 
-            glCullFace(GL_FRONT_AND_BACK);
-            break;
-
-          case Material::NONE:
-            glDisable(GL_CULL_FACE);
-            break;
-        }
-
-        if(shader && shader->valid)
-        {
-          // use WHITE as default color for vertex attribute when using a valid shader
-          shaderProgramId = shader->programId;
-          glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
-        }
-        else
-        {
-          // use MAGENTA as default color for vertex attribute when using the default shader
-          shaderProgramId = defaultShaderProgramId;
-          glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
-        }
-
-        //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
-        glUseProgram(shaderProgramId);
-        uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
-
-        // Apply uniform values from the material
-        for (int i = 0; i < material->parameterCount; i++)
-        {
-          MaterialParameter& parameter = material->parameter[i];
-          switch(parameter.type)
-          {
-            case ShaderParameter::SAMPLER_2D:
-              if (parameter.uintValue < (uint32) material->diffuseTextureCount)
-              {
-                int textureIndex = parameter.uintValue;
-                Handle<Texture> hTexture = material->textureDiffuse[textureIndex];
-                Texture* texture = resourceManager.getTexture(hTexture);
-                glActiveTexture(GL_TEXTURE0 + textureIndex);
-                GLuint textureId = texture ? texture->textureObject : defaultTextureId;
-                glBindTexture(GL_TEXTURE_2D, textureId);
-              }
-              break;
-            case ShaderParameter::FLOAT:
-              glUniform1f(parameter.location, parameter.floatValue);
-              break;
-
-            case ShaderParameter::VECTOR2:
-              glUniform2f(parameter.location, parameter.vec2Value.x, parameter.vec2Value.y);
-              break;
-
-            case ShaderParameter::VECTOR3:
-              glUniform3f(parameter.location, parameter.vec3Value.x, parameter.vec3Value.y, parameter.vec3Value.z);
-              break;
-
-            case ShaderParameter::VECTOR4:
-              glUniform4f(parameter.location, parameter.vec4Value.x, parameter.vec4Value.y, parameter.vec4Value.z, parameter.vec4Value.w);
-              break;
-
-            case ShaderParameter::INT:
-              glUniform1i(parameter.location, parameter.intValue);
-              break;
-
-            case ShaderParameter::UNSIGNED_INT:
-              glUniform1ui(parameter.location, parameter.uintValue);
-              break;
-
-            default:
-              continue;
-              break;
-          }
-        }
+        const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
+        Material& material = resourceManager.getMaterial(renderable->material);
+        shaderProgramId = setMaterial(&scene, &material, cameraNode);
       }
 
-      //TODO(marcio): By default, pass individual matrices (projection/ view / model) to shaders.
-      //TODO(marcio): Change it so it updates ONCE per frame.
+      //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
+      GLuint uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
+      GLuint uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
+      GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
+
+      // Pass camera matrices to the shader
+      //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
+      //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
+
       //TODO(marcio): Use a uniform buffer for that
 
       if (node->typeIs(SceneNode::MESH)) 
@@ -1120,29 +1158,36 @@ namespace smol
         if (!node->isActive())
           continue;
 
-        //TODO(marcio): get the view matrix from a camera!
-        Mat4 transformed = Mat4::mul(
-            scene.projectionMatrix,
-            node->transform.getMatrix());   // model matrix
+        //glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
+        // model
+        glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
 
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) transformed.e);
-        Renderable* renderable = scene.renderables.lookup(node->meshNode.renderable);
+        Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
       }
       else if (node->typeIs(SceneNode::SPRITE))
       {
-        //TODO(marcio): get the view matrix from a camera!
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, 
-            (const float*) scene.projectionMatrix2D.e);
-
-        SpriteBatcher* batcher = scene.batchers.lookup(node->spriteNode.batcher);
+        Transform t;
+        SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
         if(batcher->dirty)
         {
+#if 1
+          // Relative to SCREEN
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (float*) scene.projectionMatrix2D.e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (float*) t.getMatrix().inverse().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (float*) Mat4::initIdentity().e);
+#else
+          //TODO(marcio): Include an option to use the current camera for the Sprite batcher
+          // Relative to current camera
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, (const float*) cameraNode->camera.getProjectionMatrix().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (const float*) identity.e);
+#endif
           updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
         }
 
         //draw
-        Renderable* renderable = scene.renderables.lookup(node->spriteNode.renderable);
+        Renderable* renderable = scene.renderables.lookup(node->sprite.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
         i+=batcher->spriteCount - 1;
       }
@@ -1155,7 +1200,8 @@ namespace smol
 
     // unbind the last shader and textures (material)
     glUseProgram(defaultShaderProgramId);
-    for (int i = 0; i < defaultMaterial->diffuseTextureCount; i++)
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    for (int i = 0; i < defaultMaterial.diffuseTextureCount; i++)
     {
       glActiveTexture(GL_TEXTURE0 + i);
       glBindTexture(GL_TEXTURE_2D, 0);

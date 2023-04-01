@@ -7414,6 +7414,11 @@ namespace smol
 
   MeshData::MeshData(){}
 
+  MeshData::MeshData(Vector3* positions, int numPositions, unsigned int* indices, int numIndices):
+    positions(positions), indices(indices), normals(normals), colors(colors), uv0(uv0), uv1(uv1), numPositions(numPositions), numIndices(numIndices)
+  {
+  }
+
   MeshData::MeshData(Vector3* positions, int numPositions,
       unsigned int* indices,
       int numIndices,
@@ -7429,6 +7434,37 @@ namespace smol
     :positions(other.positions), indices(other.indices), normals(other.normals), colors(other.colors), uv0(other.uv0), uv1(other.uv1), numPositions(other.numPositions), numIndices(other.numIndices)
   {
   }
+
+  MeshData& MeshData::setPosition(Vector3* positions)
+  {
+   this->positions = positions;
+   return *this;
+  }
+
+  MeshData& MeshData::setColors(Color* colors)
+  {
+    this->colors = colors; 
+    return *this;
+  }
+
+  MeshData& MeshData::setUV0(Vector2* uvs)
+  {
+    this->uv0 = uvs; 
+    return *this;
+  }
+
+  MeshData& MeshData::setUV1(Vector2* uvs)
+  {
+    this->uv1 = uvs;
+    return *this;
+  }
+
+  MeshData& MeshData::setIndices(unsigned int* indices)
+  {
+    this->indices = indices;
+    return *this;
+  }
+
 
   const MeshData MeshData::getPrimitiveCube()
   {

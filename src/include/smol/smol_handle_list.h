@@ -73,11 +73,12 @@ namespace smol
       HandleList(int initialCapacity);
       Handle<T> reserve();
       Handle<T> add(const T&);
-      T* lookup(Handle<T> handle);
+      Handle<T> add(T&&);
+      T* lookup(Handle<T> handle) const;
       void remove(Handle<T> handle);
       void reset();
-      int count();
-      const T* getArray();
+      int count() const;
+      const T* getArray() const;
     };
 
   //
@@ -93,13 +94,13 @@ namespace smol
   { }
 
   template<typename T>
-    inline int HandleList<T>::count()
+    inline int HandleList<T>::count() const
     {
       return resourceCount;
     }
 
   template<typename T>
-    const T* HandleList<T>::getArray()
+    const T* HandleList<T>::getArray() const
     {
       return (const T*) resources.getData();
     }
@@ -137,6 +138,14 @@ namespace smol
     }
 
   template<typename T>
+    Handle<T> HandleList<T>::add(T&& t)
+    {
+      Handle<T> handle = add(t);
+      memset((void*) &t, 0, sizeof(t));
+      return handle;
+    }
+
+  template<typename T>
     Handle<T> HandleList<T>::add(const T& t)
     {
       Handle<T> handle = reserve();
@@ -146,7 +155,7 @@ namespace smol
     }
 
   template <typename T>
-    T* HandleList<T>::lookup(Handle<T> handle)
+    T* HandleList<T>::lookup(Handle<T> handle) const
     {
       if (handle.slotIndex >= slots.getCapacity() || handle.slotIndex < 0)
       {
@@ -186,9 +195,7 @@ namespace smol
         // Move the last resource to the space left by the one being removed
         T* resourceLast = ((T*) resources.getData()) + slotOfLast->resourceIndex;
         T* resourceRemoved = ((T*) resources.getData()) + slotOfRemoved->resourceIndex;
-        memcpy((void*) resourceRemoved,
-            (void*) resourceLast,
-            sizeof(T));
+        memcpy((void*) resourceRemoved, (void*) resourceLast, sizeof(T));
       }
 
       slotOfRemoved->nextFreeSlotIndex = freeSlotListStart;
@@ -200,6 +207,13 @@ namespace smol
   template <typename T>
     void HandleList<T>::reset()
     {
+      // invalidate ALL slots
+      for (int i = 0; i < resourceCount; i++)
+      {
+        SlotInfo* slot = ((SlotInfo*)  slots.getData()) + i;
+        slot->version++;
+      }
+
       slots.reset();
       resources.reset();
       resourceCount = 0;

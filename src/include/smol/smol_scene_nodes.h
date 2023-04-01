@@ -5,6 +5,8 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_rect.h>
 #include <smol/smol_color.h>
+#include <smol/smol_renderer_types.h>
+#include <smol/smol_camera.h>
 
 namespace smol
 {
@@ -12,12 +14,12 @@ namespace smol
   struct Renderable;
   struct SpriteBatcher;
 
-  struct MeshSceneNode
+  struct MeshNodeInfo
   {
     Handle<Renderable> renderable;
   };
 
-  struct SpriteSceneNode : public MeshSceneNode
+  struct SpriteNodeInfo : public MeshNodeInfo
   {
     Handle<SpriteBatcher> batcher;
     Rect rect;
@@ -32,16 +34,18 @@ namespace smol
     enum Type : char
     {
       INVALID = -1,
-      ROOT = 0, // there must be only ONE roote node in a scene
+      ROOT = 0, // there must be only ONE root node in a scene
       MESH,
       SPRITE,
+      CAMERA
     };
 
     Transform transform;
     union
     {
-      MeshSceneNode meshNode;
-      SpriteSceneNode spriteNode;
+      MeshNodeInfo mesh;
+      SpriteNodeInfo sprite;
+      Camera camera;
     };
 
     private:
@@ -49,18 +53,22 @@ namespace smol
     bool active = true;   // active state for the node, not the hierarchy
     bool dirty = true;    // changed this frame
     Type type;
+    Layer layer;
 
     public:
+    SceneNode();
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     void setActive(bool status);
-    inline bool isValid()  { return type != SceneNode::Type::INVALID; }
-    inline bool isActive() { return active; }
-    inline bool isDirty() { return dirty; }
-    inline void setDirty(bool value) { dirty = value; }
-    inline Type getType() { return type; }
-    inline bool typeIs(Type t) { return type == t; }
-    bool isActiveInHierarchy();
+    void setDirty(bool value);
+    bool isValid() const;
+    bool isActive() const;
+    bool isDirty() const;
+    Type getType() const;
+    Layer getLayer() const;
+    bool typeIs(Type t) const;
+    bool isActiveInHierarchy() const;
     void setParent(Handle<SceneNode> parent);
+    void setLayer(Layer l);
   };
 }
 
