@@ -185,6 +185,7 @@ void onUpdate(float deltaTime)
   smol::Mouse& mouse = root->mouse;
   smol::Scene& scene = root->loadedScene;
   smol::Renderer& renderer = root->renderer;
+  smol::ResourceManager& resourceManager = root->resourceManager;
 
   int xDirection = 0;
   int yDirection = 0;

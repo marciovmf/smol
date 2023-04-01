@@ -1,13 +1,18 @@
 vertexShader:"
 #version 330 core
+
+  layout (std140) uniform smol
+  {
+    mat4 proj;
+    mat4 view;
+    mat4 model;
+    float deltaTime;
+  };
+
   layout (location = 0) in vec3 vertPos;
   layout (location = 1) in vec2 vertUVIn;
   layout (location = 4) in vec4 colorIn;
   layout (location = 3) in vec3 normalIn;
-
-  uniform mat4 proj;
-  uniform mat4 view;
-  uniform mat4 model;
   uniform vec4 color;
 
   out vec4 vertColor; 
