@@ -11,6 +11,13 @@ namespace smol
 {
   ShaderProgram Renderer::defaultShader = {};
 
+  static GLuint globalUbo = 0; // this is the global uniform buffer accessible from any shader program
+  const size_t SMOL_GLOBALUBO_PROJ        = 0;
+  const size_t SMOL_GLOBALUBO_VIEW        = (1 * sizeof(Mat4));
+  const size_t SMOL_GLOBALUBO_MODEL       = (2 * sizeof(Mat4));
+  const size_t SMOL_GLOBALUBO_DELTA_TIME  = (3 * sizeof(Mat4));
+  const size_t SMOL_GLOBALUBO_SIZE        = 3 * sizeof(Mat4) + sizeof(float);
+  const GLuint SMOL_GLOBALUBO_BINDING_POINT = 0;
   //
   // internal utility functions
   //
@@ -96,20 +103,15 @@ namespace smol
       glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
     }
 
+
+    // Bind the global shader uniform buffer
+    GLuint ubIndex = glGetUniformBlockIndex(shaderProgramId, "smol");
+    glUniformBlockBinding(shaderProgramId, ubIndex,  SMOL_GLOBALUBO_BINDING_POINT); // globalUB will always be bound to index 0;
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, globalUbo);
+
+
     //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
     glUseProgram(shaderProgramId);
-
-//    //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
-//    GLuint uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
-//    GLuint uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
-//    GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
-//
-//    // Pass camera matrices to the shader
-//    material->getParameter("proj", ShaderParameter::Type::MAT)
-//    glUniformMatrix4fv(uniformLocationProj,   1, 0,
-//        (const float*) cameraNode->cameraNode.camera.getProjectionMatrix().e);
-//    glUniformMatrix4fv(uniformLocationView,   1, 0,
-//        (const float*) cameraNode->transform.getMatrix().inverse().e);
 
     // Apply uniform values from the material
     for (int i = 0; i < material->parameterCount; i++)
@@ -361,6 +363,11 @@ namespace smol
 
   Renderer::Renderer(Scene& scene, int width, int height)
   {
+    glGenBuffers(1, &globalUbo);
+    glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
+    glBufferData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     setScene(scene);
     resize(width, height);
   }
@@ -633,11 +640,15 @@ namespace smol
 
     const char* defaultVShader =
       "#version 330 core\n\
+      layout (std140) uniform smol\n\
+      {\n\
+        mat4 proj;\n\
+        mat4 view;\n\
+        mat4 model;\n\
+        float deltaTime;\n\
+      };\n\
       layout (location = 0) in vec3 vertPos;\n\
       layout (location = 1) in vec2 vertUVIn;\n\
-      uniform mat4 proj;\n\
-      uniform mat4 view;\n\
-      uniform mat4 model;\n\
       out vec2 uv;\n\
       void main() { gl_Position = proj * view * model * vec4(vertPos, 1.0); uv = vertUVIn; }";
 
@@ -943,7 +954,7 @@ namespace smol
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
-  void Renderer::render()
+  void Renderer::render(float deltaTime)
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
@@ -1088,6 +1099,27 @@ namespace smol
     GLuint uniformLocationModel = 0;
     Mat4 identity = Mat4::initIdentity();
 
+    // ONCE per camera:
+    {
+      glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
+
+      // proj
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
+          sizeof(Mat4), cameraNode->camera.getProjectionMatrix().e);
+
+      // view
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
+          sizeof(Mat4), cameraNode->transform.getMatrix().inverse().e);
+
+      // model
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
+          sizeof(Mat4), Mat4::initIdentity().e);
+
+      // delta time
+      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_DELTA_TIME,
+          sizeof(float), &deltaTime);
+    }
+
     for(int i = 0; i < numKeys; i++)
     {
       uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
@@ -1116,8 +1148,8 @@ namespace smol
       GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
 
       // Pass camera matrices to the shader
-      glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
-      glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
+      //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
+      //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
 
       //TODO(marcio): Use a uniform buffer for that
 
@@ -1126,30 +1158,31 @@ namespace smol
         if (!node->isActive())
           continue;
 
-        glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
+        //glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
+        // model
+        glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
 
         Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
         drawRenderable(&scene, renderable, shaderProgramId);
       }
       else if (node->typeIs(SceneNode::SPRITE))
       {
-
         Transform t;
-
-        // Relative to SCREEN
-        glUniformMatrix4fv(uniformLocationProj, 1, 0, (const float*) scene.projectionMatrix2D.e);
-        glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) t.getMatrix().inverse().e);
-        glUniformMatrix4fv(uniformLocationModel,   1, 0, (const float*) identity.e);
-
-
-        // Relative to current Camera
-        //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
-        //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
-        //glUniformMatrix4fv(uniformLocationModel,   1, 0, (const float*) identity.e);
-
         SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
         if(batcher->dirty)
         {
+#if 1
+          // Relative to SCREEN
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (float*) scene.projectionMatrix2D.e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (float*) t.getMatrix().inverse().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (float*) Mat4::initIdentity().e);
+#else
+          //TODO(marcio): Include an option to use the current camera for the Sprite batcher
+          // Relative to current camera
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, (const float*) cameraNode->camera.getProjectionMatrix().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (const float*) identity.e);
+#endif
           updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
         }
 
@@ -1167,6 +1200,7 @@ namespace smol
 
     // unbind the last shader and textures (material)
     glUseProgram(defaultShaderProgramId);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
     for (int i = 0; i < defaultMaterial.diffuseTextureCount; i++)
     {
       glActiveTexture(GL_TEXTURE0 + i);
