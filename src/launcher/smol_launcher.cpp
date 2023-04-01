@@ -149,7 +149,7 @@ namespace smol
           renderer.resize(windowWidth, windowHeight);
         }
 
-        renderer.render();
+        renderer.render(deltaTime);
         endTime = Platform::getTicks();
       }
 

@@ -943,7 +943,7 @@ namespace smol
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   }
 
-  void Renderer::render()
+  void Renderer::render(float deltaTime)
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
