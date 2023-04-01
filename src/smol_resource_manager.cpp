@@ -638,7 +638,7 @@ namespace smol
     }
 
     ShaderProgram* allShaders = getShaders(&numObjects);
-    debugLogInfo("ResourceManager: Releasing ShaderProgram %x%d", numObjects);
+    debugLogInfo("ResourceManager: Releasing ShaderProgram x%d", numObjects);
     for (int i=0; i < numObjects; i++) 
     {
       const ShaderProgram* shader = &allShaders[i];
