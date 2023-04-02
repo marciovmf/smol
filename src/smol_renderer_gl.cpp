@@ -262,12 +262,11 @@ namespace smol
     glBindVertexArray(0);
   }
 
-  static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList)
+  static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
   {
     // do we need to update the data on the GPU ?
-    if (batcher->dirty)
+    //if (batcher->dirty)
     {
-      batcher->dirty = false;
       ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
       Renderable* renderable = scene->renderables.lookup(batcher->renderable);
       Material& material = resourceManager.getMaterial(renderable->material);
@@ -299,11 +298,17 @@ namespace smol
       const SceneNode* allNodes = scene->nodes.getArray();
       int offset = 0;
 
+      int activeSprites = 0;
       for (int i = 0; i < batcher->spriteCount; i++)
       {
         uint64 key = ((uint64*)renderKeyList)[i];
         SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
 
+        // ignore sprites the current camera can't see
+        if(!(cameraLayers & sceneNode->getLayer()))
+          continue;
+
+        activeSprites++;
         Transform& transform = sceneNode->transform;
         SpriteNodeInfo& node = sceneNode->sprite;
 
@@ -348,8 +353,7 @@ namespace smol
         }
       }
 
-      MeshData meshData(positions, 4 * batcher->spriteCount,
-          indices, 6 * batcher->spriteCount, colors, nullptr, uvs);
+      MeshData meshData(positions, 4 * activeSprites, indices, 6 * activeSprites, colors, nullptr, uvs);
 
       Renderer::updateMesh(mesh, &meshData);
     }
@@ -367,7 +371,6 @@ namespace smol
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
     glBufferData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
     setScene(scene);
     resize(width, height);
   }
@@ -923,35 +926,12 @@ namespace smol
     this->viewport.w = width;
     this->viewport.h = height;
     Scene& scene = *this->scene;
-
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-
-    SceneNode* node = scene.nodes.lookup(scene.mainCamera);
-    if (node)
-    {
-      Camera& camera = node->camera;
-
-      const smol::Rectf& cameraRect = camera.getViewportRect();
-      glViewport(
-          (GLsizei) (width * cameraRect.x),
-          (GLsizei) (height * cameraRect.y),
-          (GLsizei) (width * cameraRect.w),
-          (GLsizei) (height * cameraRect.h));
-
-      camera.setPerspective(camera.getFOV(), width/(float)height, camera.getNearClipDistance(), camera.getFarClipDistance());
-      scene.projectionMatrix = camera.getProjectionMatrix();
-    }
-    else
-    {
-      scene.projectionMatrix = Mat4::perspective(60.0f, width/(float)height, 0.01f, 100.0f);
-    }
-
-    //TODO(marcio); make the renderable find a suitable 2D camera
     scene.projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    resized = true;
   }
 
   void Renderer::render(float deltaTime)
@@ -968,235 +948,229 @@ namespace smol
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
 
-    //TODO(marcio): support multiple cameras
-    // find the main camera
-    SceneNode* cameraNode = scene.nodes.lookup(scene.mainCamera);
-    uint32 cameraLayers = cameraNode->camera.getLayerMask();
-
-    // ----------------------------------------------------------------------
-    // VIEWPORT (per camera)
-    unsigned int cameraStatus = cameraNode->camera.getStatusFlags();
-    cameraNode->camera.resetStatusFlags();
-
-    if (cameraStatus & Camera::Flag::VIEWPORT_CHANGED)
-    {
-      const Rectf& cameraRect = cameraNode->camera.getViewportRect();
-      glViewport(
-          (GLsizei) (viewport.w * cameraRect.x),
-          (GLsizei) (viewport.h * cameraRect.y),
-          (GLsizei) (viewport.w * cameraRect.w),
-          (GLsizei) (viewport.h * cameraRect.h));
-    }
-
-    if (cameraStatus & Camera::Flag::PROJECTION_CHANGED)
-    {
-      resize(viewport.w, viewport.h);
-    }
-
-
-    // ----------------------------------------------------------------------
-    // CLEAR (per camera)
-    if (cameraStatus & Camera::Flag::CLEAR_COLOR_CHANGED)
-    {
-      const Color& clearColor = cameraNode->camera.getClearColor();
-      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
-    }
-
-    unsigned int clearOperation = cameraNode->camera.getClearOperation();
-    if (clearOperation != Camera::ClearOperation::DONT_CLEAR)
-    {
-      GLuint glClearFlags = 0;
-
-      if (clearOperation & Camera::ClearOperation::COLOR)
-        glClearFlags |= GL_COLOR_BUFFER_BIT;
-
-      if (clearOperation & Camera::ClearOperation::DEPTH)
-        glClearFlags |= GL_DEPTH_BUFFER_BIT;
-
-      glClear(glClearFlags);
-    }
-
-
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
+    int numCameras = 0;
+
     for(int i = 0; i < numNodes; i++)
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
       Renderable* renderable = nullptr;
       bool discard = false;
       bool updateTransform = true;
+      uint64 key = 0;
 
       switch(node->getType())
       {
-        case SceneNode::MESH:
-          renderable = scene.renderables.lookup(node->mesh.renderable);
-          break;
-
-        case SceneNode::SPRITE:
-          renderable = scene.renderables.lookup(node->sprite.renderable);
-
-          if (node->transform.isDirty(scene) || node->isDirty())
+        case SceneNode::CAMERA:
           {
-            SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
-            batcher->dirty = true;
+            node->transform.update(scene);
+            key = encodeRenderKey(node->getType(), 0, node->camera.getPriority(), i);
           }
           break;
 
-        case SceneNode::ROOT:
-          discard = true;
-          updateTransform = false;
+        case SceneNode::MESH:
+          {
+            node->transform.update(scene);
+            renderable = scene.renderables.lookup(node->mesh.renderable);
+            Material& materialPtr = resourceManager.getMaterial(renderable->material);
+            key = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex), materialPtr.renderQueue, i);
+          }
           break;
 
-        case SceneNode::CAMERA:
-          discard = true;
-          updateTransform = true;
+        case SceneNode::SPRITE:
+          {
+            if (node->transform.isDirty(scene) || node->isDirty())
+            {
+              SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
+              batcher->dirty = true;
+            }
+            renderable = scene.renderables.lookup(node->sprite.renderable);
+            Material& materialPtr = resourceManager.getMaterial(renderable->material);
+            key = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex), materialPtr.renderQueue, i);
+          }
           break;
 
         default:
-          discard = true;
-          updateTransform = false;
-          break;
+          continue;
+            break;
       }
 
-      // discard if the node is on a layer the camera is not rendering
-      discard |= (cameraLayers & node->getLayer()) == 0;
-
-      // discard if the ndoe is inactive in hierarchy
-      if (!discard && !node->isActiveInHierarchy())
-        discard = true;
-
-      // discard if the node does not have a renderable
-      if (!renderable)
-        discard = true;
-
-      // save a descriptor key for rendering the node later if it was not discarded
-      if(!discard)
+      // save the key if the node is active
+      if (node->isActiveInHierarchy())
       {
-        Material& materialPtr = resourceManager.getMaterial(renderable->material);
-        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
-        *keyPtr = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex),
-            materialPtr.renderQueue, i);
-      }
-
-      if (updateTransform)
         node->transform.update(scene);
+        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
+        *keyPtr = key;
 
+        // we only count active cameras
+        if (node->typeIs(SceneNode::Type::CAMERA))
+            numCameras++;
+      }
     }
 
     // ----------------------------------------------------------------------
     // Sort keys
-    const int32 numKeys = (int32) (scene.renderKeys.getUsed() / sizeof(uint64));
-    radixSort((uint64*) scene.renderKeys.getData(), numKeys, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.getUsed()));
+    const int32 numKeysToSort = (int32) (scene.renderKeys.getUsed() / sizeof(uint64));
+    radixSort((uint64*) scene.renderKeys.getData(), numKeysToSort, (uint64*) scene.renderKeysSorted.pushSize(scene.renderKeys.getUsed()));
 
-    // ----------------------------------------------------------------------
-    // Draw render keys
-
-    int currentMaterialIndex = -1;
-    ShaderProgram* shader = nullptr;
-    GLuint shaderProgramId = 0; 
-    GLuint uniformLocationProj = 0;
-    GLuint uniformLocationView = 0;
-    GLuint uniformLocationModel = 0;
-    Mat4 identity = Mat4::initIdentity();
-
-    // ONCE per camera:
+    // Cameras will be the first nodes on the sorted list. We use that to iterate all cameras
+    uint64* allCameraKeys = (uint64*) scene.renderKeysSorted.getData();
+    uint64* allRenderKeys = allCameraKeys + numCameras;
+    const int32 numKeys = numKeysToSort - numCameras; // don't count with camera nodes;
+    for(int cameraIndex = 0; cameraIndex < numCameras; cameraIndex++)
     {
+      uint64 cameraKey = allCameraKeys[cameraIndex];
+      SceneNode* cameraNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(cameraKey)];
+      SMOL_ASSERT(cameraNode->typeIs(SceneNode::Type::CAMERA), "SceneNode is CAMERA", cameraNode->getType());
+
+      // ----------------------------------------------------------------------
+      // VIEWPORT
+      unsigned int cameraStatus = cameraNode->camera.getStatusFlags();
+      cameraNode->camera.resetStatusFlags();
+
+      uint32 cameraLayers = cameraNode->camera.getLayerMask();
+      const Rectf& cameraRect = cameraNode->camera.getViewportRect();
+      Rect screenRect;
+      screenRect.x = (size_t)(viewport.w * cameraRect.x);
+      screenRect.y = (size_t)(viewport.h * cameraRect.y);
+      screenRect.w = (size_t)(viewport.w * cameraRect.w);
+      screenRect.h = (size_t)(viewport.h * cameraRect.h);
+
+      glViewport((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
+
+      // ----------------------------------------------------------------------
+      // CLEAR
+
+      if (cameraStatus & Camera::Flag::CLEAR_COLOR_CHANGED)
+      {
+        const Color& clearColor = cameraNode->camera.getClearColor();
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+      }
+
+      unsigned int clearOperation = cameraNode->camera.getClearOperation();
+      if (clearOperation != Camera::ClearOperation::DONT_CLEAR)
+      {
+        GLuint glClearFlags = 0;
+
+        if (clearOperation & Camera::ClearOperation::COLOR)
+          glClearFlags |= GL_COLOR_BUFFER_BIT;
+
+        if (clearOperation & Camera::ClearOperation::DEPTH)
+          glClearFlags |= GL_DEPTH_BUFFER_BIT;
+
+
+        // This is a HACK untill we have per camera Framebuffers. 
+        // Otherwise one camera will clean other camera's buffers
+        glEnable(GL_SCISSOR_TEST);
+        glScissor((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
+        glClear(glClearFlags);
+        glDisable(GL_SCISSOR_TEST);
+      }
+
+
+      // ----------------------------------------------------------------------
+      // set uniform buffer matrices based on current camera
       glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
 
       // proj
       glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
           sizeof(Mat4), cameraNode->camera.getProjectionMatrix().e);
-
       // view
       glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
           sizeof(Mat4), cameraNode->transform.getMatrix().inverse().e);
-
       // model
       glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
           sizeof(Mat4), Mat4::initIdentity().e);
-
       // delta time
       glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_DELTA_TIME,
           sizeof(float), &deltaTime);
-    }
 
-    for(int i = 0; i < numKeys; i++)
-    {
-      uint64 key = ((uint64*)scene.renderKeysSorted.getData())[i];
-      SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-      SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
+      // ----------------------------------------------------------------------
+      // Draw render keys
+      int currentMaterialIndex = -1;
+      ShaderProgram* shader = nullptr;
+      GLuint shaderProgramId = 0; 
+      Mat4 identity = Mat4::initIdentity();
 
-      node->setDirty(false);
-      node->transform.setDirty(false); // reset transform dirty flag
-
-      int materialIndex = getMaterialIndexFromRenderKey(key);
-
-      SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match with render key node type");
-
-      // Change material *if* necessary
-      if (currentMaterialIndex != materialIndex)
+      for(int i = 0; i < numKeys; i++)
       {
-        currentMaterialIndex = materialIndex;
-        const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
-        Material& material = resourceManager.getMaterial(renderable->material);
-        shaderProgramId = setMaterial(&scene, &material, cameraNode);
-      }
+        uint64 key = allRenderKeys[i];
+        SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+        SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
+        int materialIndex = getMaterialIndexFromRenderKey(key);
+        SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match the render key node type");
 
-      //TODO(marcio): stop calling glGetUniformLocation() find a fast way to get it from the material
-      GLuint uniformLocationProj = glGetUniformLocation(shaderProgramId, "proj");
-      GLuint uniformLocationView = glGetUniformLocation(shaderProgramId, "view");
-      GLuint uniformLocationModel = glGetUniformLocation(shaderProgramId, "model");
+        node->setDirty(false);
+        node->transform.setDirty(false); // reset transform dirty flag
 
-      // Pass camera matrices to the shader
-      //glUniformMatrix4fv(uniformLocationProj,   1, 0, (const float*) cameraNode->camera.getProjectionMatrix().e);
-      //glUniformMatrix4fv(uniformLocationView,   1, 0, (const float*) cameraNode->transform.getMatrix().inverse().e);
-
-      //TODO(marcio): Use a uniform buffer for that
-
-      if (node->typeIs(SceneNode::MESH)) 
-      {
-        if (!node->isActive())
-          continue;
-
-        //glUniformMatrix4fv(uniformLocationModel,  1, 0, (const float*) node->transform.getMatrix().e);
-        // model
-        glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
-
-        Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
-        drawRenderable(&scene, renderable, shaderProgramId);
-      }
-      else if (node->typeIs(SceneNode::SPRITE))
-      {
-        Transform t;
-        SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
-        if(batcher->dirty)
+        // Change material *if* necessary
+        if (currentMaterialIndex != materialIndex)
         {
-#if 1
-          // Relative to SCREEN
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (float*) scene.projectionMatrix2D.e);
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (float*) t.getMatrix().inverse().e);
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (float*) Mat4::initIdentity().e);
-#else
-          //TODO(marcio): Include an option to use the current camera for the Sprite batcher
-          // Relative to current camera
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, (const float*) cameraNode->camera.getProjectionMatrix().e);
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (const float*) identity.e);
-#endif
-          updateSpriteBatcher(&scene, this, batcher, ((uint64*)scene.renderKeysSorted.getData()) + i);
+          currentMaterialIndex = materialIndex;
+          const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
+          Material& material = resourceManager.getMaterial(renderable->material);
+          shaderProgramId = setMaterial(&scene, &material, cameraNode);
         }
 
-        //draw
-        Renderable* renderable = scene.renderables.lookup(node->sprite.renderable);
-        drawRenderable(&scene, renderable, shaderProgramId);
-        i+=batcher->spriteCount - 1;
-      }
-      else
-      {
-        //TODO(marcio): Implement scpecific render logic for each type of node
-        continue; 
+        if (node->typeIs(SceneNode::MESH)) 
+        {
+          // disard inactive meshes
+          if (!node->isActive())
+            continue;
+
+          // disard meshes on a layer the current camera can't see
+          if(!(cameraLayers & node->getLayer()))
+            continue;
+
+
+          // model
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
+          Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
+          drawRenderable(&scene, renderable, shaderProgramId);
+        }
+        else if (node->typeIs(SceneNode::SPRITE))
+        {
+          Transform t;
+          SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
+          if(batcher->dirty || resized)
+          {
+#if 1
+            // Relative to SCREEN
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (float*) scene.projectionMatrix2D.e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (float*) t.getMatrix().inverse().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (float*) Mat4::initIdentity().e);
+#else
+            //TODO(marcio): Include an option to use the current camera for the Sprite batcher
+            // Relative to current camera
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, (const float*) cameraNode->camera.getProjectionMatrix().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (const float*) identity.e);
+#endif
+            updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);
+
+            // keep it dirty while there are cameras to render
+            if (cameraIndex == numCameras - 1)
+            {
+              batcher->dirty = false;
+            }
+
+          }
+
+          //draw
+          Renderable* renderable = scene.renderables.lookup(node->sprite.renderable);
+          drawRenderable(&scene, renderable, shaderProgramId);
+          i+=batcher->spriteCount - 1;
+        }
+        else
+        {
+          //TODO(marcio): Implement scpecific render logic for each type of node
+          continue; 
+        }
       }
     }
+
+    resized = false;
 
     // unbind the last shader and textures (material)
     glUseProgram(defaultShaderProgramId);

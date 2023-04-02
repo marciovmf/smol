@@ -35,9 +35,9 @@ namespace smol
     {
       INVALID = -1,
       ROOT = 0, // there must be only ONE root node in a scene
+      CAMERA,
       MESH,
-      SPRITE,
-      CAMERA
+      SPRITE
     };
 
     Transform transform;
@@ -50,8 +50,8 @@ namespace smol
 
     private:
     Scene& scene;
-    bool active = true;   // active state for the node, not the hierarchy
-    bool dirty = true;    // changed this frame
+    bool active;   // active state for the node, not the hierarchy
+    bool dirty;    // changed this frame
     Type type;
     Layer layer;
 

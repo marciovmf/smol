@@ -18,6 +18,7 @@ namespace smol
     Scene* scene;
     Rect viewport;
     static ShaderProgram defaultShader;
+    bool resized;
 
     public:
 

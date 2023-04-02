@@ -38,7 +38,8 @@ void onStart()
 
   mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
   shader = resourceManager.loadShader("assets/default.shader");
-  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
+  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100), 
+      smol::Texture::Wrap::REPEAT, smol::Texture::Filter::NEAREST);
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
       smol::Texture::Filter::NEAREST,
       smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
@@ -49,7 +50,7 @@ void onStart()
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
   resourceManager.getMaterial(floorMaterial)
-    .setVec4("color",(const smol::Vector4&)  smol::Color(210, 227, 70));
+    .setVec4("color",(const smol::Vector4&)  smol::Color(255, 255, 255, 127));
 
 
   auto floor = scene.createRenderable(floorMaterial,
@@ -89,8 +90,6 @@ void onStart()
       .setRotation(0.8f, 0.8f, 0.8f)
       );
 
-  scene.getNode(floorNode).setLayer(smol::Layer::LAYER_1);
-
   // camera
   smol::Transform t;
   smol::Rect viewport = root->renderer.getViewport();
@@ -98,13 +97,24 @@ void onStart()
   //cameraNode = scene.createOrthographicCameraNode(0.0f, (float)viewport.w, (float)viewport.h, 0.0f, 0.01f, 3000.0f, t);
   scene.setMainCamera(cameraNode);
 
-  smol::SceneNode& pCameraNode = scene.getNode(cameraNode);
-  pCameraNode.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
-  pCameraNode.transform
+  smol::SceneNode& leftCamera = scene.getNode(cameraNode);
+  leftCamera.transform
+    .setRotation(-15.0f, 0.0f, 0.0f)
+    .setPosition(0.0f, 10.0f, 15.0f);
+  leftCamera.camera.setViewportRect(smol::Rectf(0.0f, 0.0f, 0.5f, 1.0f));
+  leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+
+
+  auto hCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  smol::SceneNode& rightCamera = scene.getNode(hCamera);
+  rightCamera.transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
+  rightCamera.camera.setViewportRect(smol::Rectf(0.5f, 0.0f, 0.5f, 1.0f));
+  rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_2));
 
   // Create a grass field
+#if 1
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
       resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
@@ -143,8 +153,10 @@ void onStart()
     t.setRotation(0.0f, randAngle, 0.0f);
     t.setScale(randScale, randScale, randScale);
 
-    scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
+    auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
+    scene.getNode(handle).setLayer(smol::Layer::LAYER_1);
   }
+#endif
 
   // sprites
   auto texture = resourceManager.loadTexture("assets/smol.texture");
@@ -159,6 +171,7 @@ void onStart()
       (const smol::Vector3&) smol::Vector3(1.0f, 1.0f, 0.0f),
       350.0f, 100.0f, 
       (const smol::Color) smol::Color::WHITE);
+  scene.getNode(sprite1).setLayer(smol::Layer::LAYER_2);
 
   sprite2 = scene.createSpriteNode(batcher, 
       smol::Rect(0, 0, 800, 800),
@@ -229,8 +242,8 @@ void onUpdate(float deltaTime)
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
   {
     once = false;
-    int numHSprites = 20;
-    int numVSprites = 20;
+    int numHSprites = 5;
+    int numVSprites = 5;
     smol::ConfigEntry* entry = root->config.findEntry("game");
     if (entry)
     {
@@ -247,11 +260,13 @@ void onUpdate(float deltaTime)
     {
       for (int y = 0; y < numVSprites; y++)
       {
-        scene.createSpriteNode(batcher, 
+        auto hNode = scene.createSpriteNode(batcher, 
             smol::Rect{0, 0, 800, 800},
             smol::Vector3{x * spriteWidth, y * spriteHeight, 0.1f},
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
+
+        scene.getNode(hNode).setLayer(smol::Layer::LAYER_2);
       }
     }
   }

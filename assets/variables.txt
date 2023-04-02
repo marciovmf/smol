@@ -11,5 +11,5 @@
 
 @game:
   seed: 1655119152,
-  numHSprites: 50,
-  numVSprites: 50
+  numHSprites: 3,
+  numVSprites: 3

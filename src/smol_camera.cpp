@@ -9,7 +9,8 @@ namespace smol
     clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
-    rect(0.0f, 0.0f, 1.0f, 1.0f)
+    rect(0.0f, 0.0f, 1.0f, 1.0f),
+    priority(0)
   {
     setOrthographic(left, right, top, bottom, zNear, zFar);
   }
@@ -19,7 +20,8 @@ namespace smol
     clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
-    rect(0.0f, 0.0f, 1.0f, 1.0f)
+    rect(0.0f, 0.0f, 1.0f, 1.0f),
+    priority(0)
   {
     setPerspective(fov, aspect, zNear, zFar);
   }
@@ -114,4 +116,19 @@ namespace smol
     return *this;
   }
 
+  unsigned int Camera::getPriority() const
+  {
+    return priority;
+  }
+
+  Camera& Camera::setPriority(unsigned int priority)
+  {
+    this->priority = priority;
+    return *this;
+  }
+
+  Rectf Camera::getOrthographicRect() const
+  {
+    return Rectf(left, bottom, right, top);
+  }
 }

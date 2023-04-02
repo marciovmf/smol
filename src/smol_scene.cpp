@@ -177,6 +177,16 @@ namespace smol
     return (SceneNode&) nullSceneNode;
   }
 
+
+  void Scene::destroyNode(Handle<SceneNode> handle)
+  {
+    SceneNode* node = nodes.lookup(handle);
+    if (node)
+    {
+      nodes.remove(handle);
+    }
+  }
+
   Scene::~Scene()
   {
     debugLogInfo("Scene Released Renderable x%d, SpriteBatcher x%d, SceneNode x%d.", 

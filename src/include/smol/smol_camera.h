@@ -67,6 +67,7 @@ namespace smol
     };
 
     private:
+
     float aspect;
     float fov;
     float zNear;
@@ -82,6 +83,7 @@ namespace smol
     unsigned int flags;
     unsigned int clearOperation;
     Color clearColor;
+    unsigned int priority;
 
     public:
 
@@ -110,6 +112,11 @@ namespace smol
 
     const Color& getClearColor() const;
     Camera& setClearColor(const Color& color);
+
+    unsigned int getPriority() const;
+    Camera& setPriority(unsigned int priority);
+
+    Rectf getOrthographicRect() const;
 
   };
 }

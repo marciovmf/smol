@@ -27,18 +27,17 @@ namespace smol
   {
     static const Handle<SceneNode> ROOT;
 
-    HandleList<smol::Renderable> renderables;
-    HandleList<smol::SceneNode> nodes;
-    HandleList<smol::SpriteBatcher> batchers;
+    HandleList<Renderable> renderables;
+    HandleList<SceneNode> nodes;
+    HandleList<SpriteBatcher> batchers;
     Arena renderKeys;
     Arena renderKeysSorted;
     Handle<smol::Texture> defaultTexture;
     Handle<smol::ShaderProgram> defaultShader;
     Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
-    Mat4 projectionMatrix;
     Handle<SceneNode> mainCamera;
-    Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
+    Mat4 projectionMatrix2D;
     const smol::SceneNode nullSceneNode;
 
     Scene(ResourceManager& resourceManager);
