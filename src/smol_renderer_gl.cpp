@@ -966,6 +966,7 @@ namespace smol
           {
             node->transform.update(scene);
             key = encodeRenderKey(node->getType(), 0, node->camera.getPriority(), i);
+            Camera& camera = node->camera;
           }
           break;
 
@@ -993,7 +994,7 @@ namespace smol
 
         default:
           continue;
-            break;
+          break;
       }
 
       // save the key if the node is active
@@ -1005,7 +1006,7 @@ namespace smol
 
         // we only count active cameras
         if (node->typeIs(SceneNode::Type::CAMERA))
-            numCameras++;
+          numCameras++;
       }
     }
 
@@ -1018,6 +1019,12 @@ namespace smol
     uint64* allCameraKeys = (uint64*) scene.renderKeysSorted.getData();
     uint64* allRenderKeys = allCameraKeys + numCameras;
     const int32 numKeys = numKeysToSort - numCameras; // don't count with camera nodes;
+
+
+    // Update global screen projection matrix
+    scene.projectionMatrix2D = Mat4::ortho(0.0f, (float)viewport.w, (float)viewport.h, 0.0f, -10.0f, 10.0f);
+
+
     for(int cameraIndex = 0; cameraIndex < numCameras; cameraIndex++)
     {
       uint64 cameraKey = allCameraKeys[cameraIndex];
@@ -1026,10 +1033,7 @@ namespace smol
 
       // ----------------------------------------------------------------------
       // VIEWPORT
-      unsigned int cameraStatus = cameraNode->camera.getStatusFlags();
-      cameraNode->camera.resetStatusFlags();
 
-      uint32 cameraLayers = cameraNode->camera.getLayerMask();
       const Rectf& cameraRect = cameraNode->camera.getViewportRect();
       Rect screenRect;
       screenRect.x = (size_t)(viewport.w * cameraRect.x);
@@ -1041,12 +1045,8 @@ namespace smol
 
       // ----------------------------------------------------------------------
       // CLEAR
-
-      if (cameraStatus & Camera::Flag::CLEAR_COLOR_CHANGED)
-      {
-        const Color& clearColor = cameraNode->camera.getClearColor();
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
-      }
+      const Color& clearColor = cameraNode->camera.getClearColor();
+      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 
       unsigned int clearOperation = cameraNode->camera.getClearOperation();
       if (clearOperation != Camera::ClearOperation::DONT_CLEAR)
@@ -1059,15 +1059,12 @@ namespace smol
         if (clearOperation & Camera::ClearOperation::DEPTH)
           glClearFlags |= GL_DEPTH_BUFFER_BIT;
 
-
-        // This is a HACK untill we have per camera Framebuffers. 
-        // Otherwise one camera will clean other camera's buffers
+        //TODO(marcio): This hack will allow us to clear only the camera's viewport. Remove it when we have per camera Framebuffers working.
         glEnable(GL_SCISSOR_TEST);
         glScissor((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
         glClear(glClearFlags);
         glDisable(GL_SCISSOR_TEST);
       }
-
 
       // ----------------------------------------------------------------------
       // set uniform buffer matrices based on current camera
@@ -1092,6 +1089,8 @@ namespace smol
       ShaderProgram* shader = nullptr;
       GLuint shaderProgramId = 0; 
       Mat4 identity = Mat4::initIdentity();
+
+      uint32 cameraLayers = cameraNode->camera.getLayerMask();
 
       for(int i = 0; i < numKeys; i++)
       {
@@ -1133,7 +1132,7 @@ namespace smol
         {
           Transform t;
           SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
-          if(batcher->dirty || resized)
+          if(batcher->dirty)
           {
 #if 1
             // Relative to SCREEN
@@ -1143,7 +1142,7 @@ namespace smol
 #else
             //TODO(marcio): Include an option to use the current camera for the Sprite batcher
             // Relative to current camera
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, (const float*) cameraNode->camera.getProjectionMatrix().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
             glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
             glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (const float*) identity.e);
 #endif

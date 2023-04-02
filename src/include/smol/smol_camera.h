@@ -80,7 +80,6 @@ namespace smol
     Type type;
     uint32 layers;
     Mat4 viewMatrix;
-    unsigned int flags;
     unsigned int clearOperation;
     Color clearColor;
     unsigned int priority;
@@ -104,8 +103,6 @@ namespace smol
     float getNearClipDistance() const;
     float getFarClipDistance() const;
     Camera::Type getCameraType() const;
-    unsigned int getStatusFlags() const;
-    void resetStatusFlags();
 
     unsigned int getClearOperation() const;
     Camera& setClearOperation(unsigned int operation);

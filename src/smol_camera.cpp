@@ -5,8 +5,7 @@
 namespace smol
 {
   Camera::Camera(float left, float right, float top, float bottom, float zNear, float zFar)
-    :flags(Flag::CLEAR_COLOR_CHANGED),
-    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    :clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
@@ -16,8 +15,7 @@ namespace smol
   }
 
   Camera::Camera(float fov, float aspect, float zNear, float zFar)
-    :flags(Flag::CLEAR_COLOR_CHANGED),
-    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    :clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
@@ -34,7 +32,6 @@ namespace smol
     this->zNear = zNear;
     this->zFar = zFar;
     this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
-    this->flags |= (unsigned int) Flag::PROJECTION_CHANGED;
     return *this;
   }
 
@@ -48,7 +45,6 @@ namespace smol
     this->top = top;
     this->bottom = bottom;
     this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
-    this->flags |= (unsigned int) Flag::PROJECTION_CHANGED;
     return *this;
   }
 
@@ -77,8 +73,6 @@ namespace smol
     if (this->rect.y < 0.0f) this->rect.y = 0.0f;
     if (this->rect.w < 0.0f) this->rect.w = 0.0f;
     if (this->rect.h < 0.0f) this->rect.h = 0.0f;
-
-    flags |= (unsigned int) Flag::VIEWPORT_CHANGED;
     return *this;
   }
 
@@ -91,10 +85,6 @@ namespace smol
   float Camera::getFarClipDistance() const { return zFar; }
 
   Camera::Type Camera::getCameraType() const { return type; }
-
-  unsigned int Camera::getStatusFlags() const { return flags; }
-
-  void Camera::resetStatusFlags() { flags = 0; };
 
   unsigned int Camera::getClearOperation() const { return clearOperation; }
 
@@ -112,7 +102,6 @@ namespace smol
   Camera& Camera::setClearColor(const Color& color)
   {
     clearColor = color;
-    flags |= Flag::CLEAR_COLOR_CHANGED;
     return *this;
   }
 
