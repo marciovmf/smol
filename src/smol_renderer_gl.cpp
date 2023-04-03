@@ -321,13 +321,15 @@ namespace smol
         uvRect.h = node.rect.h / (float) textureHeight;
 
         const Vector3& pos = transform.getPosition();
-        float posY = renderer->getViewport().h - pos.y;
+        //float posY = renderer->getViewport().h - pos.y;
+        float halfW = node.width/2.0f;
+        float halfH = node.height/2.0f;
 
         {
-          pVertex[0] = {pos.x,  posY, pos.z};                             // top left
-          pVertex[1] = {pos.x + node.width,  posY - node.height, pos.z};  // bottom right
-          pVertex[2] = {pos.x + node.width,  posY, pos.z};                // top right
-          pVertex[3] = {pos.x, posY - node.height, pos.z};                // bottom left
+          pVertex[0] = {pos.x - halfW, pos.y + halfH, pos.z};             // top left
+          pVertex[1] = {pos.x + halfW, pos.y - halfH, pos.z};             // bottom right
+          pVertex[2] = {pos.x + halfW, pos.y + halfH, pos.z};             // top right
+          pVertex[3] = {pos.x - halfW, pos.y - halfH, pos.z};             // bottom left
           pVertex += 4;
 
           pColors[0] = node.color;                                        // top left
@@ -928,7 +930,6 @@ namespace smol
     Scene& scene = *this->scene;
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
-    scene.projectionMatrix2D = Mat4::ortho(0.0f, (float)width, (float)height, 0.0f, -10.0f, 10.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     resized = true;
@@ -1019,11 +1020,6 @@ namespace smol
     uint64* allCameraKeys = (uint64*) scene.renderKeysSorted.getData();
     uint64* allRenderKeys = allCameraKeys + numCameras;
     const int32 numKeys = numKeysToSort - numCameras; // don't count with camera nodes;
-
-
-    // Update global screen projection matrix
-    scene.projectionMatrix2D = Mat4::ortho(0.0f, (float)viewport.w, (float)viewport.h, 0.0f, -10.0f, 10.0f);
-
 
     for(int cameraIndex = 0; cameraIndex < numCameras; cameraIndex++)
     {
@@ -1122,7 +1118,6 @@ namespace smol
           if(!(cameraLayers & node->getLayer()))
             continue;
 
-
           // model
           glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
           Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
@@ -1130,22 +1125,15 @@ namespace smol
         }
         else if (node->typeIs(SceneNode::SPRITE))
         {
-          Transform t;
           SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
           if(batcher->dirty)
           {
-#if 1
-            // Relative to SCREEN
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (float*) scene.projectionMatrix2D.e);
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (float*) t.getMatrix().inverse().e);
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (float*) Mat4::initIdentity().e);
-#else
-            //TODO(marcio): Include an option to use the current camera for the Sprite batcher
-            // Relative to current camera
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), (const float*) identity.e);
-#endif
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
+                sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
+                sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
+                sizeof(Mat4), (const float*) identity.e);
             updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);
 
             // keep it dirty while there are cameras to render

@@ -76,6 +76,7 @@ namespace smol
     float right;
     float left;
     float bottom;
+    float orthographicSize;
     Rectf rect;
     Type type;
     uint32 layers;
@@ -86,11 +87,12 @@ namespace smol
 
     public:
 
-    Camera(float left, float right, float top, float bottom, float zNear, float zFar);
+    
+    Camera(float size, float zNear, float zFar);
     Camera(float fov, float aspect, float zNear, float zFar);
 
     Camera& setPerspective(float fov, float aspect, float zNear, float zFar);
-    Camera& setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar);
+    Camera& setOrthographic(float size, float zNear, float zFar);
     Camera& setLayerMask(uint32 layers);
     uint32 getLayerMask() const;
     const Mat4& getProjectionMatrix() const;
@@ -113,7 +115,7 @@ namespace smol
     unsigned int getPriority() const;
     Camera& setPriority(unsigned int priority);
 
-    Rectf getOrthographicRect() const;
+    float getOrthographicSize() const;
 
   };
 }

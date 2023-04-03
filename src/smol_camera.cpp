@@ -4,14 +4,15 @@
 
 namespace smol
 {
-  Camera::Camera(float left, float right, float top, float bottom, float zNear, float zFar)
+  Camera::Camera(float size, float zNear, float zFar)
     :clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
-    priority(0)
+    priority(0),
+    orthographicSize(0.0f)
   {
-    setOrthographic(left, right, top, bottom, zNear, zFar);
+    setOrthographic(size, zNear, zFar);
   }
 
   Camera::Camera(float fov, float aspect, float zNear, float zFar)
@@ -19,7 +20,8 @@ namespace smol
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
-    priority(0)
+    priority(0),
+    orthographicSize(0.0f)
   {
     setPerspective(fov, aspect, zNear, zFar);
   }
@@ -35,15 +37,20 @@ namespace smol
     return *this;
   }
 
-  Camera& Camera::setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar)
+  Camera& Camera::setOrthographic(float size, float zNear, float zFar)
   {
+    Rect viewport = SystemsRoot::get()->renderer.getViewport();
+    float hSize = (size * viewport.h) / viewport.w;
+
     this->type = Camera::ORTHOGRAPHIC;
     this->zNear = zNear;
     this->zFar = zFar;
-    this->left = left;
-    this->right = right;
-    this->top = top;
-    this->bottom = bottom;
+    this->left = -hSize;
+    this->right = hSize;
+    this->top = size;
+    this->bottom = -size;
+    this->orthographicSize = size;
+
     this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
     return *this;
   }
@@ -116,8 +123,5 @@ namespace smol
     return *this;
   }
 
-  Rectf Camera::getOrthographicRect() const
-  {
-    return Rectf(left, bottom, right, top);
-  }
+  float Camera::getOrthographicSize() const { return orthographicSize; }
 }

@@ -36,8 +36,10 @@ void onStart()
 
   smol::Scene& scene = root->loadedScene;
 
-  mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
   shader = resourceManager.loadShader("assets/default.shader");
+
+#if 1
+  mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100), 
       smol::Texture::Wrap::REPEAT, smol::Texture::Filter::NEAREST);
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
@@ -89,29 +91,28 @@ void onStart()
       .setPosition(4.0f, 3.0f, -10.0f)
       .setRotation(0.8f, 0.8f, 0.8f)
       );
+#endif
 
   // camera
   smol::Transform t;
   smol::Rect viewport = root->renderer.getViewport();
   cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
-  //cameraNode = scene.createOrthographicCameraNode(0.0f, (float)viewport.w, (float)viewport.h, 0.0f, 0.01f, 3000.0f, t);
-  scene.setMainCamera(cameraNode);
 
   smol::SceneNode& leftCamera = scene.getNode(cameraNode);
   leftCamera.transform
-    .setRotation(-15.0f, 0.0f, 0.0f)
-    .setPosition(0.0f, 10.0f, 15.0f);
-  leftCamera.camera.setViewportRect(smol::Rectf(0.0f, 0.0f, 0.5f, 1.0f));
+    .setRotation(0.0f, 0.0f, 0.0f)
+    .setPosition(0.0f, 0.0f, 0.5f);
   leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
 
 
-  auto hCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  //auto hCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  auto hCamera = scene.createOrthographicCameraNode(5.0f,  0.01f, 100.0f, t);
   smol::SceneNode& rightCamera = scene.getNode(hCamera);
   rightCamera.transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
   rightCamera.camera.setViewportRect(smol::Rectf(0.5f, 0.0f, 0.5f, 1.0f));
-  rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_2));
+  rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_1));
 
   // Create a grass field
 #if 1
@@ -161,27 +162,29 @@ void onStart()
   // sprites
   auto texture = resourceManager.loadTexture("assets/smol.texture");
   auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
-
-  resourceManager.getMaterial(smolMaterial)
-    .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+  resourceManager.getMaterial(smolMaterial) .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   batcher = scene.createSpriteBatcher(smolMaterial);
+
   sprite1 = scene.createSpriteNode(batcher,
       (const smol::Rect&) smol::Rect(120, 580, 710, 200),
-      (const smol::Vector3&) smol::Vector3(1.0f, 1.0f, 0.0f),
-      350.0f, 100.0f, 
+      (const smol::Vector3&) smol::Vector3(3.0f, 0.0f, 0.3f),
+      4.0f, 2.0f, 
       (const smol::Color) smol::Color::WHITE);
-  scene.getNode(sprite1).setLayer(smol::Layer::LAYER_2);
+  scene.getNode(sprite1).setLayer(smol::Layer::LAYER_1);
 
   sprite2 = scene.createSpriteNode(batcher, 
       smol::Rect(0, 0, 800, 800),
-      smol::Vector3(200.0f, 200.0f, 0.0f),
-      100.0f, 100.0f, smol::Color::GREEN);
+      smol::Vector3(2.0f, -2.0f, 0.4f),
+      1.0f, 1.0f,
+      smol::Color::WHITE);
+  scene.getNode(sprite2).setLayer(smol::Layer::LAYER_1);
 
-  scene.createSpriteNode(batcher, 
+  auto sprite3 = scene.createSpriteNode(batcher, 
       smol::Rect(0, 0, 800, 800),
-      smol::Vector3(400.0f, 200.0f, 0.0f),
-      100.0f, 100.0f, smol::Color::BLUE);
+      smol::Vector3(-2.0f, 2.0f, 0.2f),
+      1.0f, 1.0f, smol::Color::BLUE);
+  scene.getNode(sprite3).setLayer(smol::Layer::LAYER_1);
 
   selectedNode = cameraNode;
 }
@@ -253,8 +256,8 @@ void onUpdate(float deltaTime)
 
     smol::Rect viewport =
       root->renderer.getViewport();
-    float spriteWidth = viewport.w /(float) numHSprites;
-    float spriteHeight = viewport.h /(float) numVSprites;
+    float spriteWidth = 30.0f / numHSprites;
+    float spriteHeight = 30.0f / numVSprites;
 
     for (int x = 0; x < numHSprites; x++)
     {
@@ -262,11 +265,11 @@ void onUpdate(float deltaTime)
       {
         auto hNode = scene.createSpriteNode(batcher, 
             smol::Rect{0, 0, 800, 800},
-            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.1f},
+            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.3f },
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
 
-        scene.getNode(hNode).setLayer(smol::Layer::LAYER_2);
+        scene.getNode(hNode).setLayer(smol::Layer::LAYER_1);
       }
     }
   }
@@ -360,10 +363,14 @@ void onUpdate(float deltaTime)
       const float amount = 15.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();
-      transform->setPosition(
+      smol::Vector3 updatedPos(
           amount * xDirection + position.x,
           amount * yDirection + position.y,
           amount * zDirection + position.z);
+
+      transform->setPosition(updatedPos.x, updatedPos.y, updatedPos.z);
+
+      debugLogInfo("Camera{%f, %f, %f}", updatedPos.x, updatedPos.y, updatedPos.z);
 
       const smol::Vector3& scale = transform->getScale();
       transform->setScale(
@@ -380,21 +387,21 @@ void onUpdate(float deltaTime)
     transform->setRotation(0, a, 0);
   }
 
-  // bounce sprite1 across the screen borders
-  transform = &scene.getNode(sprite1).transform;
-  smol::Vector3 position = transform->getPosition();
-  smol::Rect viewport = renderer.getViewport();
+  //// bounce sprite1 across the screen borders
+  //transform = &scene.getNode(sprite1).transform;
+  //smol::Vector3 position = transform->getPosition();
+  //smol::Rect viewport = renderer.getViewport();
 
-  if (position.x + 250 > viewport.w || position.x < 0)
-    spriteXDirection *= -1;
+  //if (position.x + 250 > viewport.w || position.x < 0)
+  //  spriteXDirection *= -1;
 
-  if (position.y + 100 > viewport.h || position.y < 0)
-    spriteYDirection *= -1;
+  //if (position.y + 100 > viewport.h || position.y < 0)
+  //  spriteYDirection *= -1;
 
-  transform->setPosition(
-      position.x + (100 * spriteXDirection) * deltaTime,
-      position.y + (100 * spriteYDirection) * deltaTime,
-      position.z);
+  //transform->setPosition(
+  //    position.x + (100 * spriteXDirection) * deltaTime,
+  //    position.y + (100 * spriteYDirection) * deltaTime,
+  //    position.z);
 }
 
 void onStop()

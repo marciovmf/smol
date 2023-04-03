@@ -140,11 +140,11 @@ namespace smol
     return handle;
   }
 
-  Handle<SceneNode> Scene::createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform)
+  Handle<SceneNode> Scene::createOrthographicCameraNode(float size, float zNear, float zFar, const Transform& transform)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(left, right, top, bottom, zNear, zFar);
+    node->camera = Camera(size, zNear, zFar);
     return handle;
   }
 
