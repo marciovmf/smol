@@ -36,11 +36,11 @@ namespace smol
     const char* name;
     int64 hash;
 
-    double getVariableNumber(const char* name, double defaultValue = 1.0f);
-    Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f});
-    Vector3 getVariableVec3(const char* name, Vector3 defaultValue = {0.0f, 0.0f, 0.0f});
-    Vector2 getVariableVec2(const char* name, Vector2 defaultValue = {0.0f, 0.0f});
-    const char* getVariableString(const char* name, const char* defaultValue = nullptr);
+    double getVariableNumber(const char* name, double defaultValue = 1.0f) const;
+    Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f}) const;
+    Vector3 getVariableVec3(const char* name, Vector3 defaultValue = {0.0f, 0.0f, 0.0f}) const;
+    Vector2 getVariableVec2(const char* name, Vector2 defaultValue = {0.0f, 0.0f}) const;
+    const char* getVariableString(const char* name, const char* defaultValue = nullptr) const;
 
   };
 
@@ -53,7 +53,7 @@ namespace smol
 
     Config(size_t initialArenaSize);
     Config(const char* path, size_t initialArenaSize = MEGABYTE(1));
-    ConfigEntry* findEntry(const char *name, const ConfigEntry* start = nullptr);
+    const ConfigEntry* findEntry(const char *name, const ConfigEntry* start = nullptr) const;
     ~Config();
     bool load(const char* path);
   };

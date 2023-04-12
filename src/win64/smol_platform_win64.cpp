@@ -208,6 +208,15 @@ namespace smol
       WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
       WGL_COLOR_BITS_ARB, colorBits,
       WGL_DEPTH_BITS_ARB, depthBits,
+      //WGL_STENCIL_BITS_ARB, 8,
+
+      // uncomment for sRGB framebuffer, from WGL_ARB_framebuffer_sRGB extension
+      // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_framebuffer_sRGB.txt
+      //WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB,  GL_TRUE, 
+      // uncomment for multisampeld framebuffer, from WGL_ARB_multisample extension
+      // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_multisample.txt
+      WGL_SAMPLE_BUFFERS_ARB, 1,
+      WGL_SAMPLES_ARB,        4, // 4x MSAA
       0
     };
 
@@ -216,6 +225,7 @@ namespace smol
       WGL_CONTEXT_MAJOR_VERSION_ARB, glVersionMajor,
       WGL_CONTEXT_MINOR_VERSION_ARB, glVersionMinor,
       WGL_CONTEXT_FLAGS_ARB,
+
 #ifdef SMOL_DEBUG
       WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif // SMOL_DEBUG

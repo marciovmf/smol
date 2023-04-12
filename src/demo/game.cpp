@@ -29,7 +29,7 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
 
-  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
   uint32 seed = (uint32) gameConfig->getVariableNumber("seed", 0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
@@ -231,7 +231,7 @@ void onUpdate(float deltaTime)
     once = false;
     int numHSprites = 20;
     int numVSprites = 20;
-    smol::ConfigEntry* entry = root->config.findEntry("game");
+    const smol::ConfigEntry* entry = root->config.findEntry("game");
     if (entry)
     {
       numHSprites = (int) entry->getVariableNumber("numHSprites", (float) numHSprites);

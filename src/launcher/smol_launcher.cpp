@@ -33,20 +33,6 @@ namespace smol
 {
   namespace launcher
   {
-    struct WindowVariables
-    {
-      Vector2 size;
-      const char* caption;
-    }; 
-
-    struct SystemVariables
-    {
-      bool showCursor;
-      bool captureCursor;
-      int glVersionMajor;
-      int glVersionMinor;
-    };
-
     int smolMain(int argc, char** argv)
     {
       Log::verbosity(SMOL_LOGLEVEL);
@@ -54,32 +40,14 @@ namespace smol
         smol::Log::toFile(SMOL_LOGFILE);
 
       // parse variables file
-      SystemVariables systemVariables;
-      WindowVariables windowVariables;
       Config config(SMOL_VARIABLES_FILE);
-      ConfigEntry* entry;
-      entry = config.findEntry("window");
-      if (entry)
-      {
-        windowVariables.size = entry->getVariableVec2("size");
-        windowVariables.caption = entry->getVariableString("caption");
-      }
+      GlobalSystemConfig systemConfig(config);
+      GlobalDisplayConfig displayConfig(config);
 
-      entry = config.findEntry("system");
-      if(entry)
-      {
-        // system variables
-        systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
-        systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
-        const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
-        Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
-        systemVariables.glVersionMajor = (int) glVersion.x;
-        systemVariables.glVersionMinor = (int) glVersion.y;
-      }
-
-      if (!Platform::initOpenGL(systemVariables.glVersionMajor, systemVariables.glVersionMinor))
+      if (!Platform::initOpenGL(systemConfig.glVersionMajor, systemConfig.glVersionMinor))
         return 1;
 
+      // Load game module
       Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
       SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
         Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
@@ -96,56 +64,48 @@ namespace smol
         return 1;
       }
 
-      Window* window = Platform::createWindow((int) windowVariables.size.x,
-          (int) windowVariables.size.y, windowVariables.caption);
+      // initialie display and system stuff
+      Window* window = Platform::createWindow(displayConfig.width, displayConfig.height, displayConfig.caption);
 
-      Platform::showCursor(systemVariables.showCursor);
+      Platform::showCursor(systemConfig.showCursor);
 
-      if (systemVariables.captureCursor)
+      if (systemConfig.captureCursor)
         Platform::captureCursor(window);
 
-      int lastWidth, lastHeight;
-      Platform::getWindowSize(window, &lastWidth, &lastHeight);
-      ResourceManager resourceManager;
-      Scene scene(resourceManager);
-      Renderer renderer(scene, lastWidth, lastHeight);
-
-      Keyboard keyboardSystem;
-      Mouse mouseSystem;
+      Platform::getWindowSize(window, &displayConfig.width, &displayConfig.height);
 
       // Initialize systems root
+      SystemsRoot::initialize(config);
+      Mouse& mouse        = SystemsRoot::get()->mouse;
+      Keyboard& keyboard  = SystemsRoot::get()->keyboard;
+      Renderer& renderer  = SystemsRoot::get()->renderer;
 
-      SystemsRoot::initialize(config,
-          renderer,
-          keyboardSystem,
-          mouseSystem, 
-          resourceManager,
-          scene);
+      renderer.resize(displayConfig.width, displayConfig.height);
 
-      onGameStartCallback();
 
+      // Run game/engine
       uint64 startTime = 0;
       uint64 endTime = 0;
+      onGameStartCallback();
 
       while(! Platform::getWindowCloseFlag(window))
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
 
-        mouseSystem.update();
-        keyboardSystem.update();
+        mouse.update();
+        keyboard.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
 
         // check for resize.
-        //TODO(marcio): Make an event system so we get notified when this
-        //happens.
+        //TODO(marcio): Make an event system so we get notified when this happens.
         int windowWidth, windowHeight;
         Platform::getWindowSize(window, &windowWidth, &windowHeight);
-        if (windowWidth != lastWidth || windowHeight != lastHeight)
+        if (windowWidth != displayConfig.width || windowHeight != displayConfig.height)
         {
-          lastWidth = windowWidth;
-          lastHeight = windowHeight;
+          displayConfig.width = windowWidth;
+          displayConfig.height = windowHeight;
           renderer.resize(windowWidth, windowHeight);
         }
 

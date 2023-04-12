@@ -41,7 +41,7 @@ namespace smol
     Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
     const smol::SceneNode nullSceneNode;
 
-    Scene(ResourceManager& resourceManager);
+    Scene();
     ~Scene();
 
     //

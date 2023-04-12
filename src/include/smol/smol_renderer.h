@@ -13,10 +13,15 @@ namespace smol
   struct Image;
   struct MeshData;
 
+  struct ConfigEntry;
+  struct GlobalRendererConfig;
+
   class SMOL_ENGINE_API Renderer
   {
     Scene* scene;
     Rect viewport;
+    bool enableGammaCorrection;
+    bool enableMSAA;
     static ShaderProgram defaultShader;
 
     public:
@@ -24,7 +29,8 @@ namespace smol
     //
     // Misc
     //
-    Renderer (Scene& scene, int width, int height);
+    Renderer (const GlobalRendererConfig& config);
+    ~Renderer();
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
     Scene& getLoadedScene();
     Rect getViewport();

@@ -36,6 +36,9 @@ namespace smol
   //
 
   ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
+  { }
+
+  void ResourceManager::initialize()
   {
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
@@ -61,7 +64,7 @@ namespace smol
       return INVALID_HANDLE(Texture);
 
     Config config(path);
-    ConfigEntry* entry = config.findEntry((const char*) "texture");
+    const ConfigEntry* entry = config.findEntry((const char*) "texture");
 
     if (!entry)
     {
@@ -264,7 +267,7 @@ namespace smol
       return INVALID_HANDLE(Material);
 
     Config config(path);
-    ConfigEntry* materialEntry = config.findEntry((const char*)"material");
+    const ConfigEntry* materialEntry = config.findEntry((const char*)"material");
 
     if (!materialEntry)
       return INVALID_HANDLE(Material);
@@ -285,7 +288,7 @@ namespace smol
     int renderQueue = (int) materialEntry->getVariableNumber((const char*)"queue", (float) RenderQueue::QUEUE_OPAQUE);
 
     const char* STR_TEXTURE = (const char*) "texture";
-    ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
+    const ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
     while(textureEntry)
     {
       // Diffuse texture
