@@ -50,10 +50,12 @@ namespace smol
       return;
     }
 
-    caption = entry->getVariableString("caption");
-    Vector2 size = entry->getVariableVec2("size");
-    width = size.x;
-    height = size.y;
+    Vector2 size;
+    fullScreen = entry->getVariableNumber("fullScreen") >= 1.0;
+    caption    = entry->getVariableString("caption");
+    size       = entry->getVariableVec2("size");
+    width      = (int) size.x;
+    height     = (int) size.y;
   }
 
 

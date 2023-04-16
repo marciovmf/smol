@@ -34,6 +34,7 @@ namespace smol
     const char* caption;
     int width;
     int height;
+    bool fullScreen;
 
     GlobalDisplayConfig(const Config& config);
     void update(const Config& config) override;

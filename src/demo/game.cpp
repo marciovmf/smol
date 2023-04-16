@@ -41,7 +41,7 @@ void onStart()
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100));
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
       smol::Texture::Filter::NEAREST,
-      smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
+      smol::Texture::Mipmap::NEAREST_MIPMAP_NEAREST);
 
   resourceManager.getMaterial(checkersMaterial)
     .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
@@ -49,7 +49,7 @@ void onStart()
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
   resourceManager.getMaterial(floorMaterial)
-    .setVec4("color",(const smol::Vector4&)  smol::Color(210, 227, 70));
+    .setVec4("color",(const smol::Vector4&)  smol::Color::WHITE);
 
 
   auto floor = scene.createRenderable(floorMaterial,
@@ -140,7 +140,8 @@ void onStart()
     }
 
     t.setPosition(randX, -2.0f, randZ);
-    t.setRotation(0.0f, randAngle, 0.0f);
+    //t.setRotation(0.0f, randAngle, 0.0f);
+    t.setRotation(0.0f, 0.0f, 0.0f);
     t.setScale(randScale, randScale, randScale);
 
     scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);

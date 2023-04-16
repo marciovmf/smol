@@ -11,7 +11,8 @@
 
 @display:
   size:         {1080, 768},
-  caption:      "SMOL engine v0.1"
+  caption:      "SMOL engine v0.1",
+  fullScreen:   0
 
 @game:
   seed: 1655119152,

@@ -67,6 +67,12 @@ namespace smol
       // initialie display and system stuff
       Window* window = Platform::createWindow(displayConfig.width, displayConfig.height, displayConfig.caption);
 
+      if(displayConfig.fullScreen)
+      {
+        debugLogInfo("Going fullscreen");
+        Platform::setFullScreen(window, true);
+      }
+
       Platform::showCursor(systemConfig.showCursor);
 
       if (systemConfig.captureCursor)
