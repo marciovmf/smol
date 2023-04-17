@@ -100,7 +100,7 @@ void onStart()
   leftCamera.transform
     .setRotation(0.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 0.0f, 0.5f);
-  leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
 
   //auto hCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
@@ -109,8 +109,8 @@ void onStart()
   rightCamera.transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
-  rightCamera.camera.setViewportRect(smol::Rectf(0.5f, 0.0f, 0.5f, 1.0f));
-  rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_1));
+  rightCamera.camera.setViewportRect(smol::Rectf(0.75f, 0.0f, 0.25f, 0.25f));
+  rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
 
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
@@ -153,7 +153,7 @@ void onStart()
     t.setScale(randScale, randScale, randScale);
 
     auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
-    scene.getNode(handle).setLayer(smol::Layer::LAYER_1);
+    scene.getNode(handle).setLayer(smol::Layer::LAYER_2);
   }
 
   // sprites
