@@ -6,6 +6,8 @@
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
 #include <smol/smol_systems_root.h>
+#include <smol/smol_cfg_parser.h>
+#include <smol/smol_systems_root.h>
 
 namespace smol
 {
@@ -367,14 +369,28 @@ namespace smol
   // Misc
   //
 
-  Renderer::Renderer(Scene& scene, int width, int height)
+  Renderer::~Renderer()
+  {
+    debugLogInfo("Destroying Renderer");
+  }
+
+  Renderer::Renderer(const GlobalRendererConfig& config):
+    scene(nullptr)
   {
     glGenBuffers(1, &globalUbo);
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
     glBufferData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    setScene(scene);
-    resize(width, height);
+
+    bool enableSRGB = false;
+    if (config.enableGammaCorrection)
+    {
+      glEnable(GL_FRAMEBUFFER_SRGB); 
+    }
+    if (config.enableMSAA)
+    {
+      glEnable(GL_MULTISAMPLE);
+    }
   }
 
   void Renderer::setScene(Scene& scene)
@@ -382,6 +398,7 @@ namespace smol
     if (this->scene)
     {
       //TODO: Unbind and Unload all resources related to the current scene if any
+      debugLogError("Replacing a loaded Scene is NOT IMPLEMENTED yet.");
     }
 
     this->scene = &scene;
@@ -422,7 +439,14 @@ namespace smol
 
     glGenTextures(1, &outTexture->glTextureObject);
     glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
+    
+    GLint internalFormat = GL_RGBA;
+
+
+    // if the engine is set to use SRGB ?
+    bool useSRGB = SystemsRoot::get()->rendererConfig.enableGammaCorrection;
+
+    glTexImage2D(GL_TEXTURE_2D, 0, useSRGB ? GL_SRGB_ALPHA : GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
 
     GLuint mode;
     switch (wrap)
@@ -648,11 +672,11 @@ namespace smol
       layout (std140) uniform smol\n\
       {\n\
         mat4 proj;\n\
-        mat4 view;\n\
-        mat4 model;\n\
-        float deltaTime;\n\
+          mat4 view;\n\
+          mat4 model;\n\
+          float deltaTime;\n\
       };\n\
-      layout (location = 0) in vec3 vertPos;\n\
+    layout (location = 0) in vec3 vertPos;\n\
       layout (location = 1) in vec2 vertUVIn;\n\
       out vec2 uv;\n\
       void main() { gl_Position = proj * view * model * vec4(vertPos, 1.0); uv = vertUVIn; }";

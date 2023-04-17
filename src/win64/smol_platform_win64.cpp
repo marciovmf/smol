@@ -48,6 +48,10 @@ namespace smol
     HDC dc;
     HGLRC rc;
     bool shouldClose = false;
+    // Window style prior to fullscreen
+    WINDOWPLACEMENT prevPlacement;
+    LONG_PTR prevStyle;
+    bool isFullScreen;
   };
 
   struct Module
@@ -208,6 +212,15 @@ namespace smol
       WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
       WGL_COLOR_BITS_ARB, colorBits,
       WGL_DEPTH_BITS_ARB, depthBits,
+      //WGL_STENCIL_BITS_ARB, 8,
+
+      // uncomment for sRGB framebuffer, from WGL_ARB_framebuffer_sRGB extension
+      // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_framebuffer_sRGB.txt
+      //WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB,  GL_TRUE, 
+      // uncomment for multisampeld framebuffer, from WGL_ARB_multisample extension
+      // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_multisample.txt
+      WGL_SAMPLE_BUFFERS_ARB, 1,
+      WGL_SAMPLES_ARB,        4, // 4x MSAA
       0
     };
 
@@ -216,6 +229,7 @@ namespace smol
       WGL_CONTEXT_MAJOR_VERSION_ARB, glVersionMajor,
       WGL_CONTEXT_MINOR_VERSION_ARB, glVersionMinor,
       WGL_CONTEXT_FLAGS_ARB,
+
 #ifdef SMOL_DEBUG
       WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif // SMOL_DEBUG
@@ -247,6 +261,59 @@ namespace smol
     GetClientRect(window->handle, &rect);
     if(width) *width = rect.right;
     if(height) *height = rect.bottom;
+  }
+
+  void Platform::setFullScreen(Window* window, bool fullScreen)
+  {
+    HWND hWnd = window->handle;
+
+    if (fullScreen && !window->isFullScreen) // Enter full screen
+    {
+      // Get the monitor's handle
+      HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+      // Get the monitor's info
+      MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+      GetMonitorInfo(hMonitor, &monitorInfo);
+      // Save the window's current style and position
+      window->prevStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
+      window->prevPlacement = { sizeof(window->prevPlacement) };
+      GetWindowPlacement(hWnd, &window->prevPlacement);
+
+      // Set the window style to full screen
+      SetWindowLongPtr(hWnd, GWL_STYLE, window->prevStyle & ~(WS_CAPTION | WS_THICKFRAME));
+      SetWindowPos(hWnd, NULL,
+          monitorInfo.rcMonitor.left,
+          monitorInfo.rcMonitor.top,
+          monitorInfo.rcMonitor.right,
+          monitorInfo.rcMonitor.bottom,
+          SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+      // Set the display settings to full screen
+      DEVMODE dmScreenSettings = { 0 };
+      dmScreenSettings.dmSize = sizeof(dmScreenSettings);
+      dmScreenSettings.dmPelsWidth = monitorInfo.rcMonitor.right;
+      dmScreenSettings.dmPelsHeight = monitorInfo.rcMonitor.bottom;
+      dmScreenSettings.dmBitsPerPel = 32;
+      dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+
+      LONG result = ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
+      if (result != DISP_CHANGE_SUCCESSFUL)
+      {
+        debugLogError("Failed to enter fullScreen mode");
+        return;
+      }
+      // Show the window in full screen mode
+      ShowWindow(hWnd, SW_MAXIMIZE);
+      window->isFullScreen = true;
+    }
+    else if (!fullScreen && window->isFullScreen) // Exit full screen
+    {
+      // restore window previous style and location
+      SetWindowLongPtr(hWnd, GWL_STYLE, window->prevStyle);
+      SetWindowPlacement(hWnd, &window->prevPlacement);
+      ShowWindow(hWnd, SW_RESTORE);
+      window->isFullScreen = false;
+    }
   }
 
   Window* Platform::createWindow(int width, int height, const char* title)
@@ -294,6 +361,7 @@ namespace smol
     Window* window = new Window;
     window->handle = windowHandle;
     window->dc = GetDC(windowHandle);
+    window->isFullScreen = false;
 
     if(globalRenderApiInfo.name == RenderAPIInfo::APIName::OPENGL)
     {
@@ -303,7 +371,7 @@ namespace smol
 
       const int* pixelFormatAttribList = (const int*)globalRenderApiInfo.gl.pixelFormatAttribs;
       const int* contextAttribList = (const int*)globalRenderApiInfo.gl.contextAttribs;
-      
+
       globalRenderApiInfo.gl.wglChoosePixelFormatARB(window->dc,
           pixelFormatAttribList,
           nullptr,

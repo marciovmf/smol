@@ -17,7 +17,7 @@ namespace smol
   // First node handle always points to the ROOT scene node
   const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
 
-  Scene::Scene(ResourceManager& resourceManager):
+  Scene::Scene():
     renderables(1024 * sizeof(Renderable)),
     nodes(1024 * sizeof(SceneNode)), 
     batchers(8 * sizeof(SpriteBatcher)),

@@ -60,6 +60,7 @@ namespace smol
     static void destroyWindow(Window* window);
     static bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
     static void getWindowSize(Window* window, int* width, int* height);
+    static void setFullScreen(Window* window, bool fullScreen);
  
     // Dynamic module handling
     static Module* loadModule(const char* path);

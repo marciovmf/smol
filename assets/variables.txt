@@ -3,11 +3,16 @@
 @system:
   showCursor: 1,
   captureCursor: 0,
-  glVersion: {3, 0}
+  glVersion: {3, 1}
 
-@window:
+@renderer:
+  enableGammaCorrection: 1,
+  enableMSAA: 1
+
+@display:
   size:         {1080, 768},
-  caption:      "SMOL engine v0.1"
+  caption:      "SMOL engine v0.1",
+  fullScreen:   0
 
 @game:
   seed: 1655119152,

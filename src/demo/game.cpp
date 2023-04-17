@@ -28,23 +28,22 @@ void onStart()
   smol::Log::info("Game started!");
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
+  smol::Scene& scene = root->loadedScene;
 
-  smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  // Read game specifig settings from variables.txt
+  const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
   uint32 seed = (uint32) gameConfig->getVariableNumber("seed", 0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
 
-  smol::Scene& scene = root->loadedScene;
-
   shader = resourceManager.loadShader("assets/default.shader");
 
-#if 1
   mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100), 
       smol::Texture::Wrap::REPEAT, smol::Texture::Filter::NEAREST);
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
       smol::Texture::Filter::NEAREST,
-      smol::Texture::Mipmap::LINEAR_MIPMAP_NEAREST);
+      smol::Texture::Mipmap::NEAREST_MIPMAP_NEAREST);
 
   resourceManager.getMaterial(checkersMaterial)
     .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
@@ -52,7 +51,7 @@ void onStart()
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
   resourceManager.getMaterial(floorMaterial)
-    .setVec4("color",(const smol::Vector4&)  smol::Color(255, 255, 255, 127));
+    .setVec4("color",(const smol::Vector4&)  smol::Color::WHITE);
 
 
   auto floor = scene.createRenderable(floorMaterial,
@@ -91,7 +90,6 @@ void onStart()
       .setPosition(4.0f, 3.0f, -10.0f)
       .setRotation(0.8f, 0.8f, 0.8f)
       );
-#endif
 
   // camera
   smol::Transform t;
@@ -115,7 +113,6 @@ void onStart()
   rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_1));
 
   // Create a grass field
-#if 1
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
       resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
@@ -151,13 +148,13 @@ void onStart()
     }
 
     t.setPosition(randX, -2.0f, randZ);
-    t.setRotation(0.0f, randAngle, 0.0f);
+    //t.setRotation(0.0f, randAngle, 0.0f);
+    t.setRotation(0.0f, 0.0f, 0.0f);
     t.setScale(randScale, randScale, randScale);
 
     auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
     scene.getNode(handle).setLayer(smol::Layer::LAYER_1);
   }
-#endif
 
   // sprites
   auto texture = resourceManager.loadTexture("assets/smol.texture");
@@ -199,9 +196,9 @@ void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = root->keyboard;
   smol::Mouse& mouse = root->mouse;
-  smol::Scene& scene = root->loadedScene;
   smol::Renderer& renderer = root->renderer;
   smol::ResourceManager& resourceManager = root->resourceManager;
+  smol::Scene& scene = root->loadedScene;
 
   int xDirection = 0;
   int yDirection = 0;
@@ -247,7 +244,7 @@ void onUpdate(float deltaTime)
     once = false;
     int numHSprites = 5;
     int numVSprites = 5;
-    smol::ConfigEntry* entry = root->config.findEntry("game");
+    const smol::ConfigEntry* entry = root->config.findEntry("game");
     if (entry)
     {
       numHSprites = (int) entry->getVariableNumber("numHSprites", (float) numHSprites);
@@ -369,9 +366,6 @@ void onUpdate(float deltaTime)
           amount * zDirection + position.z);
 
       transform->setPosition(updatedPos.x, updatedPos.y, updatedPos.z);
-
-      debugLogInfo("Camera{%f, %f, %f}", updatedPos.x, updatedPos.y, updatedPos.z);
-
       const smol::Vector3& scale = transform->getScale();
       transform->setScale(
           amount * scaleAmount + scale.x,

@@ -35,8 +35,8 @@ namespace smol
 
     public:
       ResourceManager();
-
       ~ResourceManager();
+      void initialize();
 
       //
       // Texture Resources

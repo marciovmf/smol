@@ -39,7 +39,7 @@ namespace smol
     Handle<SceneNode> mainCamera;
     const smol::SceneNode nullSceneNode;
 
-    Scene(ResourceManager& resourceManager);
+    Scene();
     ~Scene();
 
     //
