@@ -985,6 +985,9 @@ namespace smol
       bool updateTransform = true;
       uint64 key = 0;
 
+      if (!node->isActiveInHierarchy())
+        continue;
+
       switch(node->getType())
       {
         case SceneNode::CAMERA:
@@ -992,6 +995,7 @@ namespace smol
             node->transform.update(scene);
             key = encodeRenderKey(node->getType(), 0, node->camera.getPriority(), i);
             Camera& camera = node->camera;
+            numCameras++;
           }
           break;
 
@@ -1023,16 +1027,9 @@ namespace smol
       }
 
       // save the key if the node is active
-      if (node->isActiveInHierarchy())
-      {
-        node->transform.update(scene);
-        uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
-        *keyPtr = key;
-
-        // we only count active cameras
-        if (node->typeIs(SceneNode::Type::CAMERA))
-          numCameras++;
-      }
+      node->transform.update(scene);
+      uint64* keyPtr = (uint64*) scene.renderKeys.pushSize(sizeof(uint64));
+      *keyPtr = key;
     }
 
     // ----------------------------------------------------------------------

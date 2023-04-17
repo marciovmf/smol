@@ -8,6 +8,7 @@
 
 smol::SystemsRoot* root;
 smol::Handle<smol::SceneNode> cameraNode;
+smol::Handle<smol::SceneNode> sideCamera;
 smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
@@ -102,15 +103,15 @@ void onStart()
     .setPosition(0.0f, 0.0f, 0.5f);
   leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
-
-  //auto hCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
-  auto hCamera = scene.createOrthographicCameraNode(5.0f,  0.01f, 100.0f, t);
-  smol::SceneNode& rightCamera = scene.getNode(hCamera);
+  sideCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  //auto hCamera = scene.createOrthographicCameraNode(5.0f,  0.01f, 100.0f, t);
+  smol::SceneNode& rightCamera = scene.getNode(sideCamera);
   rightCamera.transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
   rightCamera.camera.setViewportRect(smol::Rectf(0.75f, 0.0f, 0.25f, 0.25f));
   rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  rightCamera.setActive(false);
 
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
@@ -204,6 +205,15 @@ void onUpdate(float deltaTime)
   int yDirection = 0;
   int zDirection = 0;
   int scaleAmount = 0;
+
+
+  if (keyboard.getKeyDown(smol::KEYCODE_C))
+  {
+    smol::SceneNode& cameraNode = scene.getNode(sideCamera);
+    cameraNode.setActive(!cameraNode.isActive());
+  }
+
+
   if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
   {
     smol::Point2 p = mouse.getCursorPosition();
