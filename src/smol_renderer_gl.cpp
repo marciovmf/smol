@@ -95,14 +95,16 @@ namespace smol
     {
       // use WHITE as default color for vertex attribute when using a valid shader
       shaderProgramId = shader.glProgramId;
-      glVertexAttrib4f(Mesh::COLOR, 1.0f, 1.0f, 1.0f, 1.0f);
+      const Color& white = Color::WHITE;
+      glVertexAttrib4f(Mesh::COLOR, white.r, white.g, white.b, 1.0f);
     }
     else
     {
       // use MAGENTA as default color for vertex attribute when using the default shader
       //
       shaderProgramId = resourceManager.getShader(scene->defaultShader).glProgramId;
-      glVertexAttrib4f(Mesh::COLOR, 1.0f, 0.0f, 1.0f, 1.0f);
+      const Color& magenta = Color::MAGENTA;
+      glVertexAttrib4f(Mesh::COLOR, magenta.r, magenta.g, magenta.b, 1.0f);
     }
 
 
@@ -111,8 +113,6 @@ namespace smol
     glUniformBlockBinding(shaderProgramId, ubIndex,  SMOL_GLOBALUBO_BINDING_POINT); // globalUB will always be bound to index 0;
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, globalUbo);
 
-
-    //TODO(marcio): Use a uniform buffer for engine uniforms. Something like smol.projMatrix, smol.viewMatrix, smol.time, smol.random and other uniforms that should be present in every shader.
     glUseProgram(shaderProgramId);
 
     // Apply uniform values from the material
@@ -1131,11 +1131,7 @@ namespace smol
 
         if (node->typeIs(SceneNode::MESH)) 
         {
-          // disard inactive meshes
-          if (!node->isActive())
-            continue;
-
-          // disard meshes on a layer the current camera can't see
+          // ignore meshes on a layer the current camera can't see
           if(!(cameraLayers & node->getLayer()))
             continue;
 
@@ -1162,7 +1158,6 @@ namespace smol
             {
               batcher->dirty = false;
             }
-
           }
 
           //draw
