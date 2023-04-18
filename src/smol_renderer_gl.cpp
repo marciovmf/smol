@@ -423,23 +423,42 @@ namespace smol
     outTexture->width = image.width;
     outTexture->height = image.height;
 
-    GLenum textureFormat = GL_RGBA;
-    GLenum textureType = GL_UNSIGNED_BYTE;
+    GLenum textureFormat;
+    GLenum textureType;
 
-    if (image.bitsPerPixel == 24)
+    if (image.bitsPerPixel == 32)
+    {
+      textureFormat = GL_RGBA;
+      textureType = GL_UNSIGNED_BYTE;
+    }
+    else if (image.bitsPerPixel == 24)
     {
       textureFormat = GL_RGB;
       textureType = GL_UNSIGNED_BYTE;
     }
     else if (image.bitsPerPixel == 16)
     {
-      textureFormat = GL_RGB;
-      textureType = GL_UNSIGNED_SHORT_5_6_5;
+      if (image.format16 == Image::RGB_1_5_5_5)
+      {
+        textureFormat = GL_RGBA;
+        textureType = GL_UNSIGNED_SHORT_5_5_5_1;
+      }
+      else
+      {
+        textureFormat = GL_RGB;
+        textureType = GL_UNSIGNED_SHORT_5_6_5;
+      }
+    }
+    else
+    {
+      debugLogError("Unsuported Image format. Colors might be wrong.");
+      textureFormat = GL_RGBA;
+      textureType = GL_UNSIGNED_BYTE;
     }
 
     glGenTextures(1, &outTexture->glTextureObject);
     glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
-    
+
     GLint internalFormat = GL_RGBA;
 
 

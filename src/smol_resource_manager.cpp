@@ -576,20 +576,36 @@ namespace smol
     image->bitsPerPixel = bitmap->bitCount;
     image->data = bitmap->offBits + (char*) bitmap;
 
-    if (bitmap->bitCount == 24 || bitmap->bitCount == 32)
-    {
-      // get color masks 
-      unsigned int* maskPtr = (unsigned int*) (sizeof(BitmapHeader) + (char*)bitmap);
-      unsigned int rMask = *maskPtr++;
-      unsigned int gMask = *maskPtr++;
-      unsigned int bMask = *maskPtr++;
-      unsigned int aMask = ~(rMask | gMask | bMask);
+    // get color masks 
+    unsigned int* maskPtr = (unsigned int*) (sizeof(BitmapHeader) + (char*)bitmap);
+    unsigned int rMask = *maskPtr++;
+    unsigned int gMask = *maskPtr++;
+    unsigned int bMask = *maskPtr++;
+    unsigned int aMask = ~(rMask | gMask | bMask);
+    unsigned int mask = rMask | gMask | bMask;
 
+    if (bitmap->bitCount == 16)
+    {
+      if (mask == 0x7FFF) // 1-5-5-5
+      {
+        image->format16 = Image::RGB_1_5_5_5;
+      }
+      else if (mask == 0xFFFF) // 5-6-5
+      {
+        image->format16 = Image::RGB_5_6_5;
+      }
+      else
+      {
+        debugLogWarning("Unsuported 16bit format %x. Assuming RGB_5_6_5", *maskPtr);
+        image->format16 = Image::RGB_5_6_5;
+      }
+    }
+    else if (bitmap->bitCount == 24 || bitmap->bitCount == 32)
+    {
       unsigned int rMaskShift = (rMask == 0xFF000000) ? 24 : (rMask == 0xFF0000) ? 16 : (rMask == 0xFF00) ? 8 : 0;
       unsigned int gMaskShift = (gMask == 0xFF000000) ? 24 : (gMask == 0xFF0000) ? 16 : (gMask == 0xFF00) ? 8 : 0;
       unsigned int bMaskShift = (bMask == 0xFF000000) ? 24 : (bMask == 0xFF0000) ? 16 : (bMask == 0xFF00) ? 8 : 0;
       unsigned int aMaskShift = (aMask == 0xFF000000) ? 24 : (aMask == 0xFF0000) ? 16 : (aMask == 0xFF00) ? 8 : 0;
-
       const int numPixels = image->width * image->height;
       const int bytesPerPixel = image->bitsPerPixel / 8;
 
@@ -605,7 +621,7 @@ namespace smol
         *pixelPtr = color;
       }
     }
-    else if (bitmap->bitCount != 16)
+    else
     {
       debugLogError("Failed to load image '%s': Unsuported bitmap bit count", fileName);
       unloadImage(image);
