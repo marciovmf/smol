@@ -16,8 +16,8 @@ namespace smol
       return;
     }
 
-    enableMSAA            = entry->getVariableNumber("enableMSAA") >= 1.0;
-    enableGammaCorrection = entry->getVariableNumber("enableGammaCorrection") >= 1.0;
+    enableMSAA            = entry->getVariableNumber("enable_msaa") >= 1.0;
+    enableGammaCorrection = entry->getVariableNumber("enable_gamma_correction") >= 1.0;
   }
 
   GlobalSystemConfig::GlobalSystemConfig(const Config& config)      { update(config); }
@@ -31,10 +31,10 @@ namespace smol
       return;
     }
 
-    showCursor = entry->getVariableNumber("showCursor") >= 1.0; 
-    captureCursor = entry->getVariableNumber("captureCursor") >= 1.0;
+    showCursor = entry->getVariableNumber("show_cursor") >= 1.0; 
+    captureCursor = entry->getVariableNumber("capture_cursor") >= 1.0;
     const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
-    Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
+    Vector2 glVersion = entry->getVariableVec2("gl_version", defaultGlVersion);
     glVersionMajor = (int) glVersion.x;
     glVersionMinor = (int) glVersion.y;
   }
@@ -51,7 +51,7 @@ namespace smol
     }
 
     Vector2 size;
-    fullScreen = entry->getVariableNumber("fullScreen") >= 1.0;
+    fullScreen = entry->getVariableNumber("fullscreen") >= 1.0;
     caption    = entry->getVariableString("caption");
     size       = entry->getVariableVec2("size");
     width      = (int) size.x;
