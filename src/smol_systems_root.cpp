@@ -18,6 +18,10 @@ namespace smol
 
     enableMSAA            = entry->getVariableNumber("enable_msaa") >= 1.0;
     enableGammaCorrection = entry->getVariableNumber("enable_gamma_correction") >= 1.0;
+
+    screenCameraSize      = (float) entry->getVariableNumber("screen_camera_size", 5.0);
+    screenCameraNear      = (float) entry->getVariableNumber("screen_camera_near", -100);
+    screenCameraFar       = (float) entry->getVariableNumber("screen_camera_far", 100);
   }
 
   GlobalSystemConfig::GlobalSystemConfig(const Config& config)      { update(config); }
@@ -64,10 +68,7 @@ namespace smol
 
   SystemsRoot::SystemsRoot(Config& config):
     config(config),
-    rendererConfig(config),
-    renderer(rendererConfig),
-    resourceManager(),
-    loadedScene()
+    rendererConfig(config)
   { 
   }
 
@@ -77,6 +78,7 @@ namespace smol
     if (!SystemsRoot::instance)
     {
       SystemsRoot::instance = new SystemsRoot(config);
+      SystemsRoot::instance->renderer.initialize(SystemsRoot::instance->rendererConfig);
       SystemsRoot::instance->renderer.setScene(SystemsRoot::instance->loadedScene);
       SystemsRoot::instance->resourceManager.initialize();
     }

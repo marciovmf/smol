@@ -63,9 +63,9 @@ namespace smol
   // ##################################################################
   //  SpriteBatcher handling 
   // ##################################################################
-  Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
+  Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, SpriteBatcher::Mode mode, int capacity)
   {
-    return batchers.add(std::move(SpriteBatcher(material, capacity)));
+    return batchers.add(std::move(SpriteBatcher(material, mode, capacity)));
   }
 
 
@@ -175,6 +175,30 @@ namespace smol
       return *node;
 
     return (SceneNode&) nullSceneNode;
+  }
+
+  SpriteBatcher::Mode Scene::getSpriteBatcherMode(Handle<SpriteBatcher> handle) const
+  {
+    SpriteBatcher* batcher = batchers.lookup(handle);
+    if(!batcher)
+    {
+      warnInvalidHandle("SpriteBatcher");
+      return SpriteBatcher::CAMERA;
+    }
+
+    return batcher->mode;
+  }
+
+  void Scene::setSpriteBatcherMode(Handle<SpriteBatcher> handle, SpriteBatcher::Mode mode)
+  {
+    SpriteBatcher* batcher = batchers.lookup(handle);
+    if(!batcher)
+    {
+      warnInvalidHandle("SpriteBatcher");
+      return;
+    }
+
+    batcher->mode = mode;
   }
 
 

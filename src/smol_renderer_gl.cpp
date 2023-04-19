@@ -374,14 +374,17 @@ namespace smol
     debugLogInfo("Destroying Renderer");
   }
 
-  Renderer::Renderer(const GlobalRendererConfig& config):
+  Renderer::Renderer():
     scene(nullptr)
+  {
+  }
+
+  void Renderer::initialize(const GlobalRendererConfig& config)
   {
     glGenBuffers(1, &globalUbo);
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
     glBufferData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
     bool enableSRGB = false;
     if (config.enableGammaCorrection)
     {
@@ -391,6 +394,13 @@ namespace smol
     {
       glEnable(GL_MULTISAMPLE);
     }
+
+    screenCameraSize = config.screenCameraSize;
+    screenCameraNear = config.screenCameraNear;
+    screenCameraFar = config.screenCameraFar;
+
+    debugLogInfo("screenCamera size = %f, near = %f, far = %f", screenCameraSize, screenCameraNear, screenCameraFar);
+    debugLogInfo("enableMSAA = %d", config.enableMSAA);
   }
 
   void Renderer::setScene(Scene& scene)
@@ -992,6 +1002,9 @@ namespace smol
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
 
+    // The SCREEN camera. Might be used for GUIs, text and for screen relative sprites
+    Camera screenCamera = Camera(screenCameraSize, screenCameraNear, screenCameraFar);
+
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
     int numCameras = 0;
@@ -1164,14 +1177,33 @@ namespace smol
           SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
           if(batcher->dirty)
           {
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
-                sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
-                sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
-            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
-                sizeof(Mat4), (const float*) identity.e);
-            updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);
 
+            if (batcher->mode == SpriteBatcher::CAMERA)
+            {
+              // Relative to current camera
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
+                  sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
+                  sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
+                  sizeof(Mat4), (const float*) identity.e);
+
+            }
+            else
+            {
+              //relative to SCREEN
+              Transform t;
+
+              //Camera screenCamera = Camera(5.0f, -100.0f, 100.0f);
+              Camera screenCamera = Camera(screenCameraSize, screenCameraNear, screenCameraFar);
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4),
+                  (const float*) screenCamera.getProjectionMatrix().e);
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4),
+                  (const float*) t.getMatrix().inverse().e);
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4),
+                  (const float*) identity.e);
+            }
+            updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);
             // keep it dirty while there are cameras to render
             if (cameraIndex == numCameras - 1)
             {

@@ -24,6 +24,9 @@ namespace smol
   {
     bool enableMSAA;
     bool enableGammaCorrection;
+    float screenCameraSize;
+    float screenCameraNear;
+    float screenCameraFar;
 
     GlobalRendererConfig(const Config& config);
     void update(const Config& config) override;

@@ -8,6 +8,9 @@
 @renderer:
   enable_gamma_correction: 1,
   enable_msaa: 1
+  screen_camera_size: 5.0,
+  screen_camera_near: -100,
+  screen_camera_far: 100
 
 @display:
   size:         {1080, 768},

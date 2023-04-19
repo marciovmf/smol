@@ -15,7 +15,8 @@ namespace smol
   const size_t SpriteBatcher::indicesSize     = 6 * sizeof(unsigned int);
   const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
 
-  SpriteBatcher::SpriteBatcher(Handle<Material> material, int capacity):
+  SpriteBatcher::SpriteBatcher(Handle<Material> material, Mode mode, int capacity):
+    mode(mode),
     arena(capacity * totalSpriteSize + 1),
     spriteCount(0),
     spriteCapacity(capacity),

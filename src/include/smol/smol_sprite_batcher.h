@@ -9,19 +9,26 @@ namespace smol
   struct Scene;
   struct SMOL_ENGINE_API SpriteBatcher final
   {
-    static const size_t positionsSize;
-    static const size_t indicesSize;
-    static const size_t colorsSize;
-    static const size_t uvsSize;
-    static const size_t totalSpriteSize;
+    enum Mode
+    {
+      SCREEN = 0,
+      CAMERA = 1
+    };
 
+    Mode mode;
     Handle<Renderable> renderable;
     Arena arena;
     int spriteCount;
     int spriteCapacity;
     bool dirty;
 
-    SpriteBatcher(Handle<Material> material, int capacity);
+    static const size_t positionsSize;
+    static const size_t indicesSize;
+    static const size_t colorsSize;
+    static const size_t uvsSize;
+    static const size_t totalSpriteSize;
+
+    SpriteBatcher(Handle<Material> material, Mode mode, int capacity);
     SpriteBatcher() = delete;
   };
 }

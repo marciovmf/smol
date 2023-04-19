@@ -50,8 +50,13 @@ namespace smol
     void destroyRenderable(Handle<Renderable> handle);
     void destroyRenderable(Renderable* renderable);
 
-    Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
-    void destroySpriteBatcher(Handle<SpriteBatcher> handle);
+    Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, SpriteBatcher::Mode mode = SpriteBatcher::SCREEN, int capacity = 32);
+
+  SpriteBatcher::Mode getSpriteBatcherMode(Handle<SpriteBatcher> handle) const;
+
+  void setSpriteBatcherMode(Handle<SpriteBatcher> handle, SpriteBatcher::Mode mode);
+
+  void destroySpriteBatcher(Handle<SpriteBatcher> handle);
 
     //
     // Scene Node creation

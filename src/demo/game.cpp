@@ -99,7 +99,7 @@ void onStart()
 
   smol::SceneNode& leftCamera = scene.getNode(cameraNode);
   leftCamera.transform
-    .setRotation(0.0f, 0.0f, 0.0f)
+    .setRotation(0.0f, .0f, 0.0f)
     .setPosition(0.0f, 0.0f, 0.5f);
   leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
@@ -162,7 +162,7 @@ void onStart()
   auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
   resourceManager.getMaterial(smolMaterial) .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
-  batcher = scene.createSpriteBatcher(smolMaterial);
+  batcher = scene.createSpriteBatcher(smolMaterial, smol::SpriteBatcher::SCREEN);
 
   sprite1 = scene.createSpriteNode(batcher,
       (const smol::Rect&) smol::Rect(120, 580, 710, 200),
@@ -206,6 +206,12 @@ void onUpdate(float deltaTime)
   int zDirection = 0;
   int scaleAmount = 0;
 
+
+  if (keyboard.getKeyDown(smol::KEYCODE_M))
+  {
+    scene.setSpriteBatcherMode(batcher, scene.getSpriteBatcherMode(batcher) ?
+        smol::SpriteBatcher::SCREEN : smol::SpriteBatcher::CAMERA );
+  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_C))
   {
@@ -261,23 +267,31 @@ void onUpdate(float deltaTime)
       numVSprites = (int) entry->getVariableNumber("numVSprites", (float) numVSprites);
     }
 
-    smol::Rect viewport =
-      root->renderer.getViewport();
-    float spriteWidth = 30.0f / numHSprites;
-    float spriteHeight = 30.0f / numVSprites;
+    smol::Rect viewport = root->renderer.getViewport();
 
-    for (int x = 0; x < numHSprites; x++)
+    // we assume the screen camera size is 5.0
+    float screenSize = 5.0f * 0.7f; // we use a smaller portion to keep things centered
+    float spriteWidth = (2 * screenSize) / numHSprites;
+    float spriteHeight = (2 * screenSize) / numVSprites;
+
+    float xPos = -screenSize;
+    float yPos = -screenSize;
+
+    for (int x = 0; x < numVSprites; x++)
     {
-      for (int y = 0; y < numVSprites; y++)
+      for (int y = 0; y < numHSprites; y++)
       {
-        auto hNode = scene.createSpriteNode(batcher, 
-            smol::Rect{0, 0, 800, 800},
-            smol::Vector3{x * spriteWidth, y * spriteHeight, 0.3f },
+        auto hNode = scene.createSpriteNode(batcher, smol::Rect{0, 0, 800, 800},
+            smol::Vector3{xPos + spriteWidth/2, yPos + spriteHeight/2, 0.3f },
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
 
+        xPos += spriteWidth;
         scene.getNode(hNode).setLayer(smol::Layer::LAYER_1);
       }
+
+      xPos = -screenSize;
+      yPos += spriteHeight;
     }
   }
 

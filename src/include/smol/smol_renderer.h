@@ -24,13 +24,17 @@ namespace smol
     bool enableMSAA;
     static ShaderProgram defaultShader;
     bool resized;
+    float screenCameraSize;
+    float screenCameraNear;
+    float screenCameraFar;
 
     public:
 
     //
     // Misc
     //
-    Renderer (const GlobalRendererConfig& config);
+    Renderer ();
+    void initialize(const GlobalRendererConfig& config);
     ~Renderer();
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
     Scene& getLoadedScene();
