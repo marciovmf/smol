@@ -40,7 +40,7 @@ namespace smol
   Camera& Camera::setOrthographic(float size, float zNear, float zFar)
   {
     Rect viewport = SystemsRoot::get()->renderer.getViewport();
-    float hSize = (size * viewport.h) / viewport.w;
+    float hSize = (size * viewport.w) / viewport.h;
 
     this->type = Camera::ORTHOGRAPHIC;
     this->zNear = zNear;
