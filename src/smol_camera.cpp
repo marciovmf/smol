@@ -4,33 +4,27 @@
 
 namespace smol
 {
-  Camera::Camera(float size, float zNear, float zFar)
+  Camera::Camera(Type type, float fovOrSize, float zNear, float zFar)
     :clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    type(type),
     clearColor(Color::GRAY),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
     priority(0),
     orthographicSize(0.0f)
   {
-    setOrthographic(size, zNear, zFar);
+    if (type == Type::PERSPECTIVE)
+      setPerspective(fovOrSize, zNear, zFar);
+    else
+      setOrthographic(fovOrSize, zNear, zFar);
   }
 
-  Camera::Camera(float fov, float aspect, float zNear, float zFar)
-    :clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
-    clearColor(Color::GRAY),
-    layers(Layer::LAYER_0),
-    rect(0.0f, 0.0f, 1.0f, 1.0f),
-    priority(0),
-    orthographicSize(0.0f)
+  Camera& Camera::setPerspective(float fov, float zNear, float zFar)
   {
-    setPerspective(fov, aspect, zNear, zFar);
-  }
-
-  Camera& Camera::setPerspective(float fov, float aspect, float zNear, float zFar)
-  {
+    Rect viewport = SystemsRoot::get()->renderer.getViewport();
     this->type = Camera::PERSPECTIVE;
     this->fov = fov;
-    this->aspect = aspect;
+    this->aspect = (float)(viewport.w / viewport.h);
     this->zNear = zNear;
     this->zFar = zFar;
     this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
@@ -53,6 +47,18 @@ namespace smol
 
     this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
     return *this;
+  }
+
+  void Camera::update()
+  {
+    if (type == Camera::PERSPECTIVE)
+    {
+      setPerspective(fov,  zNear, zFar);
+    }
+    else
+    {
+      setOrthographic(top, zNear, zFar); // size is assigned to top on orthographic cameras
+    }
   }
 
   Camera& Camera::setLayerMask(uint32 layers)

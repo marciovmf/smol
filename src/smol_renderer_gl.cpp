@@ -1003,7 +1003,7 @@ namespace smol
     scene.renderKeysSorted.reset();
 
     // The SCREEN camera. Might be used for GUIs, text and for screen relative sprites
-    Camera screenCamera = Camera(screenCameraSize, screenCameraNear, screenCameraFar);
+    Camera screenCamera = Camera(Camera::ORTHOGRAPHIC, screenCameraSize, screenCameraNear, screenCameraFar);
 
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
@@ -1079,6 +1079,10 @@ namespace smol
       uint64 cameraKey = allCameraKeys[cameraIndex];
       SceneNode* cameraNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(cameraKey)];
       SMOL_ASSERT(cameraNode->typeIs(SceneNode::Type::CAMERA), "SceneNode is CAMERA", cameraNode->getType());
+
+      // If we resized the display, make sure to update camera projection
+      if (resized)
+        cameraNode->camera.update();
 
       // ----------------------------------------------------------------------
       // VIEWPORT
@@ -1194,8 +1198,6 @@ namespace smol
               //relative to SCREEN
               Transform t;
 
-              //Camera screenCamera = Camera(5.0f, -100.0f, 100.0f);
-              Camera screenCamera = Camera(screenCameraSize, screenCameraNear, screenCameraFar);
               glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4),
                   (const float*) screenCamera.getProjectionMatrix().e);
               glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4),

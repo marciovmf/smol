@@ -73,7 +73,7 @@ namespace smol
         int angle = 0,
         Handle<SceneNode> parent = Scene::ROOT);
 
-    Handle<SceneNode> createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform);
+    Handle<SceneNode> createPerspectiveCameraNode(float fov, float zNear, float zFar, const Transform& transform);
     Handle<SceneNode> createOrthographicCameraNode(float size, float zNear, float zFar, const Transform& transform);
 
     void destroyNode(Handle<SceneNode> handle);

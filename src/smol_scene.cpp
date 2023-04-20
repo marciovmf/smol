@@ -132,11 +132,11 @@ namespace smol
     return handle;
   }
 
-  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform)
+  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float zNear, float zFar, const Transform& transform)
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(fov, aspect, zNear, zFar);
+    node->camera = Camera(Camera::PERSPECTIVE, fov, zNear, zFar);
     return handle;
   }
 
@@ -144,7 +144,7 @@ namespace smol
   {
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
     SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(size, zNear, zFar);
+    node->camera = Camera(Camera::ORTHOGRAPHIC, size, zNear, zFar);
     return handle;
   }
 

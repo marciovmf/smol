@@ -94,8 +94,7 @@ void onStart()
 
   // camera
   smol::Transform t;
-  smol::Rect viewport = root->renderer.getViewport();
-  cameraNode = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  cameraNode = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
 
   smol::SceneNode& leftCamera = scene.getNode(cameraNode);
   leftCamera.transform
@@ -103,7 +102,7 @@ void onStart()
     .setPosition(0.0f, 0.0f, 0.5f);
   leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
-  sideCamera = scene.createPerspectiveCameraNode(60.0f, viewport.w/(float)viewport.h, 0.01f, 3000.0f, t);
+  sideCamera = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
   //auto hCamera = scene.createOrthographicCameraNode(5.0f,  0.01f, 100.0f, t);
   smol::SceneNode& rightCamera = scene.getNode(sideCamera);
   rightCamera.transform
