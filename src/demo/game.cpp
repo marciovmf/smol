@@ -191,6 +191,16 @@ bool once = true;
 
 int spriteXDirection = 1;
 int spriteYDirection = 1;
+smol::Vector3 direction;
+
+inline float animateToZero(float value, float deltaTime)
+{
+    //value = value * 0.95f;
+    value = value * (0.95f - deltaTime);
+    if (fabs(value) <= 0.2f)
+      value = 0.0f;
+    return value;
+}
 
 void onUpdate(float deltaTime)
 {
@@ -200,11 +210,7 @@ void onUpdate(float deltaTime)
   smol::ResourceManager& resourceManager = root->resourceManager;
   smol::Scene& scene = root->loadedScene;
 
-  int xDirection = 0;
-  int yDirection = 0;
-  int zDirection = 0;
-  int scaleAmount = 0;
-
+  float scaleAmount = 0.0f;
 
   if (keyboard.getKeyDown(smol::KEYCODE_M))
   {
@@ -332,7 +338,6 @@ void onUpdate(float deltaTime)
       selectedNode = node1;
   }
 
-
   if (keyboard.getKeyDown(smol::KEYCODE_R)) 
   {
     smol::SceneNode& camera = scene.getNode(cameraNode);
@@ -361,32 +366,45 @@ void onUpdate(float deltaTime)
   }
 
   // left/right
-  if (keyboard.getKey(smol::KEYCODE_A)) { xDirection = -1; }
-  else if (keyboard.getKey(smol::KEYCODE_D)) { xDirection = 1; }
+  if (keyboard.getKey(smol::KEYCODE_A)) { direction.x += -0.1f; }
+  else if (keyboard.getKey(smol::KEYCODE_D)) { direction.x += 0.1f; }
+  else
+  {
+    direction.x = animateToZero(direction.x, deltaTime);
+  }
 
   // up/down movement
-  if (keyboard.getKey(smol::KEYCODE_W)) { yDirection = -1; }
-  else if (keyboard.getKey(smol::KEYCODE_S)) { yDirection = 1; }
+  if (keyboard.getKey(smol::KEYCODE_W)) { direction.y += -0.1f; }
+  else if (keyboard.getKey(smol::KEYCODE_S)) { direction.y += 0.1f; }
+  else
+  {
+    direction.y = animateToZero(direction.y, deltaTime);
+  }
 
   // back/forth movement
-  if (keyboard.getKey(smol::KEYCODE_Q)) { zDirection = -1; }
-  else if (keyboard.getKey(smol::KEYCODE_E)) { zDirection = 1; }
+  if (keyboard.getKey(smol::KEYCODE_Q)) { direction.z += -0.1f; }
+  else if (keyboard.getKey(smol::KEYCODE_E)) { direction.z += 0.1f; }
+  else
+  {
+    direction.z = animateToZero(direction.z, deltaTime);
+  }
 
   if (keyboard.getKey(smol::KEYCODE_J)) { scaleAmount = -1; }
   if (keyboard.getKey(smol::KEYCODE_K)) { scaleAmount = 1; }
 
-  if (xDirection || yDirection || zDirection || scaleAmount)
+  if (direction.x || direction.y || direction.z || scaleAmount)
   {
     smol::Transform* transform = &scene.getNode(selectedNode).transform;
     if (transform)
     {
+    
       const float amount = 15.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();
       smol::Vector3 updatedPos(
-          amount * xDirection + position.x,
-          amount * yDirection + position.y,
-          amount * zDirection + position.z);
+          amount * direction.x + position.x,
+          amount * direction.y + position.y,
+          amount * direction.z + position.z);
 
       transform->setPosition(updatedPos.x, updatedPos.y, updatedPos.z);
       const smol::Vector3& scale = transform->getScale();
