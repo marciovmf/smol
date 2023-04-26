@@ -12,6 +12,7 @@
 #include <string.h>
 #include <utility>
 
+#define warnInvalidHandle(typeName) debugLogWarning("Attempting to reference a '%s' resource from an invalid handle", (typeName))
 namespace smol
 {
   // First node handle always points to the ROOT scene node
@@ -174,6 +175,7 @@ namespace smol
     if(node)
       return *node;
 
+    warnInvalidHandle("SceneNode");
     return (SceneNode&) nullSceneNode;
   }
 

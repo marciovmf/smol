@@ -23,7 +23,7 @@ namespace smol
     dirty(false)
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    Scene& scene = SystemsRoot::get()->loadedScene;
+    Scene& scene = SystemsRoot::get()->sceneManager.getLoadedScene();
     // It doesn't matter the contents of memory.
     // Nothing is read from this pointer.
     // It's just necessary to create a valid MeshData in order to reserve GPU memory

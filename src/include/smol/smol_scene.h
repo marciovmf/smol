@@ -10,8 +10,7 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_color.h>
 #include <smol/smol_scene_nodes.h>
-
-#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
+#include <smol/smol_systems_root.h>
 
 template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
 template class SMOL_ENGINE_API smol::HandleList<smol::Renderable>;
@@ -87,6 +86,14 @@ namespace smol
     //
     SceneNode& getNode(Handle<SceneNode> handle) const;
   };
+
+  // Specialize Handle<SceneNode> so it's more convenient to call on game side
+  inline SceneNode* Handle<SceneNode>::operator->()
+  {
+    static SceneManager& sceneManager = smol::SystemsRoot::get()->sceneManager;
+    SceneNode& node = sceneManager.getLoadedScene().getNode((Handle<SceneNode>)*this);
+    return &node;
+  }
 }
 
 #undef GLuint

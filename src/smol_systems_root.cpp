@@ -79,7 +79,7 @@ namespace smol
     {
       SystemsRoot::instance = new SystemsRoot(config);
       SystemsRoot::instance->renderer.initialize(SystemsRoot::instance->rendererConfig);
-      SystemsRoot::instance->renderer.setScene(SystemsRoot::instance->loadedScene);
+      SystemsRoot::instance->renderer.setScene(SystemsRoot::instance->sceneManager.getLoadedScene());
       SystemsRoot::instance->resourceManager.initialize();
     }
   }
@@ -88,4 +88,21 @@ namespace smol
   {
     return SystemsRoot::instance;
   }
+
+
+  SceneManager::SceneManager()
+  {
+    scene = new Scene();
+  }
+
+  SceneManager::~SceneManager()
+  {
+    delete scene;
+  }
+
+  Scene& SceneManager::getLoadedScene()
+  {
+    return *scene;
+  };
+
 }

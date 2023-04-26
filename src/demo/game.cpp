@@ -20,6 +20,7 @@ smol::Handle<smol::ShaderProgram> shader;
 smol::Handle<smol::Material> checkersMaterial;
 smol::Handle<smol::Mesh> mesh;
 smol::Handle<smol::SpriteBatcher> batcher;
+bool sideCameraActive = false;
 float vpsize = 0.2f;
 
 int shape = 0;
@@ -29,7 +30,7 @@ void onStart()
   smol::Log::info("Game started!");
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
-  smol::Scene& scene = root->loadedScene;
+  smol::Scene& scene = root->sceneManager.getLoadedScene();
 
   // Read game specifig settings from variables.txt
   const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
@@ -96,21 +97,18 @@ void onStart()
   smol::Transform t;
   cameraNode = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
 
-  smol::SceneNode& leftCamera = scene.getNode(cameraNode);
-  leftCamera.transform
+  cameraNode->transform
     .setRotation(0.0f, .0f, 0.0f)
     .setPosition(0.0f, 0.0f, 0.5f);
-  leftCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
+  cameraNode->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
   sideCamera = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
-  //auto hCamera = scene.createOrthographicCameraNode(5.0f,  0.01f, 100.0f, t);
-  smol::SceneNode& rightCamera = scene.getNode(sideCamera);
-  rightCamera.transform
+  sideCamera->transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
-  rightCamera.camera.setViewportRect(smol::Rectf(0.75f, 0.0f, 0.25f, 0.25f));
-  rightCamera.camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
-  rightCamera.setActive(false);
+  sideCamera->camera.setViewportRect(smol::Rectf(0.75f, 0.0f, 0.25f, 0.25f));
+  sideCamera->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
+  sideCamera->setActive(sideCameraActive);
 
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
@@ -148,12 +146,11 @@ void onStart()
     }
 
     t.setPosition(randX, -2.0f, randZ);
-    //t.setRotation(0.0f, randAngle, 0.0f);
     t.setRotation(0.0f, 0.0f, 0.0f);
     t.setScale(randScale, randScale, randScale);
 
     auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
-    scene.getNode(handle).setLayer(smol::Layer::LAYER_2);
+    handle->setLayer(smol::Layer::LAYER_2);
   }
 
   // sprites
@@ -202,13 +199,15 @@ inline float animateToZero(float value, float deltaTime)
     return value;
 }
 
+bool isSideCameraActive = false;
+
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = root->keyboard;
   smol::Mouse& mouse = root->mouse;
   smol::Renderer& renderer = root->renderer;
   smol::ResourceManager& resourceManager = root->resourceManager;
-  smol::Scene& scene = root->loadedScene;
+  smol::Scene& scene = root->sceneManager.getLoadedScene();
 
   float scaleAmount = 0.0f;
 
@@ -220,8 +219,8 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_C))
   {
-    smol::SceneNode& cameraNode = scene.getNode(sideCamera);
-    cameraNode.setActive(!cameraNode.isActive());
+    sideCameraActive = !sideCameraActive;
+    sideCamera->setActive(sideCameraActive);
   }
 
 
@@ -292,7 +291,7 @@ void onUpdate(float deltaTime)
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
 
         xPos += spriteWidth;
-        scene.getNode(hNode).setLayer(smol::Layer::LAYER_1);
+        hNode->setLayer(smol::Layer::LAYER_1);
       }
 
       xPos = -screenSize;

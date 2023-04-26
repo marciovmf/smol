@@ -37,6 +37,8 @@ namespace smol
       int compare(const Handle<T>& other);
       int operator== (const Handle<T>& other);
       int operator!= (const Handle<T>& other);
+      T* operator->();
+
     };
 
   template <typename T>
@@ -55,6 +57,13 @@ namespace smol
     inline int Handle<T>::operator!=(const Handle<T>& other)
     {
       return !compare(other);
+    }
+
+  // Specific types can specialize this if necessary
+  template <typename T>
+    inline T* Handle<T>::operator->()
+    {
+      return nullptr;
     }
 
   //
