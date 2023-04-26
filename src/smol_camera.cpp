@@ -22,30 +22,38 @@ namespace smol
   Camera& Camera::setPerspective(float fov, float zNear, float zFar)
   {
     Rect viewport = SystemsRoot::get()->renderer.getViewport();
-    this->type = Camera::PERSPECTIVE;
-    this->fov = fov;
-    this->aspect = (float)(viewport.w / viewport.h);
-    this->zNear = zNear;
-    this->zFar = zFar;
-    this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
+
+    // Display might be minimized or reduced to size 0
+    if (viewport.h > 0)
+    {
+      this->type = Camera::PERSPECTIVE;
+      this->fov = fov;
+      this->aspect = (float)(viewport.w / viewport.h);
+      this->zNear = zNear;
+      this->zFar = zFar;
+      this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
+    }
     return *this;
   }
 
   Camera& Camera::setOrthographic(float size, float zNear, float zFar)
   {
     Rect viewport = SystemsRoot::get()->renderer.getViewport();
-    float hSize = (size * viewport.w) / viewport.h;
+    // Display might be minimized or reduced to size 0
+    if (viewport.h > 0)
+    {
+      float hSize = (size * viewport.w) / viewport.h;
 
-    this->type = Camera::ORTHOGRAPHIC;
-    this->zNear = zNear;
-    this->zFar = zFar;
-    this->left = -hSize;
-    this->right = hSize;
-    this->top = size;
-    this->bottom = -size;
-    this->orthographicSize = size;
-
-    this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
+      this->type = Camera::ORTHOGRAPHIC;
+      this->zNear = zNear;
+      this->zFar = zFar;
+      this->left = -hSize;
+      this->right = hSize;
+      this->top = size;
+      this->bottom = -size;
+      this->orthographicSize = size;
+      this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
+    }
     return *this;
   }
 
