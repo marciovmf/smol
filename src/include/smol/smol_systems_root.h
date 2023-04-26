@@ -6,14 +6,23 @@
 #include <smol/smol_mouse.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_resource_manager.h>
-#include <smol/smol_scene.h>
 
 namespace smol
 {
   class Renderer;
-  struct Scene;
   struct Config;
   struct ResourceManager;
+
+  struct SMOL_ENGINE_API SceneManager
+  {
+    private:
+    Scene* scene;
+
+    public:
+    SceneManager();
+    ~SceneManager();
+    Scene& getLoadedScene();
+  };
 
   struct GlobalConfiguration
   {
@@ -56,13 +65,13 @@ namespace smol
 
   struct SMOL_ENGINE_API SystemsRoot
   {
-    Config&                config;
-    Scene                  loadedScene; //TODO(marcio): We need some kind of scene manager for this
-    Renderer               renderer;
-    GlobalRendererConfig   rendererConfig;
-    ResourceManager        resourceManager;
-    Keyboard               keyboard; 
-    Mouse                  mouse; 
+    Config&               config;
+    SceneManager          sceneManager;
+    Renderer              renderer;
+    GlobalRendererConfig  rendererConfig;
+    ResourceManager       resourceManager;
+    Keyboard              keyboard; 
+    Mouse                 mouse; 
 
 
     static void initialize(Config& config);

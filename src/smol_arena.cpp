@@ -34,7 +34,7 @@ namespace smol
 
   Arena::~Arena() 
   {
-    Platform::freeMemory(data, capacity); 
+    Platform::freeMemory(data); 
   }
 
   void Arena::initialize(size_t initialSize)

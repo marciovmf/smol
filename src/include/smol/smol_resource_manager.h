@@ -4,6 +4,7 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_renderer_types.h>
+#include <smol/smol_font.h>
 
 namespace smol
 {
@@ -144,6 +145,13 @@ namespace smol
       static Image* loadImageBitmap(const char* fileName);
 
       static void unloadImage(Image* image);
+
+
+      // Font
+      Font* loadFont(const char* fileName);
+
+      void unloadFont(const Font* fontInfo);
+
   };
 }
 

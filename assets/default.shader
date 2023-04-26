@@ -29,13 +29,22 @@ fragmentShader:"
   uniform sampler2D mainTex;
   in vec4 vertColor;
   in vec2 uv;
+
+  const float width = 0.45;
+  const float edge = 0.2;
+
   void main()
   {
-    vec4 texColor = vec4(texture(mainTex, uv));
+    //vec4 texColor = vec4(texture(mainTex, uv));
+    //if(texColor.a < 0.1)
+    //    discard;
+    //fragColor = texColor * vertColor;
 
-    if(texColor.a < 0.1)
-        discard;
+    //simple SDF rendering
+    float distance = 1.0 - texture2D(mainTex, uv).a;
+    float alpha = 1.0 - smoothstep(width, width + edge, distance);
+    fragColor = vec4(vertColor.rgb, alpha);
 
-    fragColor = texColor * vertColor;
+
   }
 "

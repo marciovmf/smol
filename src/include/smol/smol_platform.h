@@ -85,7 +85,7 @@ namespace smol
     // Memory management
     static void* getMemory(size_t size);
     static void* resizeMemory(void* memory, size_t);
-    static void freeMemory(void* memory, size_t);
+    static void freeMemory(void* memory);
 
     // Time
     static uint64 getTicks();   // return number of ticks since platform startup

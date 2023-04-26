@@ -3,17 +3,83 @@
 #include <smol/smol_point.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
+#include <smol/smol_font.h>
 #include <utility>
 #include <time.h>
 
+float drawGliph(smol::Glyph& g, float x, float y, 
+    smol::Kerning* kernings, uint16 kerningCount,
+    smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene)
+{
+  const float scale = 0.01f;
+  const float width   = g.rect.w * scale;
+  const float height  = g.rect.h * scale;
+  const float yOffset = g.yOffset * scale;
+
+  // offset by half height because our pivots are at center
+  const float xOffset = g.xOffset * scale + width/2;
+  const float xAdvance = g.xAdvance * scale;
+ // offset by half height because our pivots are at center
+  y -= height/2.0f + yOffset;
+
+  // apply kerning
+  float kerning = 0.0f;
+  for (int i = 0; i < kerningCount; i++)
+  {
+    smol::Kerning& k = kernings[i];
+    if(k.second == g.id)
+    {
+      kerning = k.amount * scale;
+      break;
+    }
+  }
+
+  scene.createSpriteNode(batcher, g.rect,
+      smol::Vector3(x + xOffset - kerning, y, 0.3f),
+      width, height);
+
+  return x + xAdvance + kerning;
+}
+
+void drawString(const char* str, smol::Font* font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene)
+{
+  float advance = x;
+  smol::Kerning* kerning = nullptr;
+  uint16 kerningCount = 0;
+
+  while (*str != 0)
+  {
+    for (int i = 0; i < font->glyphCount; i++)
+    {
+      uint16 id = (uint16) *str;
+
+      smol::Glyph& glyph = font->glyph[i];
+      if (glyph.id == id)
+      {
+        if ((char)id == '\n')
+        {
+          y -= font->lineHeight / 100.0f;
+          advance = x;
+        }
+        advance = drawGliph(glyph, advance, y, kerning, kerningCount, batcher, scene);
+        // kerning information for the next character
+        kerning = &font->kerning[glyph.kerningStart];
+        kerningCount = glyph.kerningCount;
+        break;
+      }
+    }
+    str++;
+  }
+}
+
 smol::SystemsRoot* root;
+smol::Font* font;
 smol::Handle<smol::SceneNode> cameraNode;
 smol::Handle<smol::SceneNode> sideCamera;
 smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
 smol::Handle<smol::SceneNode> node2;
 smol::Handle<smol::SceneNode> sprite1;
-smol::Handle<smol::SceneNode> sprite2;
 smol::Handle<smol::SceneNode> selectedNode;
 smol::Handle<smol::Texture> texture2;
 smol::Handle<smol::ShaderProgram> shader;
@@ -31,6 +97,8 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
   smol::Scene& scene = root->sceneManager.getLoadedScene();
+
+  font = resourceManager.loadFont("assets/font/segoeui.font");
 
   // Read game specifig settings from variables.txt
   const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
@@ -54,7 +122,6 @@ void onStart()
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
   resourceManager.getMaterial(floorMaterial)
     .setVec4("color",(const smol::Vector4&)  smol::Color::WHITE);
-
 
   auto floor = scene.createRenderable(floorMaterial,
       resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
@@ -110,6 +177,7 @@ void onStart()
   sideCamera->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
   sideCamera->setActive(sideCameraActive);
 
+#if 0
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
@@ -152,33 +220,42 @@ void onStart()
     auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
     handle->setLayer(smol::Layer::LAYER_2);
   }
+#endif
 
   // sprites
-  auto texture = resourceManager.loadTexture("assets/smol.texture");
+  auto texture = resourceManager.loadTexture("assets/segoe.texture");
   auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
   resourceManager.getMaterial(smolMaterial) .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
   batcher = scene.createSpriteBatcher(smolMaterial, smol::SpriteBatcher::SCREEN);
 
-  sprite1 = scene.createSpriteNode(batcher,
-      (const smol::Rect&) smol::Rect(120, 580, 710, 200),
-      (const smol::Vector3&) smol::Vector3(3.0f, 0.0f, 0.3f),
-      4.0f, 2.0f, 
-      (const smol::Color) smol::Color::WHITE);
-  scene.getNode(sprite1).setLayer(smol::Layer::LAYER_1);
+  //// f: id:102, x:92, y:84, width:35, height:65, xoffset:-2, yoffset:23, xadvance:34
+  //Gliph g_f;
+  //g_f.rect =  smol::Rect(92, 84, 35, 65);
+  //g_f.xOffset = -.2f;
+  //g_f.yOffset = .23f;
+  //g_f.xAdvance = .34f;
 
-  sprite2 = scene.createSpriteNode(batcher, 
-      smol::Rect(0, 0, 800, 800),
-      smol::Vector3(2.0f, -2.0f, 0.4f),
-      1.0f, 1.0f,
-      smol::Color::WHITE);
-  scene.getNode(sprite2).setLayer(smol::Layer::LAYER_1);
+  //// a: id:97, x:379, y:335, width:41, height:47, xoffset:-1, yoffset:42, xadvance:46
+  //Gliph g_a;
+  //g_a.rect = smol::Rect(379, 335, 41, 48);
+  //g_a.xOffset = -.1f;
+  //g_a.yOffset = .42f;
+  //g_a.xAdvance = .46f;
 
-  auto sprite3 = scene.createSpriteNode(batcher, 
-      smol::Rect(0, 0, 800, 800),
-      smol::Vector3(-2.0f, 2.0f, 0.2f),
-      1.0f, 1.0f, smol::Color::BLUE);
-  scene.getNode(sprite3).setLayer(smol::Layer::LAYER_1);
+  //// p: id:112, x:281, y:84, width:46, height:64, xoffset:2, yoffset:42, xadvance:52
+  //Gliph g_p;
+  //g_p.rect = smol::Rect(281, 84, 46, 64);
+  //g_p.xOffset = .2f;
+  //g_p.yOffset = .42f;
+  //g_p.xAdvance = .52f;
+
+  //x = drawGliph(g_f, x, 0.0f, batcher, scene);
+  //x = drawGliph(g_a, x, 0.0f, batcher, scene);
+  //x = drawGliph(g_p, x, 0.0f, batcher, scene);
+
+  char* p = "We have SDF text with kerning!\nThis is another text line :)";
+  drawString(p, font, -5.0f, -4.0f, batcher, scene);
 
   selectedNode = cameraNode;
 }
@@ -192,11 +269,11 @@ smol::Vector3 direction;
 
 inline float animateToZero(float value, float deltaTime)
 {
-    //value = value * 0.95f;
-    value = value * (0.95f - deltaTime);
-    if (fabs(value) <= 0.2f)
-      value = 0.0f;
-    return value;
+  //value = value * 0.95f;
+  value = value * (0.95f - deltaTime);
+  if (fabs(value) <= 0.02f)
+    value = 0.0f;
+  return value;
 }
 
 bool isSideCameraActive = false;
@@ -223,12 +300,6 @@ void onUpdate(float deltaTime)
     sideCamera->setActive(sideCameraActive);
   }
 
-
-  if (mouse.getButton(smol::MOUSE_BUTTON_LEFT))
-  {
-    smol::Point2 p = mouse.getCursorPosition();
-    scene.getNode(sprite2).transform.setPosition((float) p.x, (float) p.y, 0.2f);
-  }
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {
@@ -396,7 +467,7 @@ void onUpdate(float deltaTime)
     smol::Transform* transform = &scene.getNode(selectedNode).transform;
     if (transform)
     {
-    
+
       const float amount = 15.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();

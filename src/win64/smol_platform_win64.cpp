@@ -612,7 +612,7 @@ namespace smol
     return malloc(size);
   }
 
-  void Platform::freeMemory(void* memory, size_t size)
+  void Platform::freeMemory(void* memory)
   {
     //TODO(marceio): Confirm the memory block is the correct size when we are doing memory management.
     //TODO(marcio): Make sure passed address is not affected by alignment

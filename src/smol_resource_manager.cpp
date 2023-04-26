@@ -636,6 +636,114 @@ namespace smol
     Platform::unloadFileBuffer((const char*)image);
   }
 
+  Font* ResourceManager::loadFont(const char* fileName)
+  {
+    Config config(fileName);
+    const ConfigEntry* entry = config.findEntry("font");
+    const uint16 size         = (uint16) entry->getVariableNumber("size");
+    const uint16 kerningCount = (uint16) entry->getVariableNumber("kerning_count");
+    const uint16 glyphCount   = (uint16) entry->getVariableNumber("glyph_count");
+    const uint16 lineHeight   = (uint16) entry->getVariableNumber("line_height");
+    const uint16 base         = (uint16) entry->getVariableNumber("base");
+    const char* bmpFileName   = entry->getVariableString("image");
+    const char* fontName      = entry->getVariableString("name");
+
+
+    // reserve space for the font and the font name
+    size_t fontNameLen = strlen(fontName);
+    size_t totalMemory = sizeof(Font)
+      + glyphCount * sizeof(Glyph) 
+      + kerningCount * sizeof(Kerning)
+      + fontNameLen + 1; // +1 for fontName null termiator
+
+    char* memory = (char*) Platform::getMemory(totalMemory);
+    if (!memory)
+      return nullptr;
+
+    Font* font = (Font*) memory;
+    font->size          = size;
+    font->kerningCount  = kerningCount;
+    font->glyphCount    = glyphCount;
+    font->lineHeight    = lineHeight;
+    font->base          = base;
+    // Memory layout
+    // ---------------------------------------------
+    //| FONT  | KERNINGS | GLYPHS | "Font Name"| 0 |
+    // ---------------------------------------------
+    font->kerning       = (Kerning*) (memory + sizeof(Font));
+    font->glyph         = (Glyph*) (memory + sizeof(Font) + sizeof(Kerning) * kerningCount);
+    font->name          = (memory + sizeof(Font) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
+
+    // copy the font name after the Font structure and null terminate it
+    strncpy((char*)font->name, fontName, fontNameLen);
+    *((char*)font->name + fontNameLen) = 0;
+
+    // parse kerning pairs
+    ConfigEntry *last = nullptr;
+    Kerning* kerningList = font->kerning;
+    for (int i = 0; i < kerningCount; i++)
+    {
+      Kerning* kerning = kerningList++;
+      entry = config.findEntry("first", last);
+
+      kerning->first          = (uint16) entry->getVariableNumber("first");
+      kerning->second         = (int16) entry->getVariableNumber("second");
+      kerning->amount         = (int16) entry->getVariableNumber("amount");
+      last = (ConfigEntry*) entry;
+    }
+
+    // parse glyphs
+    last = nullptr;
+    for (int i = 0; i < glyphCount; i++)
+    {
+      entry = config.findEntry("id", last);
+      Glyph& glyph = font->glyph[i];
+      glyph.id            = (uint16) entry->getVariableNumber("id");
+      glyph.rect.x        = (int32) entry->getVariableNumber("x");
+      glyph.rect.y        = (int32) entry->getVariableNumber("y");
+      glyph.rect.w        = (int32) entry->getVariableNumber("width");
+      glyph.rect.h        = (int32) entry->getVariableNumber("height");
+      glyph.xOffset       = (int16) entry->getVariableNumber("xoffset");
+      glyph.yOffset       = (int16) entry->getVariableNumber("yoffset");
+      glyph.xAdvance      = (int16) entry->getVariableNumber("xadvance");
+
+      // find the amount of kerning pairs for this glyph and where to find the first one.
+      // IMPORTANT! We assume that the kerining pairs are sorted!
+      uint16 id = glyph.id;
+      uint16 startIndex = 0;
+      uint16 count = 0;
+      for (int k = 0; k < kerningCount; k++)
+      {
+        Kerning& kerning = font->kerning[k];
+        if (kerning.first == id)
+        {
+          if (count == 0)
+          {
+            startIndex = k;
+          }
+          count++;
+        }
+      }
+
+      glyph.kerningCount   = count;
+      glyph.kerningStart   = startIndex;
+      last = (ConfigEntry*) entry;
+    }
+
+    // Create texture from font Image
+    font->texture = createTexture(bmpFileName,
+         Texture::Wrap::CLAMP_TO_EDGE,
+         Texture::Filter::LINEAR,
+         Texture::Mipmap::NO_MIPMAP);
+
+    return font;
+  }
+
+  void ResourceManager::unloadFont(const Font* font)
+  {
+    destroyTexture(font->texture);
+    Platform::freeMemory((void*)font);
+  }
 
   ResourceManager::~ResourceManager()
   {
