@@ -448,9 +448,16 @@ namespace smol
     return *scene;
   }
 
-  Rect Renderer::getViewport()
+  Rect Renderer::getViewport() const
   {
     return viewport;
+  }
+
+  float Renderer::getViewportAspect() const
+  {
+    if (viewport.h <= 0 || viewport.w <= 0)
+      return 0;
+    return viewport.w / (float) viewport.h;
   }
 
   //

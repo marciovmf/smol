@@ -20,6 +20,8 @@
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_mesh_data.h>
+#include <smol/smol_handle_list.h>
+#include <smol/smol_material.h>
 
 namespace smol
 {
@@ -32,6 +34,24 @@ namespace smol
   typedef void (*SMOL_GAME_CALLBACK_ONSTART)();
   typedef void (*SMOL_GAME_CALLBACK_ONSTOP)();
   typedef void (*SMOL_GAME_CALLBACK_ONUPDATE)(float);
+
+
+  // Specialize Handle<SceneNode> so it's more convenient to call on game side
+  inline Material* Handle<Material>::operator->()
+  {
+    static ResourceManager& resourceManager = smol::SystemsRoot::get()->resourceManager;
+    Material& material = resourceManager.getMaterial((Handle<Material>)*this);
+    return &material;
+  }
+
+  // Specialize Handle<SceneNode> so it's more convenient to call on game side
+  inline SceneNode* Handle<SceneNode>::operator->()
+  {
+    static SceneManager& sceneManager = smol::SystemsRoot::get()->sceneManager;
+    SceneNode& node = sceneManager.getLoadedScene().getNode((Handle<SceneNode>)*this);
+    return &node;
+  }
+
 
 }
 

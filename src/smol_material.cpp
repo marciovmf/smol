@@ -1,4 +1,5 @@
 #include <smol/smol_material.h>
+#include <smol/smol_systems_root.h>
 
 namespace smol
 {
@@ -17,14 +18,18 @@ namespace smol
       }
     }
 
-    debugLogError("Unable to find shader %x parameter '%s' of type %d. Parameter name/type not found", this, name, type);
+    debugLogError("Material '%s': Unable to find shader parameter '%s' of type %d. Parameter name/type not found", this->name, name, type);
     return nullptr;
   }
 
-  Material& Material::setSampler2D(const char* name, unsigned int value)
+  Material& Material::setSampler2D(const char* name, Handle<Texture> handle)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::SAMPLER_2D);
-    if (param) param->uintValue = value;
+    if (param)
+    {
+      textureDiffuse[param->uintValue] = handle;
+      Texture& texture = SystemsRoot::get()->resourceManager.getTexture(handle);
+    }
     return *this;
   }
 

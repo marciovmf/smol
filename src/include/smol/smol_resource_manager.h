@@ -38,6 +38,7 @@ namespace smol
       smol::HandleList<smol::Material> materials;
       HandleList<smol::Mesh> meshes;
       ShaderProgram* defaultShader;
+      Handle<Texture> defaultTextureHandle; 
       Texture* defaultTexture;
       Material* defaultMaterial;
 

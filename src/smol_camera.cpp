@@ -138,4 +138,6 @@ namespace smol
   }
 
   float Camera::getOrthographicSize() const { return orthographicSize; }
+
+  float Camera::getOrthographicWidth() const { return this->right * 2.0f; }
 }

@@ -38,7 +38,8 @@ namespace smol
     ~Renderer();
     void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
     Scene& getLoadedScene();
-    Rect getViewport();
+    Rect getViewport() const;
+    float getViewportAspect() const;
     
     //
     // Render
