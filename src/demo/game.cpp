@@ -229,33 +229,17 @@ void onStart()
 
   batcher = scene.createSpriteBatcher(smolMaterial, smol::SpriteBatcher::SCREEN);
 
-  //// f: id:102, x:92, y:84, width:35, height:65, xoffset:-2, yoffset:23, xadvance:34
-  //Gliph g_f;
-  //g_f.rect =  smol::Rect(92, 84, 35, 65);
-  //g_f.xOffset = -.2f;
-  //g_f.yOffset = .23f;
-  //g_f.xAdvance = .34f;
-
-  //// a: id:97, x:379, y:335, width:41, height:47, xoffset:-1, yoffset:42, xadvance:46
-  //Gliph g_a;
-  //g_a.rect = smol::Rect(379, 335, 41, 48);
-  //g_a.xOffset = -.1f;
-  //g_a.yOffset = .42f;
-  //g_a.xAdvance = .46f;
-
-  //// p: id:112, x:281, y:84, width:46, height:64, xoffset:2, yoffset:42, xadvance:52
-  //Gliph g_p;
-  //g_p.rect = smol::Rect(281, 84, 46, 64);
-  //g_p.xOffset = .2f;
-  //g_p.yOffset = .42f;
-  //g_p.xAdvance = .52f;
-
-  //x = drawGliph(g_f, x, 0.0f, batcher, scene);
-  //x = drawGliph(g_a, x, 0.0f, batcher, scene);
-  //x = drawGliph(g_p, x, 0.0f, batcher, scene);
-
   char* p = "We have SDF text with kerning!\nThis is another text line :)";
   drawString(p, font, -5.0f, -4.0f, batcher, scene);
+
+  scene.createSpriteNode(batcher,
+      //smol::Rect(378, 507, 409, 481), SMOL LOGO
+      //smol::Rect(339, 479, 32, 32), // FOLDER
+      //smol::Rect(270, 476, 32, 32), // CUBE
+      smol::Rect(303, 476, 32, 32), // DOCUMENT
+      smol::Vector3(0.0f, 3.0f, 0.3f),
+      0.32f, 0.32f,
+      smol::Color::WHITE);
 
   selectedNode = cameraNode;
 }
