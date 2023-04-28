@@ -90,7 +90,7 @@ namespace smol
     // Time
     static uint64 getTicks();   // return number of ticks since platform startup
     static float getMillisecondsBetweenTicks(uint64 start, uint64 end);
-
+    static float getSecondsSinceStartup();
   };
 } 
 
