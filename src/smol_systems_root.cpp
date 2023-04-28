@@ -1,7 +1,9 @@
 #include <smol/smol_systems_root.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
+#include <smol/smol_random.h>
 #include <smol/smol_scene.h>
+#include <time.h>
 
 namespace smol
 {
@@ -77,6 +79,7 @@ namespace smol
   {
     if (!SystemsRoot::instance)
     {
+      seed(time(0));
       SystemsRoot::instance = new SystemsRoot(config);
       SystemsRoot::instance->renderer.initialize(SystemsRoot::instance->rendererConfig);
       SystemsRoot::instance->renderer.setScene(SystemsRoot::instance->loadedScene);

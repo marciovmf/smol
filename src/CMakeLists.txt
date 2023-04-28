@@ -45,6 +45,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_random.h
+  ${SOURCE_PATH}/smol_random.cpp
   ${SOURCE_PATH}/include/smol/smol_point.h
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
   ${SOURCE_PATH}/include/smol/smol_mesh.h
