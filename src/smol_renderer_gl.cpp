@@ -988,7 +988,7 @@ namespace smol
 
   void Renderer::destroyMesh(Mesh* mesh)
   {
-    GLuint buffers[SMOL_MAX_BUFFERS_PER_MESH];
+    GLuint buffers[Mesh::MAX_BUFFERS_PER_MESH];
     int numBuffers = 0;
 
     if (mesh->ibo) buffers[numBuffers++] = mesh->ibo;

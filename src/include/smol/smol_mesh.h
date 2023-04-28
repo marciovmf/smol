@@ -10,6 +10,11 @@ namespace smol
 
   struct SMOL_ENGINE_API Mesh final
   {
+    enum
+    {
+      MAX_BUFFERS_PER_MESH = 6
+    };
+
     enum Attribute
     {
       //Don't change these values. They're referenced from the shaders
