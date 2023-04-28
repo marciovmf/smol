@@ -430,9 +430,6 @@ namespace smol
     screenCameraSize = config.screenCameraSize;
     screenCameraNear = config.screenCameraNear;
     screenCameraFar = config.screenCameraFar;
-
-    debugLogInfo("screenCamera size = %f, near = %f, far = %f", screenCameraSize, screenCameraNear, screenCameraFar);
-    debugLogInfo("enableMSAA = %d", config.enableMSAA);
   }
 
   void Renderer::setScene(Scene& scene)
