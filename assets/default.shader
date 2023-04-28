@@ -43,7 +43,8 @@ fragmentShader:"
     //simple SDF rendering
     float distance = 1.0 - texture2D(mainTex, uv).a;
     float alpha = 1.0 - smoothstep(width, width + edge, distance);
-    fragColor = vec4(vertColor.rgb, alpha);
+    //fragColor = vec4(vertColor.rgb, alpha);
+    fragColor = vec4(vertColor.aaa, alpha);
 
 
   }
