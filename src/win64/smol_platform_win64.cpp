@@ -644,4 +644,11 @@ namespace smol
 #endif
     return deltaTime;
   }
+
+  float Platform::getSecondsSinceStartup()
+  {
+    uint64 now = Platform::getTicks();
+    uint64 ticksSinceStartup = now - internal.ticksSinceEngineStartup.QuadPart;
+    return (float)ticksSinceStartup /  internal.ticksPerSecond.QuadPart;
+  }
 } 

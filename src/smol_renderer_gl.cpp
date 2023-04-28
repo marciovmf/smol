@@ -1,5 +1,6 @@
 
 #include <smol/smol_gl.h>             // must be included first
+#include <smol/smol_random.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_material.h>
 #include <smol/smol_resource_manager.h>
@@ -8,17 +9,22 @@
 #include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_systems_root.h>
+#include <smol/smol_platform.h>
 
 namespace smol
 {
   ShaderProgram Renderer::defaultShader = {};
 
   static GLuint globalUbo = 0; // this is the global uniform buffer accessible from any shader program
-  const size_t SMOL_GLOBALUBO_PROJ        = 0;
-  const size_t SMOL_GLOBALUBO_VIEW        = (1 * sizeof(Mat4));
-  const size_t SMOL_GLOBALUBO_MODEL       = (2 * sizeof(Mat4));
-  const size_t SMOL_GLOBALUBO_DELTA_TIME  = (3 * sizeof(Mat4));
-  const size_t SMOL_GLOBALUBO_SIZE        = 3 * sizeof(Mat4) + sizeof(float);
+  const size_t SMOL_UBO_MAT4_PROJ             = 0;
+  const size_t SMOL_UBO_MAT4_VIEW             = (1 * sizeof(Mat4));
+  const size_t SMOL_UBO_MAT4_MODEL            = (2 * sizeof(Mat4));
+  const size_t SMOL_UBO_FLOAT_DELTA_TIME      = (3 * sizeof(Mat4));
+  const size_t SMOL_UBO_FLOAT_RANDOM_01       = (3 * sizeof(Mat4) + sizeof(float));
+  const size_t SMOL_UBO_FLOAT_ELAPSED_SECONDS = (4 * sizeof(Mat4) + sizeof(float) * 2);
+  const size_t SMOL_UBO_SIZE                  = 4 * sizeof(Mat4) + 3 * sizeof(float);
+
+
   const GLuint SMOL_GLOBALUBO_BINDING_POINT = 0;
   //
   // internal utility functions
@@ -163,6 +169,32 @@ namespace smol
     }
 
     return shaderProgramId;
+  }
+
+  static void updateGlobalShaderParams(SceneNode& cameraNode, float deltaTime)
+  {
+    glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
+    // proj
+    glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ,
+        sizeof(Mat4), cameraNode.camera.getProjectionMatrix().e);
+    // view
+    glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW,
+        sizeof(Mat4), cameraNode.transform.getMatrix().inverse().e);
+    // model
+    glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL,
+        sizeof(Mat4), Mat4::initIdentity().e);
+    // delta time
+    glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_FLOAT_DELTA_TIME,
+        sizeof(float), &deltaTime);
+    // random01
+    float random01 = (float) smol::random01();
+    glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_FLOAT_RANDOM_01,
+        sizeof(float), &random01);
+    // elapsed time
+    float elapsedSeconds = Platform::getSecondsSinceStartup();
+    glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_FLOAT_ELAPSED_SECONDS,
+        sizeof(float), &elapsedSeconds);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
   //Radix sort 64bit values by the lower 32bit values.
@@ -383,7 +415,7 @@ namespace smol
   {
     glGenBuffers(1, &globalUbo);
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
-    glBufferData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, SMOL_UBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     bool enableSRGB = false;
     if (config.enableGammaCorrection)
@@ -1118,20 +1150,8 @@ namespace smol
 
       // ----------------------------------------------------------------------
       // set uniform buffer matrices based on current camera
-      glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
 
-      // proj
-      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
-          sizeof(Mat4), cameraNode->camera.getProjectionMatrix().e);
-      // view
-      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
-          sizeof(Mat4), cameraNode->transform.getMatrix().inverse().e);
-      // model
-      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
-          sizeof(Mat4), Mat4::initIdentity().e);
-      // delta time
-      glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_DELTA_TIME,
-          sizeof(float), &deltaTime);
+      updateGlobalShaderParams(*cameraNode, deltaTime);
 
       // ----------------------------------------------------------------------
       // Draw render keys
@@ -1169,7 +1189,7 @@ namespace smol
             continue;
 
           // model
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
           Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
           drawRenderable(&scene, renderable, shaderProgramId);
         }
@@ -1182,11 +1202,11 @@ namespace smol
             if (batcher->mode == SpriteBatcher::CAMERA)
             {
               // Relative to current camera
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ,
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ,
                   sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW,
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW,
                   sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL,
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL,
                   sizeof(Mat4), (const float*) identity.e);
 
             }
@@ -1195,11 +1215,11 @@ namespace smol
               //relative to SCREEN
               Transform t;
 
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_PROJ, sizeof(Mat4),
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ, sizeof(Mat4),
                   (const float*) screenCamera.getProjectionMatrix().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_VIEW, sizeof(Mat4),
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW, sizeof(Mat4),
                   (const float*) t.getMatrix().inverse().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_GLOBALUBO_MODEL, sizeof(Mat4),
+              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
                   (const float*) identity.e);
             }
             updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);

@@ -8,6 +8,9 @@ set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATC
 project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
 find_package(OpenGL REQUIRED)
 
+option(BUILD_TESTS "Build and run unit tests" ON)
+
+
 # General compiler settings
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,6 +45,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_random.h
+  ${SOURCE_PATH}/smol_random.cpp
   ${SOURCE_PATH}/include/smol/smol_point.h
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
   ${SOURCE_PATH}/include/smol/smol_mesh.h
@@ -140,9 +145,21 @@ add_custom_command(TARGET assets POST_BUILD
 #
 add_subdirectory("Launcher")
 
-
-# Build tests
+#
+# Build and run tests
+#
 if(BUILD_TESTS)
+  set(TESTS_DIR "tests")
   enable_testing()
-  add_subdirectory("tests")
+  add_subdirectory(${TESTS_DIR})
+
+  get_property(all_tests DIRECTORY ${TESTS_DIR} PROPERTY TESTS)
+  add_custom_target(run_unit_tests ALL
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/RunUnitTests.touch ${all_tests})
+
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/RunUnitTests.touch
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -j4
+    WORKING_DIRECTORY ${TESTS_DIR})
 endif()
+

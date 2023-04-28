@@ -43,3 +43,4 @@ tags
 .exrc
 src/include/smol/smol_version.h
 project.vim
+*.rdbg
