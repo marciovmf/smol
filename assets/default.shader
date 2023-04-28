@@ -7,6 +7,8 @@ vertexShader:"
     mat4 view;
     mat4 model;
     float deltaTime;
+    float random01;
+    float elapsedSeconds;
   };
 
   layout (location = 0) in vec3 vertPos;
