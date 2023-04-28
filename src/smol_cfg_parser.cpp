@@ -587,7 +587,7 @@ namespace smol
       {
         if (variable->type != type)
         {
-          Log::error("Requested variabe '%s' of type %s but found %s", name, typeToString(variable->type), typeToString(type));
+          Log::error("Requested variabe '%s' of type %s but found %s", name, typeToString(type), typeToString(variable->type));
         }
 
         result = variable;
