@@ -21,7 +21,7 @@ namespace smol
   const size_t SMOL_UBO_MAT4_MODEL            = (2 * sizeof(Mat4));
   const size_t SMOL_UBO_FLOAT_DELTA_TIME      = (3 * sizeof(Mat4));
   const size_t SMOL_UBO_FLOAT_RANDOM_01       = (3 * sizeof(Mat4) + sizeof(float));
-  const size_t SMOL_UBO_FLOAT_ELAPSED_SECONDS = (4 * sizeof(Mat4) + sizeof(float) * 2);
+  const size_t SMOL_UBO_FLOAT_ELAPSED_SECONDS = (3 * sizeof(Mat4) + sizeof(float) * 2);
   const size_t SMOL_UBO_SIZE                  = 4 * sizeof(Mat4) + 3 * sizeof(float);
 
 
