@@ -11,9 +11,6 @@
 
 namespace smol
 {
-#define SMOL_MATERIAL_MAX_TEXTURES 6
-#define SMOL_MAX_BUFFERS_PER_MESH 6
-
   struct SMOL_ENGINE_API MaterialParameter : public ShaderParameter
   {
     union
@@ -29,6 +26,11 @@ namespace smol
 
   struct SMOL_ENGINE_API Material
   {
+    enum
+    {
+      MAX_TEXTURES = 6,
+    };
+
     enum DepthTest
     {
       DISABLE         = 0,

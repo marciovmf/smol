@@ -273,7 +273,7 @@ namespace smol
       return INVALID_HANDLE(Material);
 
     int numDiffuseTextures = 0;
-    Handle<Texture> diffuseTextures[SMOL_MATERIAL_MAX_TEXTURES];
+    Handle<Texture> diffuseTextures[Material::MAX_TEXTURES];
 
     const char* shaderPath = materialEntry->getVariableString((const char*) "shader", nullptr);
     if (!shaderPath)
@@ -295,10 +295,10 @@ namespace smol
       const char* diffuseTexture = textureEntry->getVariableString((const char*) "diffuse");
       if (diffuseTexture)
       {
-        if (numDiffuseTextures >= SMOL_MATERIAL_MAX_TEXTURES)
+        if (numDiffuseTextures >= Material::MAX_TEXTURES)
         {
           Log::error("Material file '%s' exceeded the maximum of %d diffuse textures. The texture '%s' will be ignored.",
-              path, SMOL_MATERIAL_MAX_TEXTURES, diffuseTexture);
+              path, Material::MAX_TEXTURES, diffuseTexture);
         }
         else
         {
@@ -367,7 +367,7 @@ namespace smol
       Material::DepthTest depthTest,
       Material::CullFace cullFace)
   {
-    SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
+    SMOL_ASSERT(diffuseTextureCount <= Material::MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
     Material& material = *materials.lookup(handle);
