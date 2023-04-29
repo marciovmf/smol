@@ -21,10 +21,14 @@ namespace smol
     return nullptr;
   }
 
-  Material& Material::setSampler2D(const char* name, unsigned int value)
+  Material& Material::setSampler2D(const char* name, Handle<Texture> handle)
   {
     MaterialParameter* param = getParameter(name, ShaderParameter::SAMPLER_2D);
-    if (param) param->uintValue = value;
+    if (param)
+    {
+      textureDiffuse[param->uintValue] = handle;
+      Texture& texture = SystemsRoot::get()->resourceManager.getTexture(handle);
+    }
     return *this;
   }
 

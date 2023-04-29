@@ -61,7 +61,7 @@ namespace smol
     DepthTest depthTest;
     CullFace cullFace;
 
-    Material& setSampler2D(const char* name, unsigned int value);
+    Material& setSampler2D(const char* name, Handle<Texture> handle);
     Material& setUint(const char* name, unsigned int value);
     Material& setInt(const char* name, int value);
     Material& setFloat(const char* name, float value);
