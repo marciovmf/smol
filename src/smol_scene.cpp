@@ -1,5 +1,5 @@
 #include <smol/smol_scene.h>
-#include <smol/smol_scene_nodes.h>
+#include <smol/smol_scene_node.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_renderer.h>
@@ -24,7 +24,6 @@ namespace smol
     batchers(8 * sizeof(SpriteBatcher)),
     renderKeys(1024 * sizeof(uint64)),
     renderKeysSorted(1024 * sizeof(uint64)),
-    mainCamera(INVALID_HANDLE(SceneNode)),
     nullSceneNode(this, SceneNode::Type::INVALID)
   {
     viewMatrix = Mat4::initIdentity();
@@ -64,11 +63,10 @@ namespace smol
   // ##################################################################
   //  SpriteBatcher handling 
   // ##################################################################
-  Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, SpriteBatcher::Mode mode, int capacity)
+  Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
   {
-    return batchers.add(std::move(SpriteBatcher(material, mode, capacity)));
+    return batchers.add(SpriteBatcher(material, capacity));
   }
-
 
   void Scene::destroySpriteBatcher(Handle<SpriteBatcher> handle)
   {
@@ -79,7 +77,8 @@ namespace smol
     }
     else
     {
-      destroyRenderable(batcher->renderable);
+      //destroyRenderable(batcher->renderable);
+      //destroyMaterial(batcher->material);
       batchers.remove(handle);
     }
   }
@@ -87,87 +86,22 @@ namespace smol
   //
   // Scene Node utility functions
   //
-  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, const Transform& transform)
+
+#ifndef SMOL_MODULE_GAME
+  Handle<SceneNode> Scene::createNode(SceneNode::Type type, const Transform& transform)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
-    nodes.lookup(handle)->mesh.renderable = renderable;
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, type, transform));
+    handle->setDirty(true);
     return handle;
   }
+#endif
 
-  Handle<SceneNode> Scene::createSpriteNode(
-      Handle<SpriteBatcher> batcher,
-      const Rect& rect,
-      const Vector3& position,
-      float width,
-      float height,
-      const Color& color,
-      int angle,
-      Handle<SceneNode> parent)
+#ifndef SMOL_MODULE_GAME
+  void Scene::destroyNode(Handle<SceneNode> handle)
   {
-    const Transform& t = Transform(
-        position,
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.0f, 1.0f, 1.0f),
-        parent);
-
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, t));
-    SceneNode* node = nodes.lookup(handle);
-
-    node->sprite.rect = rect;
-    node->sprite.batcher = batcher;
-    node->sprite.width = width;
-    node->sprite.height = height;
-    node->sprite.angle = angle;
-    node->sprite.color = color;
-
-
-    SpriteBatcher* batcherPtr = batchers.lookup(batcher);
-    if (batcherPtr)
-    {
-      // copy the renderable handle to the node level
-      node->sprite.renderable = batcherPtr->renderable;
-      batcherPtr->spriteCount++;
-      batcherPtr->dirty = true;
-    }
-
-    return handle;
+    nodes.remove(handle);
   }
-
-  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float zNear, float zFar, const Transform& transform)
-  {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
-    SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(Camera::PERSPECTIVE, fov, zNear, zFar);
-    return handle;
-  }
-
-  Handle<SceneNode> Scene::createOrthographicCameraNode(float size, float zNear, float zFar, const Transform& transform)
-  {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
-    SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(Camera::ORTHOGRAPHIC, size, zNear, zFar);
-    return handle;
-  }
-
-  void Scene::setMainCamera(Handle<SceneNode> handle)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if (!node || !node->typeIs(SceneNode::Type::CAMERA))
-      return;
-
-    mainCamera = handle;
-  }
-
-  Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
-  {
-    Handle<SceneNode> newHandle = nodes.reserve();
-    SceneNode* newNode = nodes.lookup(newHandle);
-    SceneNode* original = nodes.lookup(handle);
-    memcpy(newNode, original, sizeof(SceneNode));
-
-    //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
-    return newHandle;
-  }
+#endif
 
   SceneNode& Scene::getNode(Handle<SceneNode> handle) const
   {
@@ -177,40 +111,6 @@ namespace smol
 
     warnInvalidHandle("SceneNode");
     return (SceneNode&) nullSceneNode;
-  }
-
-  SpriteBatcher::Mode Scene::getSpriteBatcherMode(Handle<SpriteBatcher> handle) const
-  {
-    SpriteBatcher* batcher = batchers.lookup(handle);
-    if(!batcher)
-    {
-      warnInvalidHandle("SpriteBatcher");
-      return SpriteBatcher::CAMERA;
-    }
-
-    return batcher->mode;
-  }
-
-  void Scene::setSpriteBatcherMode(Handle<SpriteBatcher> handle, SpriteBatcher::Mode mode)
-  {
-    SpriteBatcher* batcher = batchers.lookup(handle);
-    if(!batcher)
-    {
-      warnInvalidHandle("SpriteBatcher");
-      return;
-    }
-
-    batcher->mode = mode;
-  }
-
-
-  void Scene::destroyNode(Handle<SceneNode> handle)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if (node)
-    {
-      nodes.remove(handle);
-    }
   }
 
   Scene::~Scene()

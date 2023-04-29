@@ -10,8 +10,9 @@ namespace smol
     float x;
     float y;
 
-    Vector2(float x, float y);
     Vector2();
+    Vector2(float xy);
+    Vector2(float x, float y);
 
     Vector2& sum(float f);
     Vector2& sub(float f);

@@ -1,15 +1,21 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_scene.h> // also includes smol_scene_nodes.h
+#include <smol/smol_renderer_types.h>
 
 namespace smol
 {
   struct Scene;
 
+  //---------------------------------------------------------------------------
+  // SceneNode
+  //---------------------------------------------------------------------------
+  SceneNode::~SceneNode() { }
+
   SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform)
     :transform(transform), scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0)
   { 
   }
-  
+
   void SceneNode::setActive(bool status)
   {
     if (!isValid())
@@ -64,6 +70,6 @@ namespace smol
     }
     transform.setParent(parent);
   }
-  
+
   void SceneNode::setLayer(smol::Layer l) { layer = l; }
 }

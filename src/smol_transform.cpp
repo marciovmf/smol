@@ -1,10 +1,15 @@
 #include <smol/smol_transform.h>
-#include <smol/smol_scene_nodes.h>
+#include <smol/smol_scene_node.h>
 #include <smol/smol_systems_root.h>
 #include <smol/smol_scene.h>
 
 namespace smol
 {
+
+  Transform::Transform(Handle<SceneNode> parent)
+    : position(Vector3(0.0f)), rotation(Vector3(0.0f)), scale(Vector3(1.0f)), dirty(true), parent(parent)
+  {}
+
   Transform::Transform(Vector3 position, Vector3 rotation, Vector3 scale, Handle<SceneNode> parent)
     : position(position), rotation(rotation), scale(scale), dirty(true), parent(parent)
   {
@@ -63,6 +68,13 @@ namespace smol
   Transform& Transform::setParent(Handle<SceneNode> parent)
   {
     this->parent = parent;
+    dirty = true;
+    return *this;
+  }
+
+  Transform& Transform::unparent()
+  {
+    this->parent = DEFAULT_PARENT_NODE;
     dirty = true;
     return *this;
   }

@@ -6,23 +6,13 @@
 #include <smol/smol_mouse.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_resource_manager.h>
+#include <smol/smol_scene_manager.h>
 
 namespace smol
 {
   class Renderer;
   struct Config;
   struct ResourceManager;
-
-  struct SMOL_ENGINE_API SceneManager
-  {
-    private:
-    Scene* scene;
-
-    public:
-    SceneManager();
-    ~SceneManager();
-    Scene& getLoadedScene();
-  };
 
   struct GlobalConfiguration
   {
@@ -33,9 +23,6 @@ namespace smol
   {
     bool enableMSAA;
     bool enableGammaCorrection;
-    float screenCameraSize;
-    float screenCameraNear;
-    float screenCameraFar;
 
     GlobalRendererConfig(const Config& config);
     void update(const Config& config) override;
@@ -73,9 +60,12 @@ namespace smol
     Keyboard              keyboard; 
     Mouse                 mouse; 
 
-
-    static void initialize(Config& config);
     static SystemsRoot* get();
+
+#ifndef SMOL_MODULE_GAME
+    static void initialize(Config& config);
+    static void terminate();
+#endif
 
     // Disallow coppies
     SystemsRoot(const SystemsRoot& other) = delete;
@@ -86,6 +76,7 @@ namespace smol
     private:
     static SystemsRoot* instance;
     SystemsRoot(Config& config);
+    ~SystemsRoot();
   };
 
 }

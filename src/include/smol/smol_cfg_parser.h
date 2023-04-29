@@ -36,11 +36,11 @@ namespace smol
     const char* name;
     int64 hash;
 
-    double getVariableNumber(const char* name, double defaultValue = 1.0f) const;
-    Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f}) const;
-    Vector3 getVariableVec3(const char* name, Vector3 defaultValue = {0.0f, 0.0f, 0.0f}) const;
-    Vector2 getVariableVec2(const char* name, Vector2 defaultValue = {0.0f, 0.0f}) const;
-    const char* getVariableString(const char* name, const char* defaultValue = nullptr) const;
+    double getVariableNumber(const char* name, double defaultValue = 1.0f, bool warn = false) const;
+    Vector4 getVariableVec4(const char* name, Vector4 defaultValue = {0.0f, 0.0f, 0.0f, 0.0f}, bool warn = false) const;
+    Vector3 getVariableVec3(const char* name, Vector3 defaultValue = {0.0f, 0.0f, 0.0f}, bool warn = false) const;
+    Vector2 getVariableVec2(const char* name, Vector2 defaultValue = {0.0f, 0.0f}, bool warn = false) const;
+    const char* getVariableString(const char* name, const char* defaultValue = nullptr, bool warn = false) const;
 
   };
 

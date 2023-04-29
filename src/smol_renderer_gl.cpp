@@ -249,7 +249,7 @@ namespace smol
     // Render key format
     // 64--------------------32---------------16-----------8---------------0
     // sceneNode index       | material index  | node type | render queue
-    uint64 key = ((uint64) nodeIndex) << 32 | ((uint16) materialIndex) << 24 |  nodeType << 8 | (uint8) queue;
+    uint64 key = ((uint64) nodeIndex) << 32 | ((uint16) materialIndex) << 16 |  nodeType << 8 | (uint8) queue;
     return key;
   }
 
@@ -260,12 +260,12 @@ namespace smol
 
   static inline uint32 getMaterialIndexFromRenderKey(uint64 key)
   {
-    return (uint32) (key >> 16);
+    return ((uint32) key) >> 16;
   }
 
   static inline uint32 getNodeTypeFromRenderKey(uint64 key)
   {
-    return (uint32) (key >> 8);
+    return (uint32) key >> 8;
   }
 
   //NOTE(marcio): We're probably not gonna need it
@@ -296,105 +296,23 @@ namespace smol
     glBindVertexArray(0);
   }
 
-  static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
+  static int drawSpriteNodes(Scene* scene, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
   {
-    // do we need to update the data on the GPU ?
-    //if (batcher->dirty)
+    const SceneNode* allNodes = scene->nodes.getArray();
+
+    batcher->begin();
+    for (int i = 0; i < batcher->spriteNodeCount; i++)
     {
-      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-      Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material& material = resourceManager.getMaterial(renderable->material);
+      uint64 key = ((uint64*)renderKeyList)[i];
+      SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
 
-      Texture& texture = 
-        (material.diffuseTextureCount > 0 
-         && material.textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        resourceManager.getTexture(material.textureDiffuse[0]) :
-        resourceManager.getDefaultTexture();
-
-      Mesh* mesh = resourceManager.getMesh(renderable->mesh);
-
-      const float textureWidth  = (float) texture.width;
-      const float textureHeight = (float) texture.height;
-      const size_t totalSize    = batcher->spriteCount * SpriteBatcher::totalSpriteSize;
-
-      batcher->arena.reset();
-      char* memory = batcher->arena.pushSize(totalSize);
-      Vector3* positions = (Vector3*)(memory);
-      Color* colors = (Color*)(positions + batcher->spriteCount * 4);
-      Vector2* uvs = (Vector2*)(colors + batcher->spriteCount * 4);
-      unsigned int* indices = (unsigned int*)(uvs + batcher->spriteCount * 4);
-
-      Vector3* pVertex = positions;
-      Color* pColors = colors;
-      Vector2* pUVs = uvs;
-      unsigned int* pIndices = indices;
-
-      const SceneNode* allNodes = scene->nodes.getArray();
-      int offset = 0;
-
-      int activeSprites = 0;
-      for (int i = 0; i < batcher->spriteCount; i++)
-      {
-        uint64 key = ((uint64*)renderKeyList)[i];
-        SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-
-        // ignore sprites the current camera can't see
-        if(!(cameraLayers & sceneNode->getLayer()))
-          continue;
-
-        activeSprites++;
-        Transform& transform = sceneNode->transform;
-        SpriteNodeInfo& node = sceneNode->sprite;
-
-        // convert UVs from pixels to 0~1 range
-        // pixel coords origin is at top left corner
-        Rectf uvRect;
-        uvRect.x = node.rect.x / (float) textureWidth;
-        uvRect.y = 1 - (node.rect.y /(float) textureHeight); 
-        uvRect.w = node.rect.w / (float) textureWidth;
-        uvRect.h = node.rect.h / (float) textureHeight;
-
-        const Vector3& pos = transform.getPosition();
-        //float posY = renderer->getViewport().h - pos.y;
-        float halfW = node.width/2.0f;
-        float halfH = node.height/2.0f;
-
-        {
-          pVertex[0] = {pos.x - halfW, pos.y + halfH, pos.z};             // top left
-          pVertex[1] = {pos.x + halfW, pos.y - halfH, pos.z};             // bottom right
-          pVertex[2] = {pos.x + halfW, pos.y + halfH, pos.z};             // top right
-          pVertex[3] = {pos.x - halfW, pos.y - halfH, pos.z};             // bottom left
-          pVertex += 4;
-
-          pColors[0] = node.color;                                        // top left
-          pColors[1] = node.color;                                        // bottom right
-          pColors[2] = node.color;                                        // top right
-          pColors[3] = node.color;                                        // bottom left
-          pColors += 4;
-
-          pUVs[0] = {uvRect.x, uvRect.y};                                 // top left 
-          pUVs[1] = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};           // bottom right
-          pUVs[2] = {uvRect.x + uvRect.w, uvRect.y};                      // top right
-          pUVs[3] = {uvRect.x, uvRect.y - uvRect.h};                      // bottom left
-          pUVs += 4;
-
-          pIndices[0] = offset + 0;
-          pIndices[1] = offset + 1;
-          pIndices[2] = offset + 2;
-          pIndices[3] = offset + 0;
-          pIndices[4] = offset + 3;
-          pIndices[5] = offset + 1;
-          pIndices += 6;
-          offset += 4;
-        }
-      }
-
-      MeshData meshData(positions, 4 * activeSprites, indices, 6 * activeSprites, colors, nullptr, uvs);
-
-      Renderer::updateMesh(mesh, &meshData);
+      // ignore sprites the current camera can't see
+      if(!(cameraLayers & sceneNode->getLayer()))
+        continue;
+      batcher->pushSpriteNode(sceneNode);
     }
-
-    return batcher->spriteCount;
+    batcher->end();
+    return batcher->spriteNodeCount - 1;
   }
 
   //
@@ -415,21 +333,21 @@ namespace smol
   {
     glGenBuffers(1, &globalUbo);
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
-    glBufferData(GL_UNIFORM_BUFFER, SMOL_UBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, SMOL_UBO_SIZE, (void*) SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    bool enableSRGB = false;
+
     if (config.enableGammaCorrection)
     {
       glEnable(GL_FRAMEBUFFER_SRGB); 
     }
+
     if (config.enableMSAA)
     {
       glEnable(GL_MULTISAMPLE);
     }
 
-    screenCameraSize = config.screenCameraSize;
-    screenCameraNear = config.screenCameraNear;
-    screenCameraFar = config.screenCameraFar;
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   }
 
   void Renderer::setScene(Scene& scene)
@@ -504,9 +422,6 @@ namespace smol
 
     glGenTextures(1, &outTexture->glTextureObject);
     glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
-
-    GLint internalFormat = GL_RGBA;
-
 
     // if the engine is set to use SRGB ?
     bool useSRGB = SystemsRoot::get()->rendererConfig.enableGammaCorrection;
@@ -765,6 +680,7 @@ namespace smol
     program->valid = false;
   }
 
+
   //
   // Mesh resources
   //
@@ -1008,6 +924,223 @@ namespace smol
     glDeleteVertexArrays(1, (const GLuint*) &mesh->vao);
   }
 
+
+  //
+  // StreamBuffer
+  //
+
+  bool Renderer::createStreamBuffer(StreamBuffer* out, uint32 capacity, StreamBuffer::Format format, uint32 indicesPerElement)
+  {
+    out->format = format;
+    out->capacity = capacity;
+    out->used = 0;
+    out->bound = false;
+    out->indicesPerElement = indicesPerElement;
+
+    // VAO
+    glGenVertexArrays(1, &out->vao);
+    glBindVertexArray(out->vao);
+
+    // IBO
+    glGenBuffers(1, &out->ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, out->capacity * indicesPerElement * sizeof(uint32), (void*) nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // VBO
+    glGenBuffers(1, &out->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, out->vbo);
+
+    switch (format)
+    {
+      case StreamBuffer::POS_COLOR_UV:
+        {
+          out->elementSize = 9 * sizeof(float);
+          glVertexAttribPointer(Mesh::POSITION, 3, GL_FLOAT, GL_FALSE, (GLsizei) out->elementSize, (const void*) 0);
+          glVertexAttribPointer(Mesh::COLOR,    4, GL_FLOAT, GL_FALSE, (GLsizei) out->elementSize, (const void*) (3 * sizeof(float)));
+          glVertexAttribPointer(Mesh::UV0,      2, GL_FLOAT, GL_FALSE, (GLsizei) out->elementSize, (const void*) (7 * sizeof(float)));
+
+          glEnableVertexAttribArray(Mesh::POSITION);
+          glEnableVertexAttribArray(Mesh::COLOR);
+          glEnableVertexAttribArray(Mesh::UV0);
+        }
+        break;
+
+      case StreamBuffer::POS_COLOR_UV_UV:
+        {
+          out->elementSize = 11 * sizeof(float);
+          glVertexAttribPointer(Mesh::POSITION, 3, GL_FLOAT, GL_FALSE, (GLsizei)out->elementSize, (const void*) 0);
+          glVertexAttribPointer(Mesh::COLOR,    4, GL_FLOAT, GL_FALSE, (GLsizei)out->elementSize, (const void*) (3 * sizeof(float)));
+          glVertexAttribPointer(Mesh::UV0,      2, GL_FLOAT, GL_FALSE, (GLsizei)out->elementSize, (const void*) (7 * sizeof(float)));
+          glVertexAttribPointer(Mesh::UV1,      2, GL_FLOAT, GL_FALSE, (GLsizei)out->elementSize, (const void*) (9 * sizeof(float)));
+
+          glEnableVertexAttribArray(Mesh::POSITION);
+          glEnableVertexAttribArray(Mesh::COLOR);
+          glEnableVertexAttribArray(Mesh::UV0);
+          glEnableVertexAttribArray(Mesh::UV1);
+        }
+        break;
+
+      default:
+        debugLogError("Unsuported Buffer format %d", (int)format);
+        break;
+    }
+
+    glBufferData(GL_ARRAY_BUFFER, out->elementSize * out->capacity, (void*) nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(0);
+    return true;
+  }
+
+  bool Renderer::resizeStreamBuffer(StreamBuffer& streamBuffer, uint32 capacity)
+  {
+    if (streamBuffer.format == StreamBuffer::UNINITIALIZED)
+      return false;
+
+    SMOL_ASSERT(streamBuffer.bound == true, "Can't resize and unbound StreamBuffer.");
+    SMOL_ASSERT(streamBuffer.capacity < capacity, "Can't Shrinking a streamBuffer.");
+
+    // resize VBO
+    size_t size = streamBuffer.elementSize * capacity;
+    streamBuffer.capacity = capacity;
+    glBufferData(GL_ARRAY_BUFFER, size, (void*) nullptr, GL_DYNAMIC_DRAW);
+
+    // resize IBO
+    size = capacity * streamBuffer.indicesPerElement * sizeof(uint32);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, (void*) nullptr, GL_DYNAMIC_DRAW);
+    return true;
+  }
+
+  void Renderer::bindStreamBuffer(StreamBuffer& streamBuffer)
+  {
+    if (streamBuffer.format == StreamBuffer::UNINITIALIZED)
+      return;
+
+    if (streamBuffer.bound)
+      return;
+
+    glBindVertexArray(streamBuffer.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, streamBuffer.vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, streamBuffer.ibo);
+    streamBuffer.bound = true;
+  }
+
+  void Renderer::unbindStreamBuffer(StreamBuffer& streamBuffer)
+  {
+    if (streamBuffer.format == StreamBuffer::UNINITIALIZED)
+      return;
+
+    if (!streamBuffer.bound)
+      return;
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    streamBuffer.bound = false;
+  }
+
+  bool Renderer::destroyStreamBuffer(StreamBuffer& streamBuffer)
+  {
+    if (streamBuffer.format == StreamBuffer::UNINITIALIZED)
+      return false;
+
+    glDeleteBuffers(1, &streamBuffer.vbo);
+    glDeleteVertexArrays(1, &streamBuffer.vao);
+
+    streamBuffer.capacity = 0;
+    streamBuffer.used     = 0;
+    streamBuffer.vbo      = -1;
+    streamBuffer.vao      = -1;
+    return true;
+  }
+
+  void Renderer::begin(StreamBuffer& streamBuffer)
+  {
+    SMOL_ASSERT(streamBuffer.bound == false, "Cant begin() on a StreamBuffer that is already bound. Did you call begin() twice ?");
+
+    bindStreamBuffer(streamBuffer);
+    streamBuffer.flushCount = 0;
+  }
+
+  void Renderer::pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& color)
+  {
+    pushSprite(streamBuffer, position, size, uv, color, color, color, color);
+  }
+
+  void Renderer::pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& tlColor, const Color& trColor, const Color& blColor, const Color& brColor)
+  {
+    const int indicesPerSprite = 6;
+    const int verticesPerSrprite = 4;
+
+    SMOL_ASSERT(streamBuffer.bound == true, "Cant pushSprite() on a StreamBuffer that is not bound. Did forget to call begin() ?");
+    SMOL_ASSERT(streamBuffer.indicesPerElement == 6,"The current StreamBuffer uses %d indices per element. Pushing a sprite assumes %d indices per element.", streamBuffer.indicesPerElement, indicesPerSprite);
+
+    if (streamBuffer.used + 4 >= streamBuffer.capacity)
+    {
+      flush(streamBuffer);
+    }
+
+    VertexPCU vertex[verticesPerSrprite];
+    uint32 index[indicesPerSprite];
+
+    // Top left 
+    vertex[0].position = {position.x,  position.y, position.z};                         // top left
+    vertex[0].color     = tlColor;
+    vertex[0].uv        = {uv.x, uv.y};
+    // bottom right
+    vertex[1].position = {position.x + size.x,  position.y - size.y, position.z};       // bottom right
+    vertex[1].color     = brColor;
+    vertex[1].uv        = {uv.x + uv.w, uv.y - uv.h};
+    // top right
+    vertex[2].position = {position.x + size.x,  position.y, position.z};                // top right
+    vertex[2].color     = trColor;
+    vertex[2].uv        = {uv.x + uv.w, uv.y};
+    // bottom left
+    vertex[3].position = {position.x, position.y - size.y, position.z};                // bottom left
+    vertex[3].color     = blColor;
+    vertex[3].uv        = {uv.x, uv.y - uv.h};
+
+    int numSprites = streamBuffer.used / verticesPerSrprite;
+    int offset = numSprites * 4;
+    index[0] = offset + 0;
+    index[1] = offset + 1;
+    index[2] = offset + 2;
+    index[3] = offset + 0;
+    index[4] = offset + 3;
+    index[5] = offset + 1;
+
+    //TODO(marcio): Map GPU memory and write to it directly to void calling on gl driver so much
+    glBufferSubData(GL_ARRAY_BUFFER, streamBuffer.used * streamBuffer.elementSize, sizeof(vertex), (void*) vertex);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, numSprites * 6 * sizeof(uint32), sizeof(index), (void*) index);
+    streamBuffer.used += 4;
+  }
+
+  void Renderer::flush(StreamBuffer& streamBuffer)
+  {
+    int numSprites = streamBuffer.used / 4;
+    int count = numSprites * 6;
+
+    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+    streamBuffer.flushCount++;
+    streamBuffer.used = 0;
+  }
+
+  void Renderer::end(StreamBuffer& streamBuffer)
+  {
+    SMOL_ASSERT(streamBuffer.bound == true, "Cant end() on a StreamBuffer that is already bound. Did you call end() twice ?");
+    flush(streamBuffer);
+
+    // if flushed more than once before ending, it means we should enlarge the buffer so we don't flush so often
+    uint32 flushCount = streamBuffer.flushCount - 1;
+    if (flushCount > 0)
+    {
+      uint32 newCapacity = streamBuffer.capacity * flushCount * streamBuffer.capacity;
+      resizeStreamBuffer(streamBuffer, newCapacity);
+    }
+    unbindStreamBuffer(streamBuffer);
+  }
+
   //
   // Render
   //
@@ -1016,7 +1149,6 @@ namespace smol
   {
     this->viewport.w = width;
     this->viewport.h = height;
-    Scene& scene = *this->scene;
     //OpenGL NDC coords are  LEFT-HANDED.
     //This is a RIGHT-HAND projection matrix.
     glEnable(GL_BLEND);
@@ -1029,7 +1161,6 @@ namespace smol
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
     Scene& scene = *this->scene;
     const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().glProgramId;
-    const GLuint defaultTextureId = resourceManager.getDefaultTexture().glTextureObject;
     const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
     const SceneNode* allNodes = scene.nodes.getArray();
@@ -1037,9 +1168,6 @@ namespace smol
 
     scene.renderKeys.reset();
     scene.renderKeysSorted.reset();
-
-    // The SCREEN camera. Might be used for GUIs, text and for screen relative sprites
-    Camera screenCamera = Camera(Camera::ORTHOGRAPHIC, screenCameraSize, screenCameraNear, screenCameraFar);
 
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys
@@ -1049,8 +1177,6 @@ namespace smol
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
       Renderable* renderable = nullptr;
-      bool discard = false;
-      bool updateTransform = true;
       uint64 key = 0;
 
       if (!node->isActiveInHierarchy())
@@ -1062,7 +1188,6 @@ namespace smol
           {
             node->transform.update(scene);
             key = encodeRenderKey(node->getType(), 0, node->camera.getPriority(), i);
-            Camera& camera = node->camera;
             numCameras++;
           }
           break;
@@ -1071,21 +1196,33 @@ namespace smol
           {
             node->transform.update(scene);
             renderable = scene.renderables.lookup(node->mesh.renderable);
-            Material& materialPtr = resourceManager.getMaterial(renderable->material);
-            key = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex), materialPtr.renderQueue, i);
+            Handle<Material> material = renderable->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
           }
           break;
 
+        case SceneNode::TEXT:
+          {
+            node->transform.update(scene);
+            if (node->transform.isDirty(scene) || node->isDirty())
+            {
+              SpriteBatcher* batcher = scene.batchers.lookup(node->text.batcher);
+              batcher->dirty = true;
+            }
+            Handle<Material> material = node->text.batcher->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
+          }
+          break;
         case SceneNode::SPRITE:
           {
+            node->transform.update(scene);
             if (node->transform.isDirty(scene) || node->isDirty())
             {
               SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
               batcher->dirty = true;
             }
-            renderable = scene.renderables.lookup(node->sprite.renderable);
-            Material& materialPtr = resourceManager.getMaterial(renderable->material);
-            key = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex), materialPtr.renderQueue, i);
+            Handle<Material> material = node->sprite.batcher->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
           }
           break;
 
@@ -1163,10 +1300,7 @@ namespace smol
       // ----------------------------------------------------------------------
       // Draw render keys
       int currentMaterialIndex = -1;
-      ShaderProgram* shader = nullptr;
       GLuint shaderProgramId = 0; 
-      Mat4 identity = Mat4::initIdentity();
-
       uint32 cameraLayers = cameraNode->camera.getLayerMask();
 
       for(int i = 0; i < numKeys; i++)
@@ -1184,63 +1318,42 @@ namespace smol
         if (currentMaterialIndex != materialIndex)
         {
           currentMaterialIndex = materialIndex;
-          const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
-          Material& material = resourceManager.getMaterial(renderable->material);
+          Material& material = (resourceManager.getMaterials(nullptr))[materialIndex];
           shaderProgramId = setMaterial(&scene, &material, cameraNode);
         }
 
         if (node->typeIs(SceneNode::MESH)) 
         {
-          // ignore meshes on a layer the current camera can't see
           if(!(cameraLayers & node->getLayer()))
             continue;
 
-          // model
-          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4), node->transform.getMatrix().e);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
+              node->transform.getMatrix().e);
+
           Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
           drawRenderable(&scene, renderable, shaderProgramId);
+        }
+        else if (node->typeIs(SceneNode::TEXT))
+        {
+          if(!(cameraLayers & node->getLayer()))
+            continue;
+
+          SpriteBatcher* batcher = scene.batchers.lookup(node->text.batcher);
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
+              node->transform.getMatrix().e);
+
+          batcher->begin();
+          batcher->pushTextNode(node);
+          batcher->end();
         }
         else if (node->typeIs(SceneNode::SPRITE))
         {
           SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
-          if(batcher->dirty)
-          {
+          glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
+              node->transform.getMatrix().e);
 
-            if (batcher->mode == SpriteBatcher::CAMERA)
-            {
-              // Relative to current camera
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ,
-                  sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW,
-                  sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL,
-                  sizeof(Mat4), (const float*) identity.e);
-
-            }
-            else
-            {
-              //relative to SCREEN
-              Transform t;
-
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ, sizeof(Mat4),
-                  (const float*) screenCamera.getProjectionMatrix().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW, sizeof(Mat4),
-                  (const float*) t.getMatrix().inverse().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
-                  (const float*) identity.e);
-            }
-            updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);
-            // keep it dirty while there are cameras to render
-            if (cameraIndex == numCameras - 1)
-            {
-              batcher->dirty = false;
-            }
-          }
-
-          //draw
-          Renderable* renderable = scene.renderables.lookup(node->sprite.renderable);
-          drawRenderable(&scene, renderable, shaderProgramId);
-          i+=batcher->spriteCount - 1;
+          drawSpriteNodes(&scene, batcher, allRenderKeys + i, cameraLayers);
+          i+= (batcher->spriteNodeCount - 1);
         }
         else
         {
@@ -1253,8 +1366,8 @@ namespace smol
     resized = false;
 
     // unbind the last shader and textures (material)
-    glUseProgram(defaultShaderProgramId);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glUseProgram(defaultShaderProgramId);
     for (int i = 0; i < defaultMaterial.diffuseTextureCount; i++)
     {
       glActiveTexture(GL_TEXTURE0 + i);

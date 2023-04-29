@@ -31,11 +31,17 @@ fragmentShader:"
   in vec4 vertColor;
   in vec2 uv;
 
-  const float width = 0.45;
-  const float edge = 0.2;
+  const float width = 0.38;
+  const float edge = 0.10;
 
   void main()
   {
+    if(uv.x == 0)
+    {
+      fragColor = vertColor;
+      return;
+    }
+
     //simple SDF rendering
     float distance  = 1.0 - texture2D(mainTex, uv).a;
     float alpha     = 1.0 - smoothstep(width, width + edge, distance);

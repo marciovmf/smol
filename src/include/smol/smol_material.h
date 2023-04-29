@@ -47,10 +47,10 @@ namespace smol
 
     enum CullFace
     {
-      BACK            = 0,
-      FRONT           = 1,
-      FRONT_AND_BACK  = 2,
-      NONE            = 3
+      NONE            = 0,
+      BACK            = 1,
+      FRONT           = 2,
+      FRONT_AND_BACK  = 3
     };
 
     char name[MAX_NAME_LEN];
@@ -74,5 +74,8 @@ namespace smol
     private:
     MaterialParameter* getParameter(const char* name, ShaderParameter::Type type);
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::Material>;
+  template class SMOL_ENGINE_API smol::Handle<smol::Material>;
 }
 #endif  // SMOL_MATERIAL_H

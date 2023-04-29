@@ -4,20 +4,13 @@
 
 namespace smol
 {
-  Camera::Camera(Type type, float fovOrSize, float zNear, float zFar)
-    :clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
-    type(type),
-    clearColor(Color::GRAY),
+  Camera::Camera() :
+    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    priority(0),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
-    priority(0),
-    orthographicSize(0.0f)
-  {
-    if (type == Type::PERSPECTIVE)
-      setPerspective(fovOrSize, zNear, zFar);
-    else
-      setOrthographic(fovOrSize, zNear, zFar);
-  }
+    clearColor(Color::GRAY)
+  {}
 
   Camera& Camera::setPerspective(float fov, float zNear, float zFar)
   {
@@ -28,7 +21,7 @@ namespace smol
     {
       this->type = Camera::PERSPECTIVE;
       this->fov = fov;
-      this->aspect = (float)(viewport.w / viewport.h);
+      this->aspect = ((float)viewport.w /viewport.h);
       this->zNear = zNear;
       this->zFar = zFar;
       this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
@@ -139,5 +132,7 @@ namespace smol
 
   float Camera::getOrthographicSize() const { return orthographicSize; }
 
-  float Camera::getOrthographicWidth() const { return this->right * 2.0f; }
+  float Camera::getOrthographicLeft() const { return this->left; }
+
+  float Camera::getOrthographicRight() const { return this->left; }
 }

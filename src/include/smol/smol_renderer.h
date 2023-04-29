@@ -2,7 +2,7 @@
 #define SMOL_RENDERER_H
 
 #include <smol/smol_engine.h>
-#include <smol/smol_renderer_types.h>
+#include <smol/smol_stream_buffer.h>
 
 namespace smol
 {
@@ -16,6 +16,10 @@ namespace smol
   struct ConfigEntry;
   struct GlobalRendererConfig;
 
+  //
+  // A stream buffer is an interleaved buffer meant to be overwritten frequently
+  //
+  struct StreamBuffer;
   class SMOL_ENGINE_API Renderer
   {
     Scene* scene;
@@ -79,6 +83,22 @@ namespace smol
 
     static void updateMesh(Mesh* mesh, MeshData* meshData);
     static void destroyMesh(Mesh* mesh);
+
+    //
+    // StreamBuffers
+    //
+
+    static bool createStreamBuffer(StreamBuffer* out, uint32 capacity = 8, StreamBuffer::Format format = StreamBuffer::POS_COLOR_UV, uint32 indicesPerElement = 6);
+    static bool resizeStreamBuffer(StreamBuffer& streamBuffer, uint32 capacity);
+    static void bindStreamBuffer(StreamBuffer& streamBuffer);
+    static void unbindStreamBuffer(StreamBuffer& streamBuffer);
+    static bool destroyStreamBuffer(StreamBuffer& streamBuffer);
+
+    static void begin(StreamBuffer& streamBuffer);
+    static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& color);
+    static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& tlColor, const Color& trColor, const Color& blColor, const Color& brColor);
+    static void end(StreamBuffer& streamBuffer);
+    static void flush(StreamBuffer& streamBuffer);
   };
 }
 #endif  // SMOL_RENDERER_H

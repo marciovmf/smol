@@ -4,77 +4,17 @@
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_font.h>
+#include <smol/smol_sprite_node.h>
+#include <smol/smol_camera_node.h>
 #include <utility>
 #include <time.h>
-
-float drawGliph(smol::Glyph& g, float x, float y, 
-    smol::Kerning* kernings, uint16 kerningCount,
-    smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene)
-{
-  const float scale = 0.01f;
-  const float width   = g.rect.w * scale;
-  const float height  = g.rect.h * scale;
-  const float yOffset = g.yOffset * scale;
-
-  // offset by half height because our pivots are at center
-  const float xOffset = g.xOffset * scale + width/2;
-  const float xAdvance = g.xAdvance * scale;
- // offset by half height because our pivots are at center
-  y -= height/2.0f + yOffset;
-
-  // apply kerning
-  float kerning = 0.0f;
-  for (int i = 0; i < kerningCount; i++)
-  {
-    smol::Kerning& k = kernings[i];
-    if(k.second == g.id)
-    {
-      kerning = k.amount * scale;
-      break;
-    }
-  }
-
-  scene.createSpriteNode(batcher, g.rect,
-      smol::Vector3(x + xOffset - kerning, y, 0.3f),
-      width, height);
-
-  return x + xAdvance + kerning;
-}
-
-void drawString(const char* str, smol::Font* font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene)
-{
-  float advance = x;
-  smol::Kerning* kerning = nullptr;
-  uint16 kerningCount = 0;
-
-  while (*str != 0)
-  {
-    for (int i = 0; i < font->glyphCount; i++)
-    {
-      uint16 id = (uint16) *str;
-
-      smol::Glyph& glyph = font->glyph[i];
-      if (glyph.id == id)
-      {
-        if ((char)id == '\n')
-        {
-          y -= font->lineHeight / 100.0f;
-          advance = x;
-        }
-        advance = drawGliph(glyph, advance, y, kerning, kerningCount, batcher, scene);
-        // kerning information for the next character
-        kerning = &font->kerning[glyph.kerningStart];
-        kerningCount = glyph.kerningCount;
-        break;
-      }
-    }
-    str++;
-  }
-}
+#include <string.h>
 
 smol::SystemsRoot* root;
-smol::Font* font;
+smol::Handle<smol::Font> font;
 smol::Handle<smol::SceneNode> cameraNode;
+smol::Handle<smol::SceneNode> textNode;
+smol::Handle<smol::SceneNode> textBGNode;
 smol::Handle<smol::SceneNode> sideCamera;
 smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
@@ -86,6 +26,7 @@ smol::Handle<smol::ShaderProgram> shader;
 smol::Handle<smol::Material> checkersMaterial;
 smol::Handle<smol::Mesh> mesh;
 smol::Handle<smol::SpriteBatcher> batcher;
+smol::Handle<smol::SpriteBatcher> textBatcher;
 bool sideCameraActive = false;
 float vpsize = 0.2f;
 
@@ -97,8 +38,6 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
   smol::Scene& scene = root->sceneManager.getLoadedScene();
-
-  font = resourceManager.loadFont("assets/font/segoeui.font");
 
   // Read game specifig settings from variables.txt
   const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
@@ -115,8 +54,7 @@ void onStart()
       smol::Texture::Filter::NEAREST,
       smol::Texture::Mipmap::NEAREST_MIPMAP_NEAREST);
 
-  resourceManager.getMaterial(checkersMaterial)
-    .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
+  checkersMaterial->setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
 
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
@@ -129,7 +67,7 @@ void onStart()
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  floorNode = scene.createMeshNode(floor, 
+  floorNode = smol::MeshNode::create(floor,
       smol::Transform()
       .setPosition(0.0f, -5.0f, -0.0f)
       .setRotation(-90, 0.0f, 0.0f)
@@ -137,15 +75,16 @@ void onStart()
       );
 
   // center cube
-  node1 = scene.createMeshNode(renderable2,
+  node1 = smol::MeshNode::create(renderable2,
       smol::Transform()
-      .setPosition(0.0f, -1.0f, 0.0f)
+      .setPosition(-5.0f, 3.0f, 0.0f)
       .setRotation(0.0f, 0.0f, 0.0f)
       .setScale(2.0f, 2.0f, 2.0f)
       );
 
+
   // left cube
-  node2 = scene.createMeshNode(renderable2, 
+  node2 = smol::MeshNode::create(renderable2, 
       smol::Transform()
       .setPosition(0.0f, 1.0f, -10.0f)
       .setRotation(1.0f, 1.0f, 1.0f)
@@ -154,7 +93,7 @@ void onStart()
       );
 
   // right cube
-  scene.createMeshNode(renderable2, 
+  smol::MeshNode::create(renderable2, 
       smol::Transform()
       .setPosition(4.0f, 3.0f, -10.0f)
       .setRotation(0.8f, 0.8f, 0.8f)
@@ -162,14 +101,15 @@ void onStart()
 
   // camera
   smol::Transform t;
-  cameraNode = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
+  cameraNode = smol::CameraNode::createPerspective(60.0f, 0.01f, 3000.0f, t);
+  //cameraNode = smol::CameraNode::createOrthographic(50, 0.01f, 3000.0f, t);
 
   cameraNode->transform
     .setRotation(0.0f, .0f, 0.0f)
     .setPosition(0.0f, 0.0f, 0.5f);
   cameraNode->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
-  sideCamera = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
+  sideCamera = smol::CameraNode::createPerspective(60.0f, 0.01f, 3000.0f, t);
   sideCamera->transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
@@ -195,7 +135,7 @@ void onStart()
     float randX = (rand() % 100 - rand() % 100) * 1.0f;
     float randZ = (rand() % 100 - rand() % 100) * 1.0f;
 
-    float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
+    //float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
     float randScale = (rand() % 30) / 30.0f;
 
     smol::Transform t;
@@ -217,30 +157,60 @@ void onStart()
     t.setRotation(0.0f, 0.0f, 0.0f);
     t.setScale(randScale, randScale, randScale);
 
-    auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
+    auto handle = smol::MeshNode::create( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
     handle->setLayer(smol::Layer::LAYER_2);
   }
 #endif
 
   // sprites
-  auto texture = resourceManager.loadTexture("assets/segoe.texture");
-  auto smolMaterial = resourceManager.createMaterial(shader, &texture, 1);
-  resourceManager.getMaterial(smolMaterial) .setVec4("color", smol::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+  auto smolMaterial = resourceManager.loadMaterial("assets/default.material");
+  batcher = scene.createSpriteBatcher(smolMaterial);
 
-  batcher = scene.createSpriteBatcher(smolMaterial, smol::SpriteBatcher::SCREEN);
+  // Loads a material and set the font texture as the material main texture
+  font = resourceManager.loadFont("assets/font/segoeui.font");
+  auto fontMaterial = resourceManager.loadMaterial("assets/font.material");
+  fontMaterial->setSampler2D("mainTex", font->getTexture());
 
-  char* p = "We have SDF text with kerning!\nThis is another text line :)";
-  drawString(p, font, -5.0f, -4.0f, batcher, scene);
+  textBatcher = scene.createSpriteBatcher(fontMaterial);
 
-  scene.createSpriteNode(batcher,
-      //smol::Rect(378, 507, 409, 481), SMOL LOGO
-      //smol::Rect(339, 479, 32, 32), // FOLDER
-      //smol::Rect(270, 476, 32, 32), // CUBE
-      smol::Rect(303, 476, 32, 32), // DOCUMENT
-      smol::Vector3(0.0f, 3.0f, 0.3f),
-      0.32f, 0.32f,
-      smol::Color::WHITE);
+  textNode = smol::TextNode::create(textBatcher, font,
+      smol::Transform(
+        {0.0f, 2.0f, 0.0f},
+        {0.0f, 0.0f, 30.0f},
+        {0.02f, 0.02f, 0.02f},
+        node1),
+        "Hello, Sailor!", smol::Color::YELLOW);
 
+  const char* p = "";
+  textNode = smol::TextNode::create(textBatcher, font,
+      smol::Transform(
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f},
+        {0.02f, 0.02f, 0.02f}),
+        p, smol::Color::WHITE);
+    textNode->text.setBackgroundColor(smol::Color::TEAL);
+
+#if 0
+  smol::Transform textNodeTransform = textNode->transform;
+  smol::Vector3 newPos = textNodeTransform.getPosition();
+  newPos.z -= 0.01f;
+  textBGNode = smol::SpriteNode::create(textBatcher,
+      smol::Rect(),
+      //smol::Transform(
+      //  newPos, 
+      //  textNodeTransform.getRotation(),
+      //  textNodeTransform.getScale()
+      //  ),
+      smol::Transform(
+        smol::Vector3(0.0f, 0.0f, -1.0f),
+        smol::Vector3(0.0f, 0.0f, 0.0f),
+        smol::Vector3(1.0f, 1.0f, 1.0f),
+        textNode),
+      0.0f, 0.0f,
+      smol::Color::NAVY);
+  textBGNode->sprite.color2 = smol::Color(0.0f, 0.0f, 0.0f, 0.2f);
+  textBGNode->sprite.color4 = smol::Color(0.0f, 0.0f, 0.0f, 0.2f);
+#endif
   selectedNode = cameraNode;
 }
 
@@ -262,28 +232,27 @@ inline float animateToZero(float value, float deltaTime)
 
 bool isSideCameraActive = false;
 
+
+char* buff[255];
+
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = root->keyboard;
-  smol::Mouse& mouse = root->mouse;
-  smol::Renderer& renderer = root->renderer;
-  smol::ResourceManager& resourceManager = root->resourceManager;
-  smol::Scene& scene = root->sceneManager.getLoadedScene();
-
   float scaleAmount = 0.0f;
 
-  if (keyboard.getKeyDown(smol::KEYCODE_M))
-  {
-    scene.setSpriteBatcherMode(batcher, scene.getSpriteBatcherMode(batcher) ?
-        smol::SpriteBatcher::SCREEN : smol::SpriteBatcher::CAMERA );
-  }
+  smol::Vector3 cameraPos = cameraNode->transform.getPosition();
+
+  snprintf((char *) buff, sizeof(buff), "#Camera Position:\n%f, %f, %f\nafpjg;", cameraPos.x, cameraPos.y, cameraPos.z);
+  textNode->text.setText((const char*)buff);
+
+  textBGNode->sprite.width = textNode->text.textBounds.x;
+  textBGNode->sprite.height = textNode->text.textBounds.y;
 
   if (keyboard.getKeyDown(smol::KEYCODE_C))
   {
     sideCameraActive = !sideCameraActive;
     sideCamera->setActive(sideCameraActive);
   }
-
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {
@@ -314,6 +283,21 @@ void onUpdate(float deltaTime)
     smol::SystemsRoot::get()->resourceManager.updateMesh(mesh, &m);
   }
 
+
+  if (keyboard.getKey(smol::KEYCODE_I))
+  {
+    textNode->text.setLineHeightScale(textNode->text.getLineHeightScale() + 0.01f);
+  }
+  else if (keyboard.getKey(smol::KEYCODE_O))
+  {
+    textNode->text.setLineHeightScale(textNode->text.getLineHeightScale() - 0.01f);
+  }
+  else if (keyboard.getKey(smol::KEYCODE_P))
+  {
+    textNode->text.setBackgroundColor(smol::Color::TRANSPARENT);
+  }
+
+
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
   {
     once = false;
@@ -336,14 +320,16 @@ void onUpdate(float deltaTime)
     float xPos = -screenSize;
     float yPos = -screenSize;
 
+    float z = -0.01f;
     for (int x = 0; x < numVSprites; x++)
     {
       for (int y = 0; y < numHSprites; y++)
       {
-        auto hNode = scene.createSpriteNode(batcher, smol::Rect{0, 0, 800, 800},
-            smol::Vector3{xPos + spriteWidth/2, yPos + spriteHeight/2, 0.3f },
+        auto hNode = smol::SpriteNode::create(batcher, smol::Rect{0, 0, 800, 800},
+            smol::Vector3{xPos + spriteWidth/2, yPos + spriteHeight/2, z},
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));
+        z-=-0.4f;
 
         xPos += spriteWidth;
         hNode->setLayer(smol::Layer::LAYER_1);
@@ -359,16 +345,16 @@ void onUpdate(float deltaTime)
   {
     vpsize += 0.2f;
     if (vpsize > 1.0f) vpsize = 0.2f;
-    scene.getNode(cameraNode).camera.setViewportRect(smol::Rectf(0.0f, 0.0f, vpsize, vpsize));
+    cameraNode->camera.setViewportRect(smol::Rectf(0.0f, 0.0f, vpsize, vpsize));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F2)) {
-    scene.getNode(cameraNode).camera
+    cameraNode->camera
       .setClearOperation((smol::Camera::ClearOperation::DEPTH | smol::Camera::ClearOperation::COLOR));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F3)) {
-    scene.getNode(cameraNode).camera
+    cameraNode->camera
       .setClearOperation((unsigned int)smol::Camera::ClearOperation::DEPTH);
   }
 
@@ -378,8 +364,7 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE)) 
   { 
-    smol::SceneNode& node = scene.getNode(selectedNode);
-    node.setActive(!node.isActive());
+    selectedNode->setActive(!selectedNode->isActive());
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_TAB)) 
@@ -394,29 +379,26 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_R)) 
   {
-    smol::SceneNode& camera = scene.getNode(cameraNode);
-    smol::Color color = camera.camera.getClearColor();
+    smol::Color color = cameraNode->camera.getClearColor();
     color.r+=0.2f;
     if (color.r > 1.0f) color.r = 0.0f;
-    camera.camera.setClearColor(color);
+    cameraNode->camera.setClearColor(color);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_G))
   {
-    smol::SceneNode& camera = scene.getNode(cameraNode);
-    smol::Color color = camera.camera.getClearColor();
+    smol::Color color = cameraNode->camera.getClearColor();
     color.g+=0.2f;
     if (color.g > 1.0f) color.g = 0.0f;
-    camera.camera.setClearColor(color);
+    cameraNode->camera.setClearColor(color);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_B))
   {
-    smol::SceneNode& camera = scene.getNode(cameraNode);
-    smol::Color color = camera.camera.getClearColor();
+    smol::Color color = cameraNode->camera.getClearColor();
     color.b+=0.2f;
     if (color.b > 1.0f) color.b = 0.0f;
-    camera.camera.setClearColor(color);
+    cameraNode->camera.setClearColor(color);
   }
 
   // left/right
@@ -428,16 +410,16 @@ void onUpdate(float deltaTime)
   }
 
   // up/down movement
-  if (keyboard.getKey(smol::KEYCODE_W)) { direction.y += -0.1f; }
-  else if (keyboard.getKey(smol::KEYCODE_S)) { direction.y += 0.1f; }
+  if (keyboard.getKey(smol::KEYCODE_S)) { direction.y += -0.1f; }
+  else if (keyboard.getKey(smol::KEYCODE_W)) { direction.y += 0.1f; }
   else
   {
     direction.y = animateToZero(direction.y, deltaTime);
   }
 
   // back/forth movement
-  if (keyboard.getKey(smol::KEYCODE_Q)) { direction.z += -0.1f; }
-  else if (keyboard.getKey(smol::KEYCODE_E)) { direction.z += 0.1f; }
+  if (keyboard.getKey(smol::KEYCODE_E)) { direction.z += -0.1f; }
+  else if (keyboard.getKey(smol::KEYCODE_Q)) { direction.z += 0.1f; }
   else
   {
     direction.z = animateToZero(direction.z, deltaTime);
@@ -448,10 +430,9 @@ void onUpdate(float deltaTime)
 
   if (direction.x || direction.y || direction.z || scaleAmount)
   {
-    smol::Transform* transform = &scene.getNode(selectedNode).transform;
+    smol::Transform* transform = &selectedNode->transform;
     if (transform)
     {
-
       const float amount = 15.0f * deltaTime;
 
       const smol::Vector3& position = transform->getPosition();
@@ -469,28 +450,21 @@ void onUpdate(float deltaTime)
     }
   }
 
-  smol::Transform* transform = &scene.getNode(node1).transform;
+  // Prevent the camera from going through the floor
+  const smol::Vector3& floorPos = floorNode->transform.getPosition();
+  if (cameraPos.y < (floorPos.y + 1.0f))
+  {
+    cameraPos.y = floorPos.y + 1.0f;
+    cameraNode->transform.setPosition(cameraPos);
+    direction.y = -direction.y/2.0f; // invert the direction with lower speed
+  }
+
+  smol::Transform* transform = &node1->transform;
   if (transform)
   {
     float a = transform->getRotation().y + 30 * deltaTime;
     transform->setRotation(0, a, 0);
   }
-
-  //// bounce sprite1 across the screen borders
-  //transform = &scene.getNode(sprite1).transform;
-  //smol::Vector3 position = transform->getPosition();
-  //smol::Rect viewport = renderer.getViewport();
-
-  //if (position.x + 250 > viewport.w || position.x < 0)
-  //  spriteXDirection *= -1;
-
-  //if (position.y + 100 > viewport.h || position.y < 0)
-  //  spriteYDirection *= -1;
-
-  //transform->setPosition(
-  //    position.x + (100 * spriteXDirection) * deltaTime,
-  //    position.y + (100 * spriteYDirection) * deltaTime,
-  //    position.z);
 }
 
 void onStop()

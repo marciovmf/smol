@@ -7,6 +7,12 @@
 #include <smol/smol_color.h>
 #include <smol/smol_renderer_types.h>
 #include <smol/smol_camera.h>
+#include <smol/smol_font.h>
+#include <smol/smol_text_node.h>
+#include <smol/smol_sprite_node.h>
+#include <smol/smol_mesh_node.h>
+#include <smol/smol_camera_node.h>
+#include <smol/smol_scene_node_common.h>
 
 namespace smol
 {
@@ -14,22 +20,7 @@ namespace smol
   struct Renderable;
   struct SpriteBatcher;
 
-  struct MeshNodeInfo
-  {
-    Handle<Renderable> renderable;
-  };
-
-  struct SpriteNodeInfo : public MeshNodeInfo
-  {
-    Handle<SpriteBatcher> batcher;
-    Rect rect;
-    float width;
-    float height;
-    Color color;
-    int angle;
-  };
-
-  struct SMOL_ENGINE_API SceneNode
+  struct SMOL_ENGINE_API SceneNode final
   {
     enum Type : char
     {
@@ -37,15 +28,17 @@ namespace smol
       ROOT = 0, // there must be only ONE root node in a scene
       CAMERA,
       MESH,
-      SPRITE
+      SPRITE,
+      TEXT
     };
 
     Transform transform;
     union
     {
-      MeshNodeInfo mesh;
-      SpriteNodeInfo sprite;
-      Camera camera;
+      MeshNode mesh;
+      TextNode text;
+      SpriteNode sprite;
+      CameraNode camera;
     };
 
     private:
@@ -57,6 +50,7 @@ namespace smol
 
     public:
     SceneNode();
+    ~SceneNode();
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     void setActive(bool status);
     void setDirty(bool value);
@@ -70,6 +64,10 @@ namespace smol
     void setParent(Handle<SceneNode> parent);
     void setLayer(Layer l);
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::SceneNode>;
+  template class SMOL_ENGINE_API smol::Handle<smol::SceneNode>;
+
 }
 
 #endif  // SMOL_SCENE_NODES_H

@@ -35,31 +35,9 @@ namespace smol
   // Texture Resources
   //
 
-  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
-  { }
-
-  void ResourceManager::initialize()
-  {
-    // Make the default Texture
-    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
-    defaultTextureHandle = createTexture(*img);
-    ResourceManager::unloadImage(img);
-
-    // Make the default ShaderProgram
-    ShaderProgram& program = Renderer::getDefaultShaderProgram();
-    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
-
-    // Make the default Material
-    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
-
-    defaultTexture = textures.lookup(defaultTextureHandle);
-    defaultShader = shaders.lookup(defaultShaderHandle);
-    defaultMaterial = materials.lookup(defaultMaterialHandle);
-  }
-
   Handle<Texture> ResourceManager::loadTexture(const char* path)
   {
-    debugLogInfo("Loading texture %s", path);
+    debugLogInfo("Loading texture '%s'", path);
     if (!path)
       return INVALID_HANDLE(Texture);
 
@@ -262,7 +240,7 @@ namespace smol
 
   Handle<Material> ResourceManager::loadMaterial(const char* path)
   {
-    debugLogInfo("Loading material %s", path);
+    debugLogInfo("Loading material '%s'", path);
     if (!path)
       return INVALID_HANDLE(Material);
 
@@ -299,7 +277,7 @@ namespace smol
 
     size_t nameLen = strlen(path);
     SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
-    strncpy(material->name, path, nameLen);
+    strncpy(material->name, path, nameLen + 1);
 
     //set values for material parameters
     for(int i = 0; i < material->parameterCount; i++)
@@ -386,7 +364,7 @@ namespace smol
     const char* materialName = "custom_material";
     size_t nameLen = strlen(materialName);
     SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
-    strncpy(material.name, materialName, nameLen);
+    strncpy(material.name, materialName, nameLen + 1);
 
     if (diffuseTextureCount)
     {
@@ -648,7 +626,7 @@ namespace smol
     Platform::unloadFileBuffer((const char*)image);
   }
 
-  Font* ResourceManager::loadFont(const char* fileName)
+  Handle<Font> ResourceManager::loadFont(const char* fileName)
   {
     Config config(fileName);
     const ConfigEntry* entry = config.findEntry("font");
@@ -663,36 +641,35 @@ namespace smol
 
     // reserve space for the font and the font name
     size_t fontNameLen = strlen(fontName);
-    size_t totalMemory = sizeof(Font)
+    size_t totalMemory = sizeof(FontInfo)
       + glyphCount * sizeof(Glyph) 
       + kerningCount * sizeof(Kerning)
       + fontNameLen + 1; // +1 for fontName null termiator
 
     char* memory = (char*) Platform::getMemory(totalMemory);
     if (!memory)
-      return nullptr;
+      return INVALID_HANDLE(Font);
 
-    Font* font = (Font*) memory;
-    font->size          = size;
-    font->kerningCount  = kerningCount;
-    font->glyphCount    = glyphCount;
-    font->lineHeight    = lineHeight;
-    font->base          = base;
+    FontInfo* info = (FontInfo*) memory;
+    info->size          = size;
+    info->kerningCount  = kerningCount;
+    info->glyphCount    = glyphCount;
+    info->lineHeight    = lineHeight;
+    info->base          = base;
     // Memory layout
     // ---------------------------------------------
     //| FONT  | KERNINGS | GLYPHS | "Font Name"| 0 |
     // ---------------------------------------------
-    font->kerning       = (Kerning*) (memory + sizeof(Font));
-    font->glyph         = (Glyph*) (memory + sizeof(Font) + sizeof(Kerning) * kerningCount);
-    font->name          = (memory + sizeof(Font) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
+    info->kerning       = (Kerning*) (memory + sizeof(FontInfo));
+    info->glyph         = (Glyph*) (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount);
+    info->name          = (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
 
     // copy the font name after the Font structure and null terminate it
-    strncpy((char*)font->name, fontName, fontNameLen);
-    *((char*)font->name + fontNameLen) = 0;
+    strncpy((char*)info->name, fontName, fontNameLen + 1);
 
     // parse kerning pairs
     ConfigEntry *last = nullptr;
-    Kerning* kerningList = font->kerning;
+    Kerning* kerningList = info->kerning;
     for (int i = 0; i < kerningCount; i++)
     {
       Kerning* kerning = kerningList++;
@@ -709,24 +686,24 @@ namespace smol
     for (int i = 0; i < glyphCount; i++)
     {
       entry = config.findEntry("id", last);
-      Glyph& glyph = font->glyph[i];
+      Glyph& glyph = info->glyph[i];
       glyph.id            = (uint16) entry->getVariableNumber("id");
-      glyph.rect.x        = (int32) entry->getVariableNumber("x");
-      glyph.rect.y        = (int32) entry->getVariableNumber("y");
-      glyph.rect.w        = (int32) entry->getVariableNumber("width");
-      glyph.rect.h        = (int32) entry->getVariableNumber("height");
+      glyph.rect.x        = (float) entry->getVariableNumber("x");
+      glyph.rect.y        = (float) entry->getVariableNumber("y");
+      glyph.rect.w        = (float) entry->getVariableNumber("width");
+      glyph.rect.h        = (float) entry->getVariableNumber("height");
       glyph.xOffset       = (int16) entry->getVariableNumber("xoffset");
       glyph.yOffset       = (int16) entry->getVariableNumber("yoffset");
       glyph.xAdvance      = (int16) entry->getVariableNumber("xadvance");
 
       // find the amount of kerning pairs for this glyph and where to find the first one.
-      // IMPORTANT! We assume that the kerining pairs are sorted!
+      // IMPORTANT! We assume that the kerning pairs are sorted!
       uint16 id = glyph.id;
       uint16 startIndex = 0;
       uint16 count = 0;
       for (int k = 0; k < kerningCount; k++)
       {
-        Kerning& kerning = font->kerning[k];
+        Kerning& kerning = info->kerning[k];
         if (kerning.first == id)
         {
           if (count == 0)
@@ -743,18 +720,48 @@ namespace smol
     }
 
     // Create texture from font Image
-    font->texture = createTexture(bmpFileName,
+    info->texture = createTexture(bmpFileName,
         Texture::Wrap::CLAMP_TO_EDGE,
         Texture::Filter::LINEAR,
         Texture::Mipmap::NO_MIPMAP);
 
-    return font;
+    // Allocates a handle for the font and assigns its info
+    Handle<Font> handle = fonts.add(Font(info));
+    return handle;
   }
 
-  void ResourceManager::unloadFont(const Font* font)
+  void ResourceManager::unloadFont(Handle<Font> handle)
   {
-    destroyTexture(font->texture);
-    Platform::freeMemory((void*)font);
+    Font* font = fonts.lookup(handle);
+    if (font)
+    {
+      const FontInfo* info = font->getFontInfo();
+      destroyTexture(info->texture);
+      Platform::freeMemory((void*)info);
+      fonts.remove(handle);
+    }
+  }
+
+  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4) 
+  { }
+
+  void ResourceManager::initialize()
+  {
+    // Make the default Texture
+    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
+    defaultTextureHandle = createTexture(*img);
+    ResourceManager::unloadImage(img);
+
+    // Make the default ShaderProgram
+    const ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
+
+    // Make the default Material
+    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
+
+    defaultTexture = textures.lookup(defaultTextureHandle);
+    defaultShader = shaders.lookup(defaultShaderHandle);
+    defaultMaterial = materials.lookup(defaultMaterialHandle);
   }
 
   ResourceManager::~ResourceManager()

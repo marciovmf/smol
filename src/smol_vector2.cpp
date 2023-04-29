@@ -3,6 +3,9 @@
 
 namespace smol
 {
+  inline Vector2::Vector2(float xy):
+    x(xy), y(xy) {}
+
   inline Vector2::Vector2(float x, float y):
     x(x), y(y) {}
 

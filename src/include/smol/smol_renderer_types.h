@@ -13,7 +13,6 @@
 #include <smol/smol_shader.h>
 #include <smol/smol_texture.h>
 #include <smol/smol_mesh_data.h>
-#include <smol/smol_sprite_batcher.h>
 #include <smol/smol_mesh.h>
 #include <smol/smol_renderable.h>
 
@@ -36,6 +35,16 @@ namespace smol
     LINE,
     POINT
   };
+
+#pragma pack(push, 1)
+  struct VertexPCU
+  {
+    Vector3 position;
+    Color color;
+    Vector2 uv;
+  };
+#pragma pack(pop)
+
 }
 
 #endif  // SMOL_RENDERER_TYPES_H

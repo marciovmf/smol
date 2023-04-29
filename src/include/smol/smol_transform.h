@@ -24,10 +24,13 @@ namespace smol
 
     public:
 
+
+    Transform(Handle<SceneNode> parent);
+
     Transform(
-        Vector3 position  = Vector3{0.0f, 0.0f, 0.0f}, 
-        Vector3 rotation  = Vector3{0.0f, 0.0f, 0.0f},
-        Vector3 scale     = Vector3{1.0f, 1.0f, 1.0f}, 
+        Vector3 position  = Vector3(0.0f),
+        Vector3 rotation  = Vector3(0.0f),
+        Vector3 scale     = Vector3(1.0f),
         Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
 
     bool update(const Scene& scene);
@@ -48,13 +51,15 @@ namespace smol
 
     Transform& setParent(Handle<SceneNode> parent);
 
+    Transform& unparent();
+
     const Vector3& getPosition() const;
 
     const Vector3& getScale() const;
 
     const Vector3& getRotation() const;
 
-    Handle<SceneNode> Transform::getParent() const;
+    Handle<SceneNode> getParent() const;
 
     void setDirty(bool value);
 

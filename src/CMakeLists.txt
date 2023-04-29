@@ -8,6 +8,7 @@ set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATC
 project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
 find_package(OpenGL REQUIRED)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTS "Build and run unit tests" ON)
 
 
@@ -49,6 +50,7 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_random.cpp
   ${SOURCE_PATH}/include/smol/smol_point.h
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
+  ${SOURCE_PATH}/include/smol/smol_stream_buffer.h
   ${SOURCE_PATH}/include/smol/smol_mesh.h
   ${SOURCE_PATH}/include/smol/smol_sprite_batcher.h
   ${SOURCE_PATH}/smol_sprite_batcher.cpp
@@ -60,10 +62,13 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_texture.h
   ${SOURCE_PATH}/include/smol/smol_material.h
   ${SOURCE_PATH}/include/smol/smol_font.h
+  ${SOURCE_PATH}/smol_font.cpp
   ${SOURCE_PATH}/smol_material.cpp
   ${SOURCE_PATH}/include/smol/smol_handle_list.h
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/smol_systems_root.cpp
+  ${SOURCE_PATH}/include/smol/smol_scene_manager.h
+  ${SOURCE_PATH}/smol_scene_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
   ${SOURCE_PATH}/smol_keyboard.cpp
   ${SOURCE_PATH}/include/smol/smol_mouse.h
@@ -94,8 +99,17 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_camera.h
   ${SOURCE_PATH}/smol_camera.cpp
   ${SOURCE_PATH}/smol_renderer_gl.cpp
-  ${SOURCE_PATH}/include/smol/smol_scene_nodes.h
-  ${SOURCE_PATH}/smol_scene_nodes.cpp
+  ${SOURCE_PATH}/include/smol/smol_scene_node_common.h
+  ${SOURCE_PATH}/include/smol/smol_scene_node.h
+  ${SOURCE_PATH}/smol_scene_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_text_node.h
+  ${SOURCE_PATH}/smol_text_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_camera_node.h
+  ${SOURCE_PATH}/smol_camera_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_sprite_node.h
+  ${SOURCE_PATH}/smol_sprite_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_mesh_node.h
+  ${SOURCE_PATH}/smol_mesh_node.cpp
   ${SOURCE_PATH}/include/smol/smol_scene.h
   ${SOURCE_PATH}/smol_scene.cpp
   ${SOURCE_PATH}/include/smol/smol_cfg_parser.h

@@ -9,30 +9,76 @@
 
 namespace smol
 {
-  const size_t SpriteBatcher::positionsSize   = 4 * sizeof(Vector3);
-  const size_t SpriteBatcher::colorsSize      = 4 * sizeof(Color);
-  const size_t SpriteBatcher::uvsSize         = 4 * sizeof(Vector2);
-  const size_t SpriteBatcher::indicesSize     = 6 * sizeof(unsigned int);
-  const size_t SpriteBatcher::totalSpriteSize = positionsSize + colorsSize + uvsSize + indicesSize;
-
-  SpriteBatcher::SpriteBatcher(Handle<Material> material, Mode mode, int capacity):
-    mode(mode),
-    arena(capacity * totalSpriteSize + 1),
-    spriteCount(0),
-    spriteCapacity(capacity),
+  SpriteBatcher::SpriteBatcher(Handle<Material> material, int capacity):
+    material(material),
+    spriteNodeCount(0),
+    textNodeCount(0),
     dirty(false)
   {
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    Scene& scene = SystemsRoot::get()->sceneManager.getLoadedScene();
-    // It doesn't matter the contents of memory.
-    // Nothing is read from this pointer.
-    // It's just necessary to create a valid MeshData in order to reserve GPU memory
-    char* memory = arena.pushSize(capacity * SpriteBatcher::totalSpriteSize);
-    MeshData meshData((Vector3*)memory, capacity, 
-        (unsigned int*)memory, capacity * 6,
-        (Color*) memory, nullptr,
-        (Vector2*) memory, nullptr);
-
-    renderable = scene.createRenderable(material, resourceManager.createMesh(true, meshData));
+    Renderer::createStreamBuffer(&buffer, 64);
   }
+
+  void SpriteBatcher::begin()
+  {
+    // cache the renderable texture dimention so adjust sprite's UVs
+    if (material->diffuseTextureCount > 0 )
+    {
+      textureDimention = material->textureDiffuse[0]->getDimention();
+    }
+    else
+    {
+      textureDimention = SystemsRoot::get()->resourceManager.getDefaultTexture().getDimention();
+    }
+
+    Renderer::begin(buffer);
+  }
+
+  void SpriteBatcher::end()
+  {
+    Renderer::end(buffer);
+  }
+
+  void SpriteBatcher::pushSpriteNode(SceneNode* sceneNode)
+  {
+    SMOL_ASSERT(sceneNode->typeIs(SceneNode::SPRITE),
+        "A node of type '%d' was passed to SpriteBatcher::pushSpriteNode(). It can only accept SPRITE (%d) nodes",
+        sceneNode->getType(), SceneNode::SPRITE);
+    
+    SpriteNode& node = sceneNode->sprite;
+    float textureWidth = textureDimention.x;
+    float textureHeight = textureDimention.y;
+
+    // convert UVs from pixels to 0~1 range
+    Rectf uvRect;
+    uvRect.x = node.rect.x / (float) textureWidth;
+    uvRect.y = 1 - (node.rect.y /(float) textureHeight); 
+    uvRect.w = node.rect.w / (float) textureWidth;
+    uvRect.h = node.rect.h / (float) textureHeight;
+
+    // we don't pass the transform position and scale along because it's passed to the shader via Transform.
+    Renderer::pushSprite(buffer, {0.0f, 0.0f, 0.0f}, {node.width, node.height}, uvRect, node.color1, node.color2, node.color3, node.color4);
+  }
+
+  void SpriteBatcher::pushTextNode(SceneNode* sceneNode)
+  {
+    SMOL_ASSERT(sceneNode->typeIs(SceneNode::TEXT),
+        "A node of type '%d' was passed to SpriteBatcher::pushSpriteNode(). It can only accept SPRITE (%d) nodes",
+        sceneNode->getType(), SceneNode::TEXT);
+    TextNode& node = sceneNode->text;
+    float textureWidth = textureDimention.x;
+    float textureHeight = textureDimention.y;
+
+    for (int i = 0; i < node.textLen; i++)
+    {
+      GlyphDrawData& data = node.drawData[i];
+      // convert UVs from pixels to 0~1 range
+      Rectf uvRect;
+      uvRect.x = data.uv.x / (float) textureWidth;
+      uvRect.y = 1 - (data.uv.y /(float) textureHeight); 
+      uvRect.w = data.uv.w / (float) textureWidth;
+      uvRect.h = data.uv.h / (float) textureHeight;
+      Renderer::pushSprite(buffer, data.position, data.size, uvRect, data.color);
+    }
+  }
+
 }

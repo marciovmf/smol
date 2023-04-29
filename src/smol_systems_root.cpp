@@ -7,6 +7,8 @@
 
 namespace smol
 {
+  SystemsRoot* SystemsRoot::instance = nullptr;
+
   GlobalRendererConfig::GlobalRendererConfig(const Config& config)  { update(config); }
 
   void GlobalRendererConfig::update(const Config& config)
@@ -18,15 +20,14 @@ namespace smol
       return;
     }
 
-    enableMSAA            = entry->getVariableNumber("enable_msaa") >= 1.0;
-    enableGammaCorrection = entry->getVariableNumber("enable_gamma_correction") >= 1.0;
-
-    screenCameraSize      = (float) entry->getVariableNumber("screen_camera_size", 5.0);
-    screenCameraNear      = (float) entry->getVariableNumber("screen_camera_near", -100);
-    screenCameraFar       = (float) entry->getVariableNumber("screen_camera_far", 100);
+    enableMSAA            = entry->getVariableNumber("enable_msaa", true) >= 1.0;
+    enableGammaCorrection = entry->getVariableNumber("enable_gamma_correction", true) >= 1.0;
   }
 
-  GlobalSystemConfig::GlobalSystemConfig(const Config& config)      { update(config); }
+  GlobalSystemConfig::GlobalSystemConfig(const Config& config)
+  { 
+    update(config);
+  }
 
   void GlobalSystemConfig::update(const Config& config)
   {
@@ -65,15 +66,11 @@ namespace smol
   }
 
 
-
-  SystemsRoot* SystemsRoot::instance = nullptr;
-
   SystemsRoot::SystemsRoot(Config& config):
     config(config),
     rendererConfig(config)
   { 
   }
-
 
   void SystemsRoot::initialize(Config& config)
   {
@@ -87,25 +84,18 @@ namespace smol
     }
   }
 
+  void SystemsRoot::terminate()
+  {
+    SystemsRoot::instance->~SystemsRoot();
+  }
+
+  SystemsRoot::~SystemsRoot() 
+  {
+    SystemsRoot::instance = nullptr;
+  }
+
   inline SystemsRoot* SystemsRoot::get()
   {
     return SystemsRoot::instance;
   }
-
-
-  SceneManager::SceneManager()
-  {
-    scene = new Scene();
-  }
-
-  SceneManager::~SceneManager()
-  {
-    delete scene;
-  }
-
-  Scene& SceneManager::getLoadedScene()
-  {
-    return *scene;
-  };
-
 }

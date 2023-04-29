@@ -76,17 +76,18 @@ namespace smol
     float right;
     float left;
     float bottom;
-    float orthographicSize;
-    Rectf rect;
     Type type;
+    float orthographicSize;
+    uint32 clearOperation;
+    uint32 priority;
     uint32 layers;
-    Mat4 viewMatrix;
-    unsigned int clearOperation;
+    Rectf rect;
     Color clearColor;
-    unsigned int priority;
+    Mat4 viewMatrix;
 
     public:
-    Camera(Type type, float sizeOrFov, float zNear, float zFar);
+    Camera();
+    //Camera(Type type, float sizeOrFov, float zNear, float zFar);
 
     Camera& setPerspective(float fov, float zNear, float zFar);
     Camera& setOrthographic(float size, float zNear, float zFar);
@@ -113,9 +114,9 @@ namespace smol
     Camera& setPriority(unsigned int priority);
 
     float getOrthographicSize() const;
-    float getOrthographicWidth() const;
+    float getOrthographicLeft() const;
+    float getOrthographicRight() const;
     void update();
-
   };
 }
 #endif  // SMOL_CAMERA_H

@@ -4,33 +4,38 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_renderable.h>
 #include <smol/smol_handle_list.h>
+#include <smol/smol_vector2.h>
+#include <smol/smol_stream_buffer.h>
+
 namespace smol
 {
   struct Scene;
+  struct Color;
+  struct SceneNode;
+
   struct SMOL_ENGINE_API SpriteBatcher final
   {
-    enum Mode
-    {
-      SCREEN = 0,
-      CAMERA = 1
-    };
+    Handle<Material> material;
+    int spriteNodeCount;
+    int textNodeCount;
+    StreamBuffer buffer;
+    bool      dirty;
 
-    Mode mode;
-    Handle<Renderable> renderable;
-    Arena arena;
-    int spriteCount;
-    int spriteCapacity;
-    bool dirty;
+    // we cache the texture dimentions to adjust sprite UVS
+    Vector2 textureDimention;
 
-    static const size_t positionsSize;
-    static const size_t indicesSize;
-    static const size_t colorsSize;
-    static const size_t uvsSize;
-    static const size_t totalSpriteSize;
 
-    SpriteBatcher(Handle<Material> material, Mode mode, int capacity);
+    SpriteBatcher(Handle<Material> material, int capacity);
     SpriteBatcher() = delete;
+
+    void begin();
+    void pushSpriteNode(SceneNode* sceneNode);
+    void pushTextNode(SceneNode* sceneNode);
+    void end();
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::SpriteBatcher>;
+  template class SMOL_ENGINE_API smol::Handle<smol::SpriteBatcher>;
 }
 
 #endif  //SMOL_SPRITE_BATCHER_H
