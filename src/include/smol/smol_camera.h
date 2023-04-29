@@ -112,9 +112,9 @@ namespace smol
     unsigned int getPriority() const;
     Camera& setPriority(unsigned int priority);
 
-    void update();
-
     float getOrthographicSize() const;
+    float getOrthographicWidth() const;
+    void update();
 
   };
 }
