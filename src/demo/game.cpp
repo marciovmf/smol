@@ -9,7 +9,7 @@
 
 float drawGliph(smol::Glyph& g, float x, float y, 
     smol::Kerning* kernings, uint16 kerningCount,
-    smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene)
+    smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
 {
   const float scale = 0.01f;
   const float width   = g.rect.w * scale;
@@ -35,13 +35,13 @@ float drawGliph(smol::Glyph& g, float x, float y,
   }
 
   scene.createSpriteNode(batcher, g.rect,
-      smol::Vector3(x + xOffset + kerning, y, 0.3f),
-      width, height);
+      smol::Vector3(x + xOffset + kerning, y, 0.0f),
+      width, height, color);
 
   return x + xAdvance + kerning;
 }
 
-void drawString(const char* str, smol::Font* font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene)
+void drawString(const char* str, smol::Font* font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
 {
   float advance = x;
   smol::Kerning* kerning = nullptr;
@@ -61,7 +61,7 @@ void drawString(const char* str, smol::Font* font, float x, float y, smol::Handl
           y -= font->lineHeight / 100.0f;
           advance = x;
         }
-        advance = drawGliph(glyph, advance, y, kerning, kerningCount, batcher, scene);
+        advance = drawGliph(glyph, advance, y, kerning, kerningCount, batcher, scene, color);
         // kerning information for the next character
         kerning = &font->kerning[glyph.kerningStart];
         kerningCount = glyph.kerningCount;
@@ -232,16 +232,16 @@ void onStart()
   textBatcher = scene.createSpriteBatcher(fontMaterial, smol::SpriteBatcher::SCREEN);
 
   char* p = "Testing string drawing!\nThis is another text line :)";
-  drawString(p, font, -5.0f, 0.0f, textBatcher, scene);
+  drawString(p, font, -5.0f, 0.0f, textBatcher, scene, smol::Color::BLUE);
 
   scene.createSpriteNode(textBatcher,
       //smol::Rect(378, 507, 409, 481), SMOL LOGO
-      //smol::Rect(339, 479, 32, 32), // FOLDER
+      smol::Rect(339, 479, 32, 32), // FOLDER
       //smol::Rect(270, 476, 32, 32), // CUBE
-      smol::Rect(303, 476, 32, 32), // DOCUMENT
+      //smol::Rect(303, 476, 32, 32), // DOCUMENT
       smol::Vector3(0.0f, 3.0f, 0.3f),
       0.32f, 0.32f,
-      smol::Color::WHITE);
+      smol::Color::YELLOW);
 
   selectedNode = cameraNode;
 }
