@@ -86,14 +86,6 @@ namespace smol
     //
     SceneNode& getNode(Handle<SceneNode> handle) const;
   };
-
-  // Specialize Handle<SceneNode> so it's more convenient to call on game side
-  inline SceneNode* Handle<SceneNode>::operator->()
-  {
-    static SceneManager& sceneManager = smol::SystemsRoot::get()->sceneManager;
-    SceneNode& node = sceneManager.getLoadedScene().getNode((Handle<SceneNode>)*this);
-    return &node;
-  }
 }
 
 #undef GLuint
