@@ -1,4 +1,5 @@
 #include <smol/smol_material.h>
+#include <smol/smol_systems_root.h>
 
 namespace smol
 {
@@ -17,7 +18,7 @@ namespace smol
       }
     }
 
-    debugLogError("Unable to find shader %x parameter '%s' of type %d. Parameter name/type not found", this, name, type);
+    debugLogError("Material '%s': Unable to find shader parameter '%s' of type %d. Parameter name/type not found", this->name, name, type);
     return nullptr;
   }
 
