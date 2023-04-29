@@ -6,7 +6,5 @@
   depthTest: 2,
   cullFace: 0,
   shader: "assets/default.shader",
-  color: {1, 1, 1, 1},
-  mainTex: 0
-
-@texture: diffuse: "assets/smol.texture"
+  color: {1, 1, 0, 1},
+  mainTex: "assets/smol.texture"

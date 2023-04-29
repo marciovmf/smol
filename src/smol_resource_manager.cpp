@@ -42,7 +42,7 @@ namespace smol
   {
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
-    Handle<Texture> defaultTextureHandle = createTexture(*img);
+    defaultTextureHandle = createTexture(*img);
     ResourceManager::unloadImage(img);
 
     // Make the default ShaderProgram
@@ -272,9 +272,6 @@ namespace smol
     if (!materialEntry)
       return INVALID_HANDLE(Material);
 
-    int numDiffuseTextures = 0;
-    Handle<Texture> diffuseTextures[Material::MAX_TEXTURES];
-
     const char* shaderPath = materialEntry->getVariableString((const char*) "shader", nullptr);
     if (!shaderPath)
     {
@@ -283,36 +280,26 @@ namespace smol
     }
 
     //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
-
     Handle<ShaderProgram> shader = loadShader(shaderPath);
-    int renderQueue = (int) materialEntry->getVariableNumber((const char*)"queue", (float) RenderQueue::QUEUE_OPAQUE);
+    int renderQueue =
+      (int) materialEntry->getVariableNumber((const char*)"queue",
+        (float) RenderQueue::QUEUE_OPAQUE);
 
-    const char* STR_TEXTURE = (const char*) "texture";
-    const ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
-    while(textureEntry)
-    {
-      // Diffuse texture
-      const char* diffuseTexture = textureEntry->getVariableString((const char*) "diffuse");
-      if (diffuseTexture)
-      {
-        if (numDiffuseTextures >= Material::MAX_TEXTURES)
-        {
-          Log::error("Material file '%s' exceeded the maximum of %d diffuse textures. The texture '%s' will be ignored.",
-              path, Material::MAX_TEXTURES, diffuseTexture);
-        }
-        else
-        {
-          diffuseTextures[numDiffuseTextures++] = loadTexture(diffuseTexture);
-        }
-      }
-      textureEntry = config.findEntry(STR_TEXTURE, textureEntry);
-    }
+    Material::DepthTest depthTest =
+      (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest",
+          (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
 
-    Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
-    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::CullFace) Material::CullFace::BACK);
+    Material::CullFace cullFace =
+      (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace",
+          (Material::CullFace) Material::CullFace::BACK);
 
-    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest, cullFace);
+    Handle<Material> handle = createMaterial(shader, nullptr, 0, renderQueue, depthTest, cullFace);
     Material* material = materials.lookup(handle);
+    int32 defaultTextureIndex = -1;
+
+    size_t nameLen = strlen(path);
+    SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
+    strncpy(material->name, path, nameLen);
 
     //set values for material parameters
     for(int i = 0; i < material->parameterCount; i++)
@@ -323,14 +310,32 @@ namespace smol
         case ShaderParameter::SAMPLER_2D:
           {
             // The sampler_2d is an index for the material's texture list
-            uint32 textureIndex = (uint32) materialEntry->getVariableNumber(param.name);
-            if (textureIndex >= (uint32) numDiffuseTextures)
+            uint32 textureIndex;
+            const char* textureName = materialEntry->getVariableString(param.name);
+            if (strlen(textureName) > 0)
             {
-              Log::error("Material parameter '%s' references an out of bounds texture index %d",
-                  param.name, textureIndex);
-              textureIndex = 0;
+              textureIndex = material->diffuseTextureCount++;
+              material->textureDiffuse[textureIndex] = loadTexture(textureName);
+              param.uintValue = textureIndex;
             }
-            param.uintValue = textureIndex;
+            else
+            {
+              debugLogWarning("Material '%s': No texture assigned to material parameter %s", path, param.name);
+              if (defaultTextureIndex >= 0)
+              {
+                param.uintValue = defaultTextureIndex;
+              }
+              else if ((material->diffuseTextureCount + 1) < Material::MAX_TEXTURES)
+              {
+                defaultTextureIndex = material->diffuseTextureCount++;
+                material->textureDiffuse[defaultTextureIndex] = defaultTextureHandle;
+                param.uintValue = defaultTextureIndex;
+              }
+              else
+              {
+                debugLogError("Material '%s': Exceeded the amount of textures (%d).", path, Material::MAX_TEXTURES);
+              }
+            }
           }
           break;
         case ShaderParameter::VECTOR2:
@@ -375,6 +380,13 @@ namespace smol
     material.depthTest = depthTest;
     material.renderQueue = renderQueue;
     material.cullFace = cullFace;
+    material.shader = shaderHandle;
+  
+    // Set material name
+    const char* materialName = "custom_material";
+    size_t nameLen = strlen(materialName);
+    SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
+    strncpy(material.name, materialName, nameLen);
 
     if (diffuseTextureCount)
     {
@@ -732,9 +744,9 @@ namespace smol
 
     // Create texture from font Image
     font->texture = createTexture(bmpFileName,
-         Texture::Wrap::CLAMP_TO_EDGE,
-         Texture::Filter::LINEAR,
-         Texture::Mipmap::NO_MIPMAP);
+        Texture::Wrap::CLAMP_TO_EDGE,
+        Texture::Filter::LINEAR,
+        Texture::Mipmap::NO_MIPMAP);
 
     return font;
   }

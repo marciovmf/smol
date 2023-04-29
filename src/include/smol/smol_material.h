@@ -29,6 +29,7 @@ namespace smol
     enum
     {
       MAX_TEXTURES = 6,
+      MAX_NAME_LEN = 255
     };
 
     enum DepthTest
@@ -52,8 +53,9 @@ namespace smol
       NONE            = 3
     };
 
+    char name[MAX_NAME_LEN];
     Handle<ShaderProgram> shader;
-    Handle<Texture> textureDiffuse[SMOL_MATERIAL_MAX_TEXTURES];
+    Handle<Texture> textureDiffuse[MAX_TEXTURES];
     int diffuseTextureCount;
     int renderQueue;
     MaterialParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
