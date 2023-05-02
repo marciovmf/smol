@@ -116,13 +116,11 @@ void onStart()
       smol::Texture::Filter::NEAREST,
       smol::Texture::Mipmap::NEAREST_MIPMAP_NEAREST);
 
-  resourceManager.getMaterial(checkersMaterial)
-    .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
+    checkersMaterial->setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
 
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
-  resourceManager.getMaterial(floorMaterial)
-    .setVec4("color",(const smol::Vector4&)  smol::Color::WHITE);
+  floorMaterial->setVec4("color",(const smol::Vector4&)  smol::Color::WHITE);
 
   auto floor = scene.createRenderable(floorMaterial,
       resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad())); 

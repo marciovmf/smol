@@ -28,18 +28,31 @@ namespace smol
   //
   // Handle
   //
+  template <typename> class HandleList;
+
   template <typename T>
     struct Handle
     {
-      int slotIndex;
-      int version;
+      int32 slotIndex;
+      int32 version;
 
       int compare(const Handle<T>& other);
       int operator== (const Handle<T>& other);
       int operator!= (const Handle<T>& other);
       T* operator->();
 
+      static HandleList<T>* handleList;
+      static void registerList(HandleList<T>* handleList);
     };
+
+  template <typename T>
+    HandleList<T>* Handle<T>::handleList = nullptr;
+
+  template <typename T>
+    void Handle<T>::registerList(HandleList<T>* list)
+    {
+      Handle<T>::handleList = list;
+    }
 
   template <typename T>
     inline int Handle<T>::compare(const Handle<T>& other)
@@ -63,7 +76,9 @@ namespace smol
   template <typename T>
     inline T* Handle<T>::operator->()
     {
-      return nullptr;
+      SMOL_ASSERT(Handle<T>::handleList != nullptr, "Handle<T>::handleList is null");
+      Handle<T> handle = *this;
+      return Handle<T>::handleList->lookup(handle);
     }
 
   //
@@ -79,7 +94,7 @@ namespace smol
       int freeSlotListStart;
 
       public:
-      HandleList(int initialCapacity);
+      HandleList(int initialCapacity = 32 * sizeof(T));
       Handle<T> reserve();
       Handle<T> add(const T&);
       Handle<T> add(T&&);
@@ -100,7 +115,10 @@ namespace smol
       resourceCount(0),
       freeSlotListCount(0),
       freeSlotListStart(-1)
-  { }
+  { 
+    SMOL_ASSERT(Handle<T>::handleList == nullptr, "Overriding HandleList %s", __FUNCSIG__);
+    Handle<T>::handleList = this;
+  }
 
   template<typename T>
     inline int HandleList<T>::count() const
