@@ -8,27 +8,6 @@ struct Foo
   Foo(int pX, float pY):x(pX), y(pY) { }
 };
 
-struct Bar
-{
-  std::string name;
-  Bar(std::string name): name(name) { }
-};
-
-SMOL_TEST(arrow_operator)
-{
-  smol::HandleList<Foo> hListFoo(8);
-  smol::HandleList<Bar> hListBar(3);
-
-  smol::Handle<Foo> hFoo = hListFoo.add(Foo(75, 4.2f));
-  smol::Handle<Bar> hBar = hListBar.add(Bar("Wako"));
-  hListBar.add(Bar("Yako"));
-
-  SMOL_TEST_EXPECT_TRUE(hBar->name == "Wako");
-  SMOL_TEST_EXPECT_EQ(hFoo->x, 75);
-  SMOL_TEST_EXPECT_FLOAT_EQ(hFoo->y, 4.2f);
-  smol::Handle<Foo>::registerList(nullptr);
-}
-
 SMOL_TEST(lookup)
 {
   smol::HandleList<Foo> hList(8);
@@ -41,10 +20,11 @@ SMOL_TEST(lookup)
   hList.add(Foo(475, 24.5f));
   hList.add(Foo(485, 24.4f));
 
-  //SMOL_TEST_EXPECT_NOT_NULL(foo);
-  SMOL_TEST_EXPECT_EQ(hFoo->x, 22);
-  SMOL_TEST_EXPECT_FLOAT_EQ(hFoo->y, 56624.21f);
-  smol::Handle<Foo>::registerList(nullptr);
+  Foo* foo = hList.lookup(hFoo);
+
+  SMOL_TEST_EXPECT_NOT_NULL(foo);
+  SMOL_TEST_EXPECT_EQ(foo->x, 22);
+  SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 56624.21f);
 }
 
 SMOL_TEST(lookup_wtih_holes_before)
@@ -60,10 +40,11 @@ SMOL_TEST(lookup_wtih_holes_before)
   hList.add(Foo(485, 24.4f));
 
   hList.remove(hDelete);
+  Foo* foo = hList.lookup(hFoo);
 
-  SMOL_TEST_EXPECT_EQ(hFoo->x, 22);
-  SMOL_TEST_EXPECT_FLOAT_EQ(hFoo->y, 56624.21f);
-  smol::Handle<Foo>::registerList(nullptr);
+  SMOL_TEST_EXPECT_NOT_NULL(foo);
+  SMOL_TEST_EXPECT_EQ(foo->x, 22);
+  SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 56624.21f);
 }
 
 SMOL_TEST(lookup_wtih_holes_after)
@@ -80,10 +61,10 @@ SMOL_TEST(lookup_wtih_holes_after)
 
   hList.remove(hDelete);
   Foo* foo = hList.lookup(hFoo);
+
   SMOL_TEST_EXPECT_NOT_NULL(foo);
-  SMOL_TEST_EXPECT_EQ(hFoo->x, 22);
-  SMOL_TEST_EXPECT_FLOAT_EQ(hFoo->y, 56624.21f);
-  smol::Handle<Foo>::registerList(nullptr);
+  SMOL_TEST_EXPECT_EQ(foo->x, 22);
+  SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 56624.21f);
 }
 
 
@@ -108,7 +89,6 @@ SMOL_TEST(lookup_wtih_holes_around)
   SMOL_TEST_EXPECT_NOT_NULL(foo);
   SMOL_TEST_EXPECT_EQ(foo->x, 22);
   SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 56624.21f);
-  smol::Handle<Foo>::registerList(nullptr);
 }
 
 SMOL_TEST(lookup_wtih_holes_around_different_order_1)
@@ -132,7 +112,6 @@ SMOL_TEST(lookup_wtih_holes_around_different_order_1)
   SMOL_TEST_EXPECT_NOT_NULL(foo);
   SMOL_TEST_EXPECT_EQ(foo->x, 22);
   SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 56624.21f);
-  smol::Handle<Foo>::registerList(nullptr);
 }
 
 SMOL_TEST(lookup_wtih_holes_around_different_order_2)
@@ -156,8 +135,6 @@ SMOL_TEST(lookup_wtih_holes_around_different_order_2)
   SMOL_TEST_EXPECT_NOT_NULL(foo);
   SMOL_TEST_EXPECT_EQ(foo->x, 22);
   SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 56624.21f);
-
-  smol::Handle<Foo>::registerList(nullptr);
 }
 
 SMOL_TEST(lookup_removed)
@@ -167,7 +144,6 @@ SMOL_TEST(lookup_removed)
   hList.remove(hFoo);
   Foo* foo = hList.lookup(hFoo);
   SMOL_TEST_EXPECT_NULL(foo);
-  smol::Handle<Foo>::registerList(nullptr);
 }
 
 SMOL_TEST(lookup_outaded_handle)
@@ -186,7 +162,6 @@ SMOL_TEST(lookup_outaded_handle)
   smol::Handle<Foo> hNewFoo = hList.add(Foo(77, 324.47f));
   SMOL_TEST_EXPECT_FALSE(hNewFoo == hFoo);
   SMOL_TEST_EXPECT_TRUE(hNewFoo != hFoo);
-  smol::Handle<Foo>::registerList(nullptr);
 }
 
 SMOL_TEST(add_expand)
@@ -208,7 +183,6 @@ SMOL_TEST(add_expand)
   SMOL_TEST_EXPECT_EQ(foo->x, 44);
   SMOL_TEST_EXPECT_FLOAT_EQ(foo->y, 55.5f);
   SMOL_TEST_EXPECT_EQ(hList.count(), initialResourceCount + 1);
-  smol::Handle<Foo>::registerList(nullptr);
 }
 
 SMOL_TEST(reset_and_lookup)
@@ -233,5 +207,4 @@ SMOL_TEST(reset_and_lookup)
   SMOL_TEST_EXPECT_NULL(hList.lookup(h6));
   SMOL_TEST_EXPECT_NULL(hList.lookup(h7));
   SMOL_TEST_EXPECT_NULL(hList.lookup(h8));
-  smol::Handle<Foo>::registerList(nullptr);
 }
