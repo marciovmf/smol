@@ -7,6 +7,8 @@
 
 namespace smol
 {
+  SystemsRoot* SystemsRoot::instance = nullptr;
+
   GlobalRendererConfig::GlobalRendererConfig(const Config& config)  { update(config); }
 
   void GlobalRendererConfig::update(const Config& config)
@@ -64,9 +66,6 @@ namespace smol
     height     = (int) size.y;
   }
 
-
-
-  SystemsRoot* SystemsRoot::instance = nullptr;
 
   SystemsRoot::SystemsRoot(Config& config):
     config(config),

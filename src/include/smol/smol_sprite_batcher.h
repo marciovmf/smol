@@ -31,6 +31,9 @@ namespace smol
     SpriteBatcher(Handle<Material> material, Mode mode, int capacity);
     SpriteBatcher() = delete;
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::SpriteBatcher>;
+  template class SMOL_ENGINE_API smol::Handle<smol::SpriteBatcher>;
 }
 
 #endif  //SMOL_SPRITE_BATCHER_H

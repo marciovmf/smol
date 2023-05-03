@@ -40,5 +40,8 @@ namespace smol
     unsigned int numIndices;
     unsigned int numVertices;
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
+  template class SMOL_ENGINE_API smol::Handle<smol::Mesh>;
 }
 #endif  // SMOL_MESH_H

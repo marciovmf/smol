@@ -38,6 +38,9 @@ namespace smol
       // Other Renderer API specific goes here...
     };
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::Texture>;
+  template class SMOL_ENGINE_API smol::Handle<smol::Texture>;
 }
 
 #endif  // SMOL_TEXTURE_H

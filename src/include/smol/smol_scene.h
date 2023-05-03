@@ -12,11 +12,6 @@
 #include <smol/smol_scene_nodes.h>
 #include <smol/smol_systems_root.h>
 
-template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
-template class SMOL_ENGINE_API smol::HandleList<smol::Renderable>;
-template class SMOL_ENGINE_API smol::HandleList<smol::SpriteBatcher>;
-template class SMOL_ENGINE_API smol::HandleList<smol::SceneNode>;
-
 namespace smol
 {
   struct Image;

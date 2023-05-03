@@ -70,6 +70,11 @@ namespace smol
     void setParent(Handle<SceneNode> parent);
     void setLayer(Layer l);
   };
+
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::SceneNode>;
+  template class SMOL_ENGINE_API smol::Handle<smol::SceneNode>;
+
 }
 
 #endif  // SMOL_SCENE_NODES_H
