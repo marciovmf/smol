@@ -73,7 +73,6 @@ namespace smol
   { 
   }
 
-
   void SystemsRoot::initialize(Config& config)
   {
     if (!SystemsRoot::instance)
@@ -86,25 +85,18 @@ namespace smol
     }
   }
 
+  void SystemsRoot::terminate()
+  {
+    SystemsRoot::instance->~SystemsRoot();
+  }
+
+  SystemsRoot::~SystemsRoot() 
+  {
+    SystemsRoot::instance = nullptr;
+  }
+
   inline SystemsRoot* SystemsRoot::get()
   {
     return SystemsRoot::instance;
   }
-
-
-  SceneManager::SceneManager()
-  {
-    scene = new Scene();
-  }
-
-  SceneManager::~SceneManager()
-  {
-    delete scene;
-  }
-
-  Scene& SceneManager::getLoadedScene()
-  {
-    return *scene;
-  };
-
 }

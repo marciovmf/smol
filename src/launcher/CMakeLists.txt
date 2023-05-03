@@ -12,6 +12,7 @@ add_executable(slauncher smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
 target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include")
 target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include/smol")
 target_link_libraries(slauncher PRIVATE smol ${OPENGL_LIBRARY})
+target_compile_definitions(slauncher PRIVATE SMOL_MODULE_LAUNCHER)
 
 # Make windows Debug builds to have a console subsystem
 if(CMAKE_CONFIGURATION_TYPES)

@@ -79,7 +79,6 @@ namespace smol
         Platform::captureCursor(window);
 
       Platform::getWindowSize(window, &displayConfig.width, &displayConfig.height);
-
       // Initialize systems root
       SystemsRoot::initialize(config);
       Mouse& mouse        = SystemsRoot::get()->mouse;
@@ -122,6 +121,7 @@ namespace smol
       onGameStopCallback();
       Platform::unloadModule(game);
       Platform::destroyWindow(window);
+      SystemsRoot::terminate();
       return 0;
     }
   }

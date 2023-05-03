@@ -52,6 +52,7 @@ namespace smol
 
   struct SMOL_PLATFORM_API Platform final
   {
+#ifndef SMOL_MODULE_GAME
     // Basic windowing functions
     static Window* createWindow(int width, int height, const char* title);
     static void updateWindowEvents(Window* window);
@@ -66,6 +67,7 @@ namespace smol
     static Module* loadModule(const char* path);
     static bool unloadModule(Module* module);
     static void* getFunctionFromModule(Module* module,  const char* function);
+#endif
 
     // Keyboard handling
     static const unsigned char* getKeyboardState();
@@ -75,7 +77,6 @@ namespace smol
     static void captureCursor(Window* window);
     static void releaseCursor(Window* window);
     static void showCursor(bool status);
-   
     // Basic file handling
     static char* loadFileToBuffer(const char* fileName, size_t* loadedFileSize=nullptr, size_t extraBytes=0, size_t offset=0);
     static char* loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize = nullptr);
