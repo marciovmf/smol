@@ -160,17 +160,6 @@ namespace smol
     mainCamera = handle;
   }
 
-  Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
-  {
-    Handle<SceneNode> newHandle = nodes.reserve();
-    SceneNode* newNode = nodes.lookup(newHandle);
-    SceneNode* original = nodes.lookup(handle);
-    memcpy(newNode, original, sizeof(SceneNode));
-
-    //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
-    return newHandle;
-  }
-
   SceneNode& Scene::getNode(Handle<SceneNode> handle) const
   {
     SceneNode* node = nodes.lookup(handle);

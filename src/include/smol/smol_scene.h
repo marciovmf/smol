@@ -72,7 +72,6 @@ namespace smol
 
     void destroyNode(Handle<SceneNode> handle);
     void destroyNode(SceneNode* node);
-    Handle<SceneNode> clone(Handle<SceneNode> handle);
 
     void setMainCamera(Handle<SceneNode> handle);
 
