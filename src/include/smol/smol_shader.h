@@ -44,6 +44,10 @@ namespace smol
     ShaderParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
     int parameterCount;
   };
+
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::ShaderProgram>;
+  template class SMOL_ENGINE_API smol::Handle<smol::ShaderProgram>;
 }
 
 #endif  // SMOL_SHADER_H

@@ -35,31 +35,9 @@ namespace smol
   // Texture Resources
   //
 
-  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
-  { }
-
-  void ResourceManager::initialize()
-  {
-    // Make the default Texture
-    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
-    defaultTextureHandle = createTexture(*img);
-    ResourceManager::unloadImage(img);
-
-    // Make the default ShaderProgram
-    ShaderProgram& program = Renderer::getDefaultShaderProgram();
-    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
-
-    // Make the default Material
-    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
-
-    defaultTexture = textures.lookup(defaultTextureHandle);
-    defaultShader = shaders.lookup(defaultShaderHandle);
-    defaultMaterial = materials.lookup(defaultMaterialHandle);
-  }
-
   Handle<Texture> ResourceManager::loadTexture(const char* path)
   {
-    debugLogInfo("Loading texture %s", path);
+    debugLogInfo("Loading texture '%s'", path);
     if (!path)
       return INVALID_HANDLE(Texture);
 
@@ -262,7 +240,7 @@ namespace smol
 
   Handle<Material> ResourceManager::loadMaterial(const char* path)
   {
-    debugLogInfo("Loading material %s", path);
+    debugLogInfo("Loading material '%s'", path);
     if (!path)
       return INVALID_HANDLE(Material);
 
@@ -755,6 +733,28 @@ namespace smol
   {
     destroyTexture(font->texture);
     Platform::freeMemory((void*)font);
+  }
+
+  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
+  { }
+
+  void ResourceManager::initialize()
+  {
+    // Make the default Texture
+    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
+    defaultTextureHandle = createTexture(*img);
+    ResourceManager::unloadImage(img);
+
+    // Make the default ShaderProgram
+    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
+
+    // Make the default Material
+    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
+
+    defaultTexture = textures.lookup(defaultTextureHandle);
+    defaultShader = shaders.lookup(defaultShaderHandle);
+    defaultMaterial = materials.lookup(defaultMaterialHandle);
   }
 
   ResourceManager::~ResourceManager()

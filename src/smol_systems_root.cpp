@@ -7,6 +7,8 @@
 
 namespace smol
 {
+  SystemsRoot* SystemsRoot::instance = nullptr;
+
   GlobalRendererConfig::GlobalRendererConfig(const Config& config)  { update(config); }
 
   void GlobalRendererConfig::update(const Config& config)
@@ -65,15 +67,11 @@ namespace smol
   }
 
 
-
-  SystemsRoot* SystemsRoot::instance = nullptr;
-
   SystemsRoot::SystemsRoot(Config& config):
     config(config),
     rendererConfig(config)
   { 
   }
-
 
   void SystemsRoot::initialize(Config& config)
   {
@@ -87,25 +85,18 @@ namespace smol
     }
   }
 
+  void SystemsRoot::terminate()
+  {
+    SystemsRoot::instance->~SystemsRoot();
+  }
+
+  SystemsRoot::~SystemsRoot() 
+  {
+    SystemsRoot::instance = nullptr;
+  }
+
   inline SystemsRoot* SystemsRoot::get()
   {
     return SystemsRoot::instance;
   }
-
-
-  SceneManager::SceneManager()
-  {
-    scene = new Scene();
-  }
-
-  SceneManager::~SceneManager()
-  {
-    delete scene;
-  }
-
-  Scene& SceneManager::getLoadedScene()
-  {
-    return *scene;
-  };
-
 }

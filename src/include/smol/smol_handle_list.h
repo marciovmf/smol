@@ -4,9 +4,9 @@
 #include <smol/smol_log.h>
 #include <smol/smol_arena.h>
 #include <string.h>
+#include <typeinfo>
 
 #define getSlotIndex(slotInfo) ((int)((char*) (slotInfo) - slots.getData()) / sizeof(SlotInfo))
-
 #define INVALID_HANDLE(T) (Handle<T>{ (int) 0xFFFFFFFF, (int) 0xFFFFFFFF})
 
 namespace smol
@@ -28,18 +28,32 @@ namespace smol
   //
   // Handle
   //
-  template <typename T>
-    struct Handle
+  template <typename> class HandleList;
+
+  template <typename T> 
+    class Handle
     {
-      int slotIndex;
-      int version;
+      public:
+        int32 slotIndex;
+        int32 version;
 
-      int compare(const Handle<T>& other);
-      int operator== (const Handle<T>& other);
-      int operator!= (const Handle<T>& other);
-      T* operator->();
+        int compare(const Handle<T>& other);
+        int operator== (const Handle<T>& other);
+        int operator!= (const Handle<T>& other);
+        T* operator->();
 
+        static HandleList<T>* handleList;
+        static void registerList(HandleList<T>* handleList);
     };
+
+  template <typename T>
+    HandleList<T>* Handle<T>::handleList = nullptr;
+
+  template <typename T>
+    void Handle<T>::registerList(HandleList<T>* list)
+    {
+      Handle<T>::handleList = list;
+    }
 
   template <typename T>
     inline int Handle<T>::compare(const Handle<T>& other)
@@ -63,7 +77,9 @@ namespace smol
   template <typename T>
     inline T* Handle<T>::operator->()
     {
-      return nullptr;
+      SMOL_ASSERT(Handle<T>::handleList != nullptr, "Handle<%s>::handleList is null", typeid(T).name());
+      Handle<T> handle = *this;
+      return Handle<T>::handleList->lookup(handle);
     }
 
   //
@@ -79,7 +95,7 @@ namespace smol
       int freeSlotListStart;
 
       public:
-      HandleList(int initialCapacity);
+      HandleList(int initialCapacity = 32 * sizeof(T));
       Handle<T> reserve();
       Handle<T> add(const T&);
       Handle<T> add(T&&);
@@ -100,7 +116,9 @@ namespace smol
       resourceCount(0),
       freeSlotListCount(0),
       freeSlotListStart(-1)
-  { }
+  { 
+    Handle<T>::registerList(this);
+  }
 
   template<typename T>
     inline int HandleList<T>::count() const
@@ -168,7 +186,6 @@ namespace smol
     {
       if (handle.slotIndex >= slots.getCapacity() || handle.slotIndex < 0)
       {
-        //Log::warning("Attempting to lookup a Handle slot out of bounds");
         return nullptr;
       }
 
@@ -187,7 +204,7 @@ namespace smol
       // We never leave holes on the resource list!
       // When deleting any resource (other than the last one) we actually
       // move the last resource to the place of the one being deleted
-      // and fix the it's slot so it points to the correct resource index.
+      // and fix the slot so it points to the correct resource index.
 
       if (handle.slotIndex >= slots.getCapacity() / sizeof(T) || handle.slotIndex < 0)
       {

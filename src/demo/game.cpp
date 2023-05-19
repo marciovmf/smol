@@ -116,8 +116,7 @@ void onStart()
       smol::Texture::Filter::NEAREST,
       smol::Texture::Mipmap::NEAREST_MIPMAP_NEAREST);
 
-  resourceManager.getMaterial(checkersMaterial)
-    .setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
+  checkersMaterial->setVec4("color", (const smol::Vector4&) smol::Color::WHITE);
 
   // Manually create a material
   auto floorMaterial = resourceManager.createMaterial(shader, &checkersTexture, 1);
@@ -227,6 +226,7 @@ void onStart()
   auto smolMaterial = resourceManager.loadMaterial("assets/default.material");
   batcher = scene.createSpriteBatcher(smolMaterial, smol::SpriteBatcher::SCREEN);
 
+  font = resourceManager.loadFont("assets/font/segoeui.font");
   auto fontMaterial = resourceManager.loadMaterial("assets/font.material");
   fontMaterial->setSampler2D("mainTex", font->texture);
   textBatcher = scene.createSpriteBatcher(fontMaterial, smol::SpriteBatcher::SCREEN);

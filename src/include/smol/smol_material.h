@@ -74,5 +74,8 @@ namespace smol
     private:
     MaterialParameter* getParameter(const char* name, ShaderParameter::Type type);
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::Material>;
+  template class SMOL_ENGINE_API smol::Handle<smol::Material>;
 }
 #endif  // SMOL_MATERIAL_H
