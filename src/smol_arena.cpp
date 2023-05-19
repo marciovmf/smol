@@ -12,7 +12,7 @@ namespace smol
 {
 
   Arena::Arena():
-    used(0), capacity(0), data(nullptr) { }
+    capacity(0), used(0), data(nullptr) { }
 
   Arena::Arena(size_t initialSize) 
   {

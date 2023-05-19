@@ -9,6 +9,8 @@ namespace smol
     :transform(transform), scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0)
   { 
   }
+
+  SceneNode::~SceneNode() { }
   
   void SceneNode::setActive(bool status)
   {

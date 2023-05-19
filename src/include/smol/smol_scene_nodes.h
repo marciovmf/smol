@@ -14,6 +14,16 @@ namespace smol
   struct Renderable;
   struct SpriteBatcher;
 
+  struct Sprite
+  {
+    Rect rect;
+    float width;
+    float height;
+    Color color;
+    int angle;
+    Sprite() : color(Color::WHITE){ }
+  };
+
   struct MeshNodeInfo
   {
     Handle<Renderable> renderable;
@@ -22,14 +32,16 @@ namespace smol
   struct SpriteNodeInfo : public MeshNodeInfo
   {
     Handle<SpriteBatcher> batcher;
-    Rect rect;
-    float width;
-    float height;
-    Color color;
-    int angle;
+    union 
+    {
+      Sprite sprite;
+      Arena arena;
+    };
+    SpriteNodeInfo(): arena(0) {}
+    ~SpriteNodeInfo() {}
   };
 
-  struct SMOL_ENGINE_API SceneNode
+  struct SMOL_ENGINE_API SceneNode final
   {
     enum Type : char
     {
@@ -44,7 +56,7 @@ namespace smol
     union
     {
       MeshNodeInfo mesh;
-      SpriteNodeInfo sprite;
+      SpriteNodeInfo spriteInfo;
       Camera camera;
     };
 
@@ -57,6 +69,7 @@ namespace smol
 
     public:
     SceneNode();
+    ~SceneNode();
     SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform = Transform());
     void setActive(bool status);
     void setDirty(bool value);

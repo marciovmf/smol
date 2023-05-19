@@ -113,19 +113,20 @@ namespace smol
     Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, t));
     SceneNode* node = nodes.lookup(handle);
 
-    node->sprite.rect = rect;
-    node->sprite.batcher = batcher;
-    node->sprite.width = width;
-    node->sprite.height = height;
-    node->sprite.angle = angle;
-    node->sprite.color = color;
+    node->spriteInfo.sprite.rect = rect;
+    node->spriteInfo.batcher = batcher;
+    node->spriteInfo.sprite.width = width;
+    node->spriteInfo.sprite.height = height;
+    node->spriteInfo.sprite.angle = angle;
+    node->spriteInfo.sprite.color = color;
 
 
     SpriteBatcher* batcherPtr = batchers.lookup(batcher);
     if (batcherPtr)
     {
       // copy the renderable handle to the node level
-      node->sprite.renderable = batcherPtr->renderable;
+      node->spriteInfo.renderable = batcherPtr->renderable;
+      batcherPtr->nodeCount++;
       batcherPtr->spriteCount++;
       batcherPtr->dirty = true;
     }

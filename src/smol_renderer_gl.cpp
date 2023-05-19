@@ -296,105 +296,25 @@ namespace smol
     glBindVertexArray(0);
   }
 
-  static int updateSpriteBatcher(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
+  static int drawSpriteNodes(Scene* scene, Renderer* renderer, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
   {
-    // do we need to update the data on the GPU ?
-    //if (batcher->dirty)
+    const SceneNode* allNodes = scene->nodes.getArray();
+
+    batcher->begin();
+
+    for (int i = 0; i < batcher->nodeCount; i++)
     {
-      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-      Renderable* renderable = scene->renderables.lookup(batcher->renderable);
-      Material& material = resourceManager.getMaterial(renderable->material);
+      uint64 key = ((uint64*)renderKeyList)[i];
+      SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
 
-      Texture& texture = 
-        (material.diffuseTextureCount > 0 
-         && material.textureDiffuse[0] != INVALID_HANDLE(Texture))  ?
-        resourceManager.getTexture(material.textureDiffuse[0]) :
-        resourceManager.getDefaultTexture();
-
-      Mesh* mesh = resourceManager.getMesh(renderable->mesh);
-
-      const float textureWidth  = (float) texture.width;
-      const float textureHeight = (float) texture.height;
-      const size_t totalSize    = batcher->spriteCount * SpriteBatcher::totalSpriteSize;
-
-      batcher->arena.reset();
-      char* memory = batcher->arena.pushSize(totalSize);
-      Vector3* positions = (Vector3*)(memory);
-      Color* colors = (Color*)(positions + batcher->spriteCount * 4);
-      Vector2* uvs = (Vector2*)(colors + batcher->spriteCount * 4);
-      unsigned int* indices = (unsigned int*)(uvs + batcher->spriteCount * 4);
-
-      Vector3* pVertex = positions;
-      Color* pColors = colors;
-      Vector2* pUVs = uvs;
-      unsigned int* pIndices = indices;
-
-      const SceneNode* allNodes = scene->nodes.getArray();
-      int offset = 0;
-
-      int activeSprites = 0;
-      for (int i = 0; i < batcher->spriteCount; i++)
-      {
-        uint64 key = ((uint64*)renderKeyList)[i];
-        SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
-
-        // ignore sprites the current camera can't see
-        if(!(cameraLayers & sceneNode->getLayer()))
-          continue;
-
-        activeSprites++;
-        Transform& transform = sceneNode->transform;
-        SpriteNodeInfo& node = sceneNode->sprite;
-
-        // convert UVs from pixels to 0~1 range
-        // pixel coords origin is at top left corner
-        Rectf uvRect;
-        uvRect.x = node.rect.x / (float) textureWidth;
-        uvRect.y = 1 - (node.rect.y /(float) textureHeight); 
-        uvRect.w = node.rect.w / (float) textureWidth;
-        uvRect.h = node.rect.h / (float) textureHeight;
-
-        const Vector3& pos = transform.getPosition();
-        //float posY = renderer->getViewport().h - pos.y;
-        float halfW = node.width/2.0f;
-        float halfH = node.height/2.0f;
-
-        {
-          pVertex[0] = {pos.x - halfW, pos.y + halfH, pos.z};             // top left
-          pVertex[1] = {pos.x + halfW, pos.y - halfH, pos.z};             // bottom right
-          pVertex[2] = {pos.x + halfW, pos.y + halfH, pos.z};             // top right
-          pVertex[3] = {pos.x - halfW, pos.y - halfH, pos.z};             // bottom left
-          pVertex += 4;
-
-          pColors[0] = node.color;                                        // top left
-          pColors[1] = node.color;                                        // bottom right
-          pColors[2] = node.color;                                        // top right
-          pColors[3] = node.color;                                        // bottom left
-          pColors += 4;
-
-          pUVs[0] = {uvRect.x, uvRect.y};                                 // top left 
-          pUVs[1] = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};           // bottom right
-          pUVs[2] = {uvRect.x + uvRect.w, uvRect.y};                      // top right
-          pUVs[3] = {uvRect.x, uvRect.y - uvRect.h};                      // bottom left
-          pUVs += 4;
-
-          pIndices[0] = offset + 0;
-          pIndices[1] = offset + 1;
-          pIndices[2] = offset + 2;
-          pIndices[3] = offset + 0;
-          pIndices[4] = offset + 3;
-          pIndices[5] = offset + 1;
-          pIndices += 6;
-          offset += 4;
-        }
-      }
-
-      MeshData meshData(positions, 4 * activeSprites, indices, 6 * activeSprites, colors, nullptr, uvs);
-
-      Renderer::updateMesh(mesh, &meshData);
+      // ignore sprites the current camera can't see
+      if(!(cameraLayers & sceneNode->getLayer()))
+        continue;
+      batcher->pushSpriteNode(sceneNode);
     }
 
-    return batcher->spriteCount;
+    batcher->end();
+    return batcher->nodeCount;
   }
 
   //
@@ -415,13 +335,14 @@ namespace smol
   {
     glGenBuffers(1, &globalUbo);
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
-    glBufferData(GL_UNIFORM_BUFFER, SMOL_UBO_SIZE, SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, SMOL_UBO_SIZE, (void*) SMOL_GLOBALUBO_BINDING_POINT, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    bool enableSRGB = false;
+
     if (config.enableGammaCorrection)
     {
       glEnable(GL_FRAMEBUFFER_SRGB); 
     }
+
     if (config.enableMSAA)
     {
       glEnable(GL_MULTISAMPLE);
@@ -1049,8 +970,6 @@ namespace smol
     {
       SceneNode* node = (SceneNode*) &allNodes[i];
       Renderable* renderable = nullptr;
-      bool discard = false;
-      bool updateTransform = true;
       uint64 key = 0;
 
       if (!node->isActiveInHierarchy())
@@ -1062,7 +981,6 @@ namespace smol
           {
             node->transform.update(scene);
             key = encodeRenderKey(node->getType(), 0, node->camera.getPriority(), i);
-            Camera& camera = node->camera;
             numCameras++;
           }
           break;
@@ -1080,10 +998,10 @@ namespace smol
           {
             if (node->transform.isDirty(scene) || node->isDirty())
             {
-              SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
+              SpriteBatcher* batcher = scene.batchers.lookup(node->spriteInfo.batcher);
               batcher->dirty = true;
             }
-            renderable = scene.renderables.lookup(node->sprite.renderable);
+            renderable = scene.renderables.lookup(node->spriteInfo.renderable);
             Material& materialPtr = resourceManager.getMaterial(renderable->material);
             key = encodeRenderKey(node->getType(), (uint16)(renderable->material.slotIndex), materialPtr.renderQueue, i);
           }
@@ -1202,7 +1120,7 @@ namespace smol
         }
         else if (node->typeIs(SceneNode::SPRITE))
         {
-          SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
+          SpriteBatcher* batcher = scene.batchers.lookup(node->spriteInfo.batcher);
           if(batcher->dirty)
           {
 
@@ -1229,7 +1147,7 @@ namespace smol
               glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
                   (const float*) identity.e);
             }
-            updateSpriteBatcher(&scene, this, batcher, allRenderKeys + i, cameraLayers);
+            drawSpriteNodes(&scene, this, batcher, allRenderKeys + i, cameraLayers);
             // keep it dirty while there are cameras to render
             if (cameraIndex == numCameras - 1)
             {
@@ -1238,7 +1156,7 @@ namespace smol
           }
 
           //draw
-          Renderable* renderable = scene.renderables.lookup(node->sprite.renderable);
+          Renderable* renderable = scene.renderables.lookup(node->spriteInfo.renderable);
           drawRenderable(&scene, renderable, shaderProgramId);
           i+=batcher->spriteCount - 1;
         }
