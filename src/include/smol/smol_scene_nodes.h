@@ -27,9 +27,10 @@ namespace smol
   struct MeshNodeInfo
   {
     Handle<Renderable> renderable;
+    virtual ~MeshNodeInfo();
   };
 
-  struct SpriteNodeInfo : public MeshNodeInfo
+  struct SpriteNodeInfo final : public MeshNodeInfo
   {
     Handle<SpriteBatcher> batcher;
     union 
@@ -37,8 +38,9 @@ namespace smol
       Sprite sprite;
       Arena arena;
     };
-    SpriteNodeInfo(): arena(0) {}
-    ~SpriteNodeInfo() {}
+    int spriteCount;
+    SpriteNodeInfo();
+    ~SpriteNodeInfo() override;
   };
 
   struct SMOL_ENGINE_API SceneNode final

@@ -119,6 +119,7 @@ namespace smol
     node->spriteInfo.sprite.height = height;
     node->spriteInfo.sprite.angle = angle;
     node->spriteInfo.sprite.color = color;
+    node->spriteInfo.spriteCount = 1;
 
 
     SpriteBatcher* batcherPtr = batchers.lookup(batcher);
@@ -211,6 +212,9 @@ namespace smol
     if (node)
     {
       nodes.remove(handle);
+
+      if (node->typeIs(SceneNode::SPRITE))
+        node->spriteInfo.~SpriteNodeInfo();
     }
   }
 

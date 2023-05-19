@@ -5,13 +5,36 @@ namespace smol
 {
   struct Scene;
 
+  //---------------------------------------------------------------------------
+  // MeshNodeInfo
+  //---------------------------------------------------------------------------
+  MeshNodeInfo::~MeshNodeInfo()
+  {
+  }
+
+  SpriteNodeInfo::SpriteNodeInfo():arena(0), spriteCount(1)
+  {
+  }
+
+  //---------------------------------------------------------------------------
+  // SpriteNodeInfo
+  //---------------------------------------------------------------------------
+  SpriteNodeInfo::~SpriteNodeInfo()
+  {
+    batcher->spriteCount -= spriteCount; 
+    batcher->nodeCount--;
+  }
+
   SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform)
     :transform(transform), scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0)
   { 
   }
 
+  //---------------------------------------------------------------------------
+  // SceneNode
+  //---------------------------------------------------------------------------
   SceneNode::~SceneNode() { }
-  
+
   void SceneNode::setActive(bool status)
   {
     if (!isValid())
@@ -66,6 +89,6 @@ namespace smol
     }
     transform.setParent(parent);
   }
-  
+
   void SceneNode::setLayer(smol::Layer l) { layer = l; }
 }
