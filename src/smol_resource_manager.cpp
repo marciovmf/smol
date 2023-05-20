@@ -746,7 +746,7 @@ namespace smol
     ResourceManager::unloadImage(img);
 
     // Make the default ShaderProgram
-    ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    const ShaderProgram& program = Renderer::getDefaultShaderProgram();
     Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
 
     // Make the default Material

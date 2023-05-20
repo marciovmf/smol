@@ -249,7 +249,7 @@ namespace smol
     // Render key format
     // 64--------------------32---------------16-----------8---------------0
     // sceneNode index       | material index  | node type | render queue
-    uint64 key = ((uint64) nodeIndex) << 32 | ((uint16) materialIndex) << 24 |  nodeType << 8 | (uint8) queue;
+    uint64 key = ((uint64) nodeIndex) << 32 | ((uint16) materialIndex) << 16 |  nodeType << 8 | (uint8) queue;
     return key;
   }
 
@@ -1103,7 +1103,7 @@ namespace smol
         {
           currentMaterialIndex = materialIndex;
           const Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
-          Material& material = resourceManager.getMaterial(renderable->material);
+          Material& material = (resourceManager.getMaterials(nullptr))[materialIndex];
           shaderProgramId = setMaterial(&scene, &material, cameraNode);
         }
 
