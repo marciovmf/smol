@@ -13,7 +13,6 @@
 #include <smol/smol_shader.h>
 #include <smol/smol_texture.h>
 #include <smol/smol_mesh_data.h>
-#include <smol/smol_sprite_batcher.h>
 #include <smol/smol_mesh.h>
 #include <smol/smol_renderable.h>
 
