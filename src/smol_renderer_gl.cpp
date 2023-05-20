@@ -260,12 +260,12 @@ namespace smol
 
   static inline uint32 getMaterialIndexFromRenderKey(uint64 key)
   {
-    return (uint32) (key >> 16);
+    return ((uint32) key) >> 16;
   }
 
   static inline uint32 getNodeTypeFromRenderKey(uint64 key)
   {
-    return (uint32) (key >> 8);
+    return (uint32) key >> 8;
   }
 
   //NOTE(marcio): We're probably not gonna need it

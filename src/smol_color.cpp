@@ -2,6 +2,8 @@
 
 namespace smol
 {
+  Color::Color(): r(0), g(0), b(0), a(0)  { }
+
   Color::Color(int r, int g, int b, int a):
      r(r/255.0f), g(g/255.0f), b(b/255.0f), a(a/255.0f) { }
 
