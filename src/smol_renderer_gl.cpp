@@ -1180,7 +1180,8 @@ namespace smol
     scene.renderKeysSorted.reset();
 
     // The SCREEN camera. Might be used for GUIs, text and for screen relative sprites
-    Camera screenCamera = Camera(Camera::ORTHOGRAPHIC, screenCameraSize, screenCameraNear, screenCameraFar);
+    Camera screenCamera = Camera();
+    screenCamera.setOrthographic(screenCameraSize, screenCameraNear, screenCameraFar);
 
     // ----------------------------------------------------------------------
     // Update sceneNodes and generate render keys

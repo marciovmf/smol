@@ -103,6 +103,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_scene_node.cpp
   ${SOURCE_PATH}/include/smol/smol_text_node.h
   ${SOURCE_PATH}/smol_text_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_camera_node.h
+  ${SOURCE_PATH}/smol_camera_node.cpp
   ${SOURCE_PATH}/include/smol/smol_sprite_node.h
   ${SOURCE_PATH}/smol_sprite_node.cpp
   ${SOURCE_PATH}/include/smol/smol_mesh_node.h

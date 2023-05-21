@@ -61,10 +61,6 @@ namespace smol
     void destroyNode(Handle<SceneNode> handle);
 #endif
 
-    Handle<SceneNode> createPerspectiveCameraNode(float fov, float zNear, float zFar, const Transform& transform);
-    Handle<SceneNode> createOrthographicCameraNode(float size, float zNear, float zFar, const Transform& transform);
-
-
     void setMainCamera(Handle<SceneNode> handle);
 
     //

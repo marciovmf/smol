@@ -11,6 +11,7 @@
 #include <smol/smol_text_node.h>
 #include <smol/smol_sprite_node.h>
 #include <smol/smol_mesh_node.h>
+#include <smol/smol_camera_node.h>
 #include <smol/smol_scene_node_common.h>
 
 namespace smol
@@ -35,9 +36,9 @@ namespace smol
     union
     {
       MeshNode mesh;
-      SpriteNode sprite;
       TextNode text;
-      Camera camera;
+      SpriteNode sprite;
+      CameraNode camera;
     };
 
     private:

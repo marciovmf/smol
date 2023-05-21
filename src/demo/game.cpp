@@ -5,6 +5,7 @@
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_font.h>
 #include <smol/smol_sprite_node.h>
+#include <smol/smol_camera_node.h>
 #include <utility>
 #include <time.h>
 
@@ -168,14 +169,14 @@ void onStart()
 
   // camera
   smol::Transform t;
-  cameraNode = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
+  cameraNode = smol::CameraNode::createPerspective(60.0f, 0.01f, 3000.0f, t);
 
   cameraNode->transform
     .setRotation(0.0f, .0f, 0.0f)
     .setPosition(0.0f, 0.0f, 0.5f);
   cameraNode->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
 
-  sideCamera = scene.createPerspectiveCameraNode(60.0f, 0.01f, 3000.0f, t);
+  sideCamera = smol::CameraNode::createPerspective(60.0f, 0.01f, 3000.0f, t);
   sideCamera->transform
     .setRotation(-30.0f, 0.0f, 0.0f)
     .setPosition(0.0f, 10.0f, 15.0f);
@@ -239,8 +240,9 @@ void onStart()
 
   textBatcher = scene.createSpriteBatcher(fontMaterial, smol::SpriteBatcher::SCREEN);
 
-  char* p = "Hello, Sailor!\nI'm a lumberjack and I'm ok!";
+  const char* p = "Hello, Sailor!\nI'm a lumberjack and I'm ok!";
   drawString(p, font, -5.0f, 3.0f, textBatcher, scene, smol::Color::BLACK);
+  smol::TextNode::create(textBatcher, font, smol::Vector3(-5.0f, 3.0f, 0.3f), p);
 
   smol::SpriteNode::create(textBatcher,
       //smol::Rect(378, 507, 409, 481), SMOL LOGO
