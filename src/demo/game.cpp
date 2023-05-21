@@ -4,11 +4,12 @@
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_font.h>
+#include <smol/smol_sprite_node.h>
 #include <utility>
 #include <time.h>
 
-float drawGliph(smol::Glyph& g, float x, float y, 
-    smol::Kerning* kernings, uint16 kerningCount,
+float drawGliph(const smol::Glyph& g, float x, float y, 
+    const smol::Kerning* kernings, uint16 kerningCount,
     smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
 {
   const float scale = 0.01f;
@@ -26,7 +27,7 @@ float drawGliph(smol::Glyph& g, float x, float y,
   float kerning = 0.0f;
   for (int i = 0; i < kerningCount; i++)
   {
-    smol::Kerning& k = kernings[i];
+    const smol::Kerning& k = kernings[i];
     if(k.second == g.id)
     {
       kerning = k.amount * scale;
@@ -34,36 +35,42 @@ float drawGliph(smol::Glyph& g, float x, float y,
     }
   }
 
-  scene.createSpriteNode(batcher, g.rect,
+  smol::SpriteNode::create(batcher, g.rect,
       smol::Vector3(x + xOffset + kerning, y, 0.0f),
       width, height, color);
 
   return x + xAdvance + kerning;
 }
 
-void drawString(const char* str, smol::Font* font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
+void drawString(const char* str, smol::Handle<smol::Font> font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
 {
   float advance = x;
-  smol::Kerning* kerning = nullptr;
+  const smol::Kerning* kerning = nullptr;
   uint16 kerningCount = 0;
+  
+  int glyphCount;
+  const smol::Glyph* glyphList = font->getGlyphs(&glyphCount);
+
+  const smol::Kerning* kerningList = font->getKernings();
+  const uint16 lineHeight = font->getLineHeight();
 
   while (*str != 0)
   {
-    for (int i = 0; i < font->glyphCount; i++)
+    for (int i = 0; i < glyphCount; i++)
     {
       uint16 id = (uint16) *str;
 
-      smol::Glyph& glyph = font->glyph[i];
+      const smol::Glyph& glyph = glyphList[i];
       if (glyph.id == id)
       {
         if ((char)id == '\n')
         {
-          y -= font->lineHeight / 100.0f;
+          y -= lineHeight / 100.0f;
           advance = x;
         }
         advance = drawGliph(glyph, advance, y, kerning, kerningCount, batcher, scene, color);
         // kerning information for the next character
-        kerning = &font->kerning[glyph.kerningStart];
+        kerning = &kerningList[glyph.kerningStart];
         kerningCount = glyph.kerningCount;
         break;
       }
@@ -73,7 +80,7 @@ void drawString(const char* str, smol::Font* font, float x, float y, smol::Handl
 }
 
 smol::SystemsRoot* root;
-smol::Font* font;
+smol::Handle<smol::Font> font;
 smol::Handle<smol::SceneNode> cameraNode;
 smol::Handle<smol::SceneNode> sideCamera;
 smol::Handle<smol::SceneNode> floorNode;
@@ -98,8 +105,6 @@ void onStart()
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
   smol::Scene& scene = root->sceneManager.getLoadedScene();
-
-  font = resourceManager.loadFont("assets/font/segoeui.font");
 
   // Read game specifig settings from variables.txt
   const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
@@ -129,7 +134,7 @@ void onStart()
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
   // meshes
-  floorNode = scene.createMeshNode(floor, 
+  floorNode = smol::MeshNode::create(floor,
       smol::Transform()
       .setPosition(0.0f, -5.0f, -0.0f)
       .setRotation(-90, 0.0f, 0.0f)
@@ -137,15 +142,16 @@ void onStart()
       );
 
   // center cube
-  node1 = scene.createMeshNode(renderable2,
+  node1 = smol::MeshNode::create(renderable2,
       smol::Transform()
       .setPosition(0.0f, -1.0f, 0.0f)
       .setRotation(0.0f, 0.0f, 0.0f)
       .setScale(2.0f, 2.0f, 2.0f)
       );
 
+
   // left cube
-  node2 = scene.createMeshNode(renderable2, 
+  node2 = smol::MeshNode::create(renderable2, 
       smol::Transform()
       .setPosition(0.0f, 1.0f, -10.0f)
       .setRotation(1.0f, 1.0f, 1.0f)
@@ -154,7 +160,7 @@ void onStart()
       );
 
   // right cube
-  scene.createMeshNode(renderable2, 
+  smol::MeshNode::create(renderable2, 
       smol::Transform()
       .setPosition(4.0f, 3.0f, -10.0f)
       .setRotation(0.8f, 0.8f, 0.8f)
@@ -177,7 +183,7 @@ void onStart()
   sideCamera->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
   sideCamera->setActive(sideCameraActive);
 
-#if 1
+#if 0
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
@@ -195,7 +201,7 @@ void onStart()
     float randX = (rand() % 100 - rand() % 100) * 1.0f;
     float randZ = (rand() % 100 - rand() % 100) * 1.0f;
 
-    float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
+    //float randAngle = (rand() % 270 - rand() % 270) * 1.0f;
     float randScale = (rand() % 30) / 30.0f;
 
     smol::Transform t;
@@ -217,7 +223,7 @@ void onStart()
     t.setRotation(0.0f, 0.0f, 0.0f);
     t.setScale(randScale, randScale, randScale);
 
-    auto handle = scene.createMeshNode( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
+    auto handle = smol::MeshNode::create( (isTallGrass) ? grassRenderable1 : grassRenderable2, t);
     handle->setLayer(smol::Layer::LAYER_2);
   }
 #endif
@@ -226,15 +232,17 @@ void onStart()
   auto smolMaterial = resourceManager.loadMaterial("assets/default.material");
   batcher = scene.createSpriteBatcher(smolMaterial, smol::SpriteBatcher::SCREEN);
 
+  // Loads a material and set the font texture as the material main texture
   font = resourceManager.loadFont("assets/font/segoeui.font");
   auto fontMaterial = resourceManager.loadMaterial("assets/font.material");
-  fontMaterial->setSampler2D("mainTex", font->texture);
+  fontMaterial->setSampler2D("mainTex", font->getTexture());
+
   textBatcher = scene.createSpriteBatcher(fontMaterial, smol::SpriteBatcher::SCREEN);
 
-  char* p = "Testing string drawing!\nThis is another text line :)";
-  drawString(p, font, -5.0f, 0.0f, textBatcher, scene, smol::Color::BLUE);
+  char* p = "Hello, Sailor!\nI'm a lumberjack and I'm ok!";
+  drawString(p, font, -5.0f, 3.0f, textBatcher, scene, smol::Color::BLACK);
 
-  scene.createSpriteNode(textBatcher,
+  smol::SpriteNode::create(textBatcher,
       //smol::Rect(378, 507, 409, 481), SMOL LOGO
       smol::Rect(339, 479, 32, 32), // FOLDER
       //smol::Rect(270, 476, 32, 32), // CUBE
@@ -342,7 +350,7 @@ void onUpdate(float deltaTime)
     {
       for (int y = 0; y < numHSprites; y++)
       {
-        auto hNode = scene.createSpriteNode(batcher, smol::Rect{0, 0, 800, 800},
+        auto hNode = smol::SpriteNode::create(batcher, smol::Rect{0, 0, 800, 800},
             smol::Vector3{xPos + spriteWidth/2, yPos + spriteHeight/2, 0.3f },
             spriteWidth, spriteHeight,
             smol::Color(rand() % 256, rand() % 256, rand() % 256));

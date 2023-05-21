@@ -35,6 +35,16 @@ namespace smol
     LINE,
     POINT
   };
+
+#pragma pack(push, 1)
+  struct VertexPCU
+  {
+    Vector3 position;
+    Color color;
+    Vector2 uv;
+  };
+#pragma pack(pop)
+
 }
 
 #endif  // SMOL_RENDERER_TYPES_H

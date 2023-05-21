@@ -1,35 +1,10 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_scene.h> // also includes smol_scene_nodes.h
+#include <smol/smol_renderer_types.h>
 
 namespace smol
 {
   struct Scene;
-
-  //---------------------------------------------------------------------------
-  // MeshNodeInfo
-  //---------------------------------------------------------------------------
-  MeshNodeInfo::~MeshNodeInfo()
-  {
-  }
-
-
-  //---------------------------------------------------------------------------
-  // SpriteNodeInfo
-  //---------------------------------------------------------------------------
-  SpriteNodeInfo::SpriteNodeInfo():arena(0), spriteCount(1)
-  {
-  }
-
-  SpriteNodeInfo::~SpriteNodeInfo()
-  {
-    batcher->spriteCount -= spriteCount; 
-    batcher->nodeCount--;
-  }
-
-  SceneNode::SceneNode(Scene* scene, SceneNode::Type type, const Transform& transform)
-    :transform(transform), scene(*scene), active(true), dirty(true), type(type), layer(Layer::LAYER_0)
-  { 
-  }
 
   //---------------------------------------------------------------------------
   // SceneNode

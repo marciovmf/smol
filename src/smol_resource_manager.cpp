@@ -626,7 +626,7 @@ namespace smol
     Platform::unloadFileBuffer((const char*)image);
   }
 
-  Font* ResourceManager::loadFont(const char* fileName)
+  Handle<Font> ResourceManager::loadFont(const char* fileName)
   {
     Config config(fileName);
     const ConfigEntry* entry = config.findEntry("font");
@@ -641,36 +641,36 @@ namespace smol
 
     // reserve space for the font and the font name
     size_t fontNameLen = strlen(fontName);
-    size_t totalMemory = sizeof(Font)
+    size_t totalMemory = sizeof(FontInfo)
       + glyphCount * sizeof(Glyph) 
       + kerningCount * sizeof(Kerning)
       + fontNameLen + 1; // +1 for fontName null termiator
 
     char* memory = (char*) Platform::getMemory(totalMemory);
     if (!memory)
-      return nullptr;
+      return INVALID_HANDLE(Font);
 
-    Font* font = (Font*) memory;
-    font->size          = size;
-    font->kerningCount  = kerningCount;
-    font->glyphCount    = glyphCount;
-    font->lineHeight    = lineHeight;
-    font->base          = base;
+    FontInfo* info = (FontInfo*) memory;
+    info->size          = size;
+    info->kerningCount  = kerningCount;
+    info->glyphCount    = glyphCount;
+    info->lineHeight    = lineHeight;
+    info->base          = base;
     // Memory layout
     // ---------------------------------------------
     //| FONT  | KERNINGS | GLYPHS | "Font Name"| 0 |
     // ---------------------------------------------
-    font->kerning       = (Kerning*) (memory + sizeof(Font));
-    font->glyph         = (Glyph*) (memory + sizeof(Font) + sizeof(Kerning) * kerningCount);
-    font->name          = (memory + sizeof(Font) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
+    info->kerning       = (Kerning*) (memory + sizeof(FontInfo));
+    info->glyph         = (Glyph*) (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount);
+    info->name          = (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
 
     // copy the font name after the Font structure and null terminate it
-    strncpy((char*)font->name, fontName, fontNameLen);
-    *((char*)font->name + fontNameLen) = 0;
+    strncpy((char*)info->name, fontName, fontNameLen);
+    *((char*)info->name + fontNameLen) = 0;
 
     // parse kerning pairs
     ConfigEntry *last = nullptr;
-    Kerning* kerningList = font->kerning;
+    Kerning* kerningList = info->kerning;
     for (int i = 0; i < kerningCount; i++)
     {
       Kerning* kerning = kerningList++;
@@ -687,7 +687,7 @@ namespace smol
     for (int i = 0; i < glyphCount; i++)
     {
       entry = config.findEntry("id", last);
-      Glyph& glyph = font->glyph[i];
+      Glyph& glyph = info->glyph[i];
       glyph.id            = (uint16) entry->getVariableNumber("id");
       glyph.rect.x        = (int32) entry->getVariableNumber("x");
       glyph.rect.y        = (int32) entry->getVariableNumber("y");
@@ -704,7 +704,7 @@ namespace smol
       uint16 count = 0;
       for (int k = 0; k < kerningCount; k++)
       {
-        Kerning& kerning = font->kerning[k];
+        Kerning& kerning = info->kerning[k];
         if (kerning.first == id)
         {
           if (count == 0)
@@ -721,21 +721,29 @@ namespace smol
     }
 
     // Create texture from font Image
-    font->texture = createTexture(bmpFileName,
+    info->texture = createTexture(bmpFileName,
         Texture::Wrap::CLAMP_TO_EDGE,
         Texture::Filter::LINEAR,
         Texture::Mipmap::NO_MIPMAP);
 
-    return font;
+    // Allocates a handle for the font and assigns its info
+    Handle<Font> handle = fonts.add(Font(info));
+    return handle;
   }
 
-  void ResourceManager::unloadFont(const Font* font)
+  void ResourceManager::unloadFont(Handle<Font> handle)
   {
-    destroyTexture(font->texture);
-    Platform::freeMemory((void*)font);
+    Font* font = fonts.lookup(handle);
+    if (font)
+    {
+      const FontInfo* info = font->getFontInfo();
+      destroyTexture(info->texture);
+      Platform::freeMemory((void*)info);
+      fonts.remove(handle);
+    }
   }
 
-  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
+  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4) 
   { }
 
   void ResourceManager::initialize()

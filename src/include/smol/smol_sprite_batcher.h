@@ -5,6 +5,7 @@
 #include <smol/smol_renderable.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_vector2.h>
+#include <smol/smol_stream_buffer.h>
 
 namespace smol
 {
@@ -21,34 +22,17 @@ namespace smol
     };
 
     Mode mode;
-    Handle<Renderable> renderable;
-    Arena arena;
-    int nodeCount;        // how many nodes are handled by this sprite batcher
-    int spriteCount;      // how many sprites are handled by this batcher. Nodes can push multiple sprites
-    int batchedSprites;   // how many sprites are batched so far. Batches happen between begin() and end()
-    int spriteCapacity;
-  
-    //TODO(marcio): make these members private
-    Vector3*  positions;
+    Handle<Material> material;
+    int nodeCount;            // how many nodes are handled by this sprite batcher
+    StreamBuffer buffer;
     bool      dirty;
-    char*     memory;
-    Color*    colors;
-    Vector2*  uvs;
-    uint32*   indices;
 
     // we cache the texture dimentions to adjust sprite UVS
     Vector2 textureDimention;
 
 
-    static const size_t positionsSize;
-    static const size_t indicesSize;
-    static const size_t colorsSize;
-    static const size_t uvsSize;
-    static const size_t totalSpriteSize;
-
     SpriteBatcher(Handle<Material> material, Mode mode, int capacity);
     SpriteBatcher() = delete;
-    size_t getTotalSizeRequired() const;
 
     void begin();
     void pushSpriteNode(SceneNode* sceneNode);

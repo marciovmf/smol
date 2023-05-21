@@ -54,7 +54,7 @@ namespace smol
 
     const Vector3& getRotation() const;
 
-    Handle<SceneNode> Transform::getParent() const;
+    Handle<SceneNode> getParent() const;
 
     void setDirty(bool value);
 

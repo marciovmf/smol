@@ -10,11 +10,6 @@ namespace smol
 {
   struct Mesh;
 
-  template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
-  template class SMOL_ENGINE_API smol::HandleList<smol::Texture>;
-  template class SMOL_ENGINE_API smol::HandleList<smol::Material>;
-  template class SMOL_ENGINE_API smol::HandleList<smol::ShaderProgram>;
-
   struct SMOL_ENGINE_API Image
   {
     enum PixelFormat16
@@ -37,6 +32,7 @@ namespace smol
       HandleList<ShaderProgram> shaders;
       smol::HandleList<smol::Material> materials;
       HandleList<smol::Mesh> meshes;
+      HandleList<Font> fonts;
       ShaderProgram* defaultShader;
       Handle<Texture> defaultTextureHandle; 
       Texture* defaultTexture;
@@ -149,9 +145,9 @@ namespace smol
 
 
       // Font
-      Font* loadFont(const char* fileName);
+      Handle<Font> loadFont(const char* fileName);
 
-      void unloadFont(const Font* fontInfo);
+      void unloadFont(Handle<Font> handle);
 
   };
 }
