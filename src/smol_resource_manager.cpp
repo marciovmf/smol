@@ -277,7 +277,7 @@ namespace smol
 
     size_t nameLen = strlen(path);
     SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
-    strncpy(material->name, path, nameLen);
+    strncpy(material->name, path, nameLen + 1);
 
     //set values for material parameters
     for(int i = 0; i < material->parameterCount; i++)
@@ -364,7 +364,7 @@ namespace smol
     const char* materialName = "custom_material";
     size_t nameLen = strlen(materialName);
     SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
-    strncpy(material.name, materialName, nameLen);
+    strncpy(material.name, materialName, nameLen + 1);
 
     if (diffuseTextureCount)
     {
@@ -665,8 +665,7 @@ namespace smol
     info->name          = (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
 
     // copy the font name after the Font structure and null terminate it
-    strncpy((char*)info->name, fontName, fontNameLen);
-    *((char*)info->name + fontNameLen) = 0;
+    strncpy((char*)info->name, fontName, fontNameLen + 1);
 
     // parse kerning pairs
     ConfigEntry *last = nullptr;
