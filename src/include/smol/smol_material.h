@@ -47,10 +47,10 @@ namespace smol
 
     enum CullFace
     {
-      BACK            = 0,
-      FRONT           = 1,
-      FRONT_AND_BACK  = 2,
-      NONE            = 3
+      NONE            = 0,
+      BACK            = 1,
+      FRONT           = 2,
+      FRONT_AND_BACK  = 3
     };
 
     char name[MAX_NAME_LEN];
