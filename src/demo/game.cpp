@@ -179,15 +179,14 @@ void onStart()
       p, smol::Color::BLUE);
 
   smol::SpriteNode::create(textBatcher,
-      smol::Rect(339, 479, 32, 32), // FOLDER
-      //smol::Rect(378, 507, 409, 481), SMOL LOGO
-      //smol::Rect(270, 476, 32, 32), // CUBE
-      //smol::Rect(303, 476, 32, 32), // DOCUMENT
+      //smol::Rect(339, 479, 32, 32), // FOLDER
+      // smol::Rect(270, 476, 32, 32), // CUBE
+      smol::Rect(304, 476, 32, 32), // DOCUMENT
       smol::Transform()
-      .setPosition(0.0f, 1.0f, 0.0f)
+      .setPosition(-1.0f, 1.0f, 0.0f)
       .setParent(node1),
       .32f, .32f,
-      smol::Color::YELLOW);
+      smol::Color::WHITE);
 
   selectedNode = cameraNode;
 }
