@@ -31,7 +31,6 @@ namespace smol
     Handle<smol::ShaderProgram> defaultShader;
     Handle<smol::Material> defaultMaterial;
     Mat4 viewMatrix;
-    Handle<SceneNode> mainCamera;
     const smol::SceneNode nullSceneNode;
 
     Scene();
@@ -60,8 +59,6 @@ namespace smol
     Handle<SceneNode> createNode(SceneNode::Type type, Transform& transform);
     void destroyNode(Handle<SceneNode> handle);
 #endif
-
-    void setMainCamera(Handle<SceneNode> handle);
 
     //
     // misc

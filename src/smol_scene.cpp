@@ -24,7 +24,6 @@ namespace smol
     batchers(8 * sizeof(SpriteBatcher)),
     renderKeys(1024 * sizeof(uint64)),
     renderKeysSorted(1024 * sizeof(uint64)),
-    mainCamera(INVALID_HANDLE(SceneNode)),
     nullSceneNode(this, SceneNode::Type::INVALID)
   {
     viewMatrix = Mat4::initIdentity();
@@ -105,16 +104,6 @@ namespace smol
     nodes.remove(handle);
   }
 #endif
-
-
-  void Scene::setMainCamera(Handle<SceneNode> handle)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if (!node || !node->typeIs(SceneNode::Type::CAMERA))
-      return;
-
-    mainCamera = handle;
-  }
 
   SceneNode& Scene::getNode(Handle<SceneNode> handle) const
   {
