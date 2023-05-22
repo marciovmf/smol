@@ -23,7 +23,8 @@ namespace smol
 
     Mode mode;
     Handle<Material> material;
-    int nodeCount;            // how many nodes are handled by this sprite batcher
+    int spriteNodeCount;
+    int textNodeCount;
     StreamBuffer buffer;
     bool      dirty;
 
@@ -36,6 +37,7 @@ namespace smol
 
     void begin();
     void pushSpriteNode(SceneNode* sceneNode);
+    void pushTextNode(SceneNode* sceneNode);
     void end();
   };
 

@@ -12,7 +12,8 @@ namespace smol
   SpriteBatcher::SpriteBatcher(Handle<Material> material, Mode mode, int capacity):
     mode(mode),
     material(material),
-    nodeCount(0),
+    spriteNodeCount(0),
+    textNodeCount(0),
     dirty(false)
   {
     Renderer::createStreamBuffer(&buffer, 64);
@@ -40,8 +41,10 @@ namespace smol
 
   void SpriteBatcher::pushSpriteNode(SceneNode* sceneNode)
   {
-    //TODO(marcio): Make sure we don't push more sprites than expected;
-    //TODO(marcio): Make sure we received real SpriteNodes
+    SMOL_ASSERT(sceneNode->typeIs(SceneNode::SPRITE),
+        "A node of type '%d' was passed to SpriteBatcher::pushSpriteNode(). It can only accept SPRITE (%d) nodes",
+        sceneNode->getType(), SceneNode::SPRITE);
+    
     SpriteNode& node = sceneNode->sprite;
     float textureWidth = textureDimention.x;
     float textureHeight = textureDimention.y;
@@ -57,4 +60,19 @@ namespace smol
     const Vector3& pos = sceneNode->transform.getPosition();
     Renderer::pushSprite(buffer, pos, {node.width, node.height}, uvRect, node.color);
   }
+
+  void SpriteBatcher::pushTextNode(SceneNode* sceneNode)
+  {
+    SMOL_ASSERT(sceneNode->typeIs(SceneNode::TEXT),
+        "A node of type '%d' was passed to SpriteBatcher::pushSpriteNode(). It can only accept SPRITE (%d) nodes",
+        sceneNode->getType(), SceneNode::TEXT);
+    TextNode& node = sceneNode->text;
+    
+    for (int i = 0; i < node.textLen; i++)
+    {
+      GlyphDrawData& data = node.drawData[i];
+      Renderer::pushSprite(buffer, data.position, data.size, data.uv, data.color);
+    }
+  }
+
 }

@@ -10,30 +10,20 @@ namespace smol
   Handle<SceneNode> SpriteNode::create(
       Handle<SpriteBatcher> batcher,
       const Rect& rect,
-      const Vector3& position,
+      const Transform& transform,
       float width,
       float height,
-      const Color& color,
-      int angle,
-      Handle<SceneNode> parent)
+      const Color& color)
   {
-    Transform t(
-        position,
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.0f, 1.0f, 1.0f),
-        parent);
-
     Scene& scene = SystemsRoot::get()->sceneManager.getLoadedScene();
-    Handle<SceneNode> handle = scene.createNode(SceneNode::Type::SPRITE, t);
+    Handle<SceneNode> handle = scene.createNode(SceneNode::Type::SPRITE, transform);
 
     handle->sprite.rect = rect;
     handle->sprite.batcher = batcher;
     handle->sprite.width = width;
     handle->sprite.height = height;
-    handle->sprite.angle = angle;
     handle->sprite.color = color;
-
-    batcher->nodeCount++;
+    batcher->spriteNodeCount++;
     batcher->dirty = true;
     return handle;
   }
@@ -42,6 +32,6 @@ namespace smol
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::SPRITE), "Handle passed to SpriteNode::destroy() is not of type SPRITE");
     SystemsRoot::get()->sceneManager.getLoadedScene().destroyNode(handle);
-    handle->sprite.batcher->nodeCount--;
+    handle->sprite.batcher->spriteNodeCount--;
   }
 }

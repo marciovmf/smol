@@ -301,8 +301,7 @@ namespace smol
     const SceneNode* allNodes = scene->nodes.getArray();
 
     batcher->begin();
-
-    for (int i = 0; i < batcher->nodeCount; i++)
+    for (int i = 0; i < batcher->spriteNodeCount; i++)
     {
       uint64 key = ((uint64*)renderKeyList)[i];
       SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
@@ -312,10 +311,30 @@ namespace smol
         continue;
       batcher->pushSpriteNode(sceneNode);
     }
-
     batcher->end();
-    return batcher->nodeCount;
+    return batcher->spriteNodeCount - 1;
   }
+
+  static int drawTextNodes(Scene* scene, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
+  {
+    const SceneNode* allNodes = scene->nodes.getArray();
+
+    batcher->begin();
+    for (int i = 0; i < batcher->textNodeCount; i++)
+    {
+      uint64 key = ((uint64*)renderKeyList)[i];
+      SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+
+      // ignore sprites the current camera can't see
+      if(!(cameraLayers & sceneNode->getLayer()))
+        continue;
+
+      batcher->pushTextNode(sceneNode);
+    }
+    batcher->end();
+    return batcher->textNodeCount - 1;
+  }
+
 
   //
   // Misc
@@ -1215,8 +1234,21 @@ namespace smol
           }
           break;
 
+        case SceneNode::TEXT:
+          {
+            node->transform.update(scene);
+            if (node->transform.isDirty(scene) || node->isDirty())
+            {
+              SpriteBatcher* batcher = scene.batchers.lookup(node->text.batcher);
+              batcher->dirty = true;
+            }
+            Handle<Material> material = node->text.batcher->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
+          }
+          break;
         case SceneNode::SPRITE:
           {
+            node->transform.update(scene);
             if (node->transform.isDirty(scene) || node->isDirty())
             {
               SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
@@ -1303,7 +1335,6 @@ namespace smol
       int currentMaterialIndex = -1;
       GLuint shaderProgramId = 0; 
       Mat4 identity = Mat4::initIdentity();
-
       uint32 cameraLayers = cameraNode->camera.getLayerMask();
 
       for(int i = 0; i < numKeys; i++)
@@ -1339,18 +1370,13 @@ namespace smol
         else if (node->typeIs(SceneNode::SPRITE))
         {
           SpriteBatcher* batcher = scene.batchers.lookup(node->sprite.batcher);
-          if(batcher->dirty)
+          //if(batcher->dirty)
           {
             if (batcher->mode == SpriteBatcher::CAMERA)
             {
-              // Relative to current camera
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ,
-                  sizeof(Mat4), (const float*) cameraNode->camera.getProjectionMatrix().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW,
-                  sizeof(Mat4), (const float*) cameraNode->transform.getMatrix().inverse().e);
-              glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL,
-                  sizeof(Mat4), (const float*) identity.e);
 
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
+                node->transform.getMatrix().e);
             }
             else
             {
@@ -1364,17 +1390,32 @@ namespace smol
               glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
                   (const float*) identity.e);
             }
-
-            // keep it dirty while there are cameras to render
-            if (cameraIndex == numCameras - 1)
-            {
-              batcher->dirty = false;
-            }
-            //draw
-             drawSpriteNodes(&scene, batcher, allRenderKeys + i, cameraLayers);
           }
-          // skip all nodes handled by the current batcher
-          i+=batcher->nodeCount - 1;
+
+          drawSpriteNodes(&scene, batcher, allRenderKeys + i, cameraLayers);
+          i+= (batcher->spriteNodeCount - 1);
+        }
+        else if (node->typeIs(SceneNode::TEXT))
+        {
+          SpriteBatcher* batcher = scene.batchers.lookup(node->text.batcher);
+          if (batcher->mode == SpriteBatcher::CAMERA)
+          {
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
+                node->transform.getMatrix().e);
+          }
+          else
+          {
+            Transform t;
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ, sizeof(Mat4),
+                (const float*) screenCamera.getProjectionMatrix().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW, sizeof(Mat4),
+                (const float*) t.getMatrix().inverse().e);
+            glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL, sizeof(Mat4),
+                (const float*) identity.e);
+          }
+
+          drawTextNodes(&scene, batcher, allRenderKeys + i, cameraLayers);
+          i+= (batcher->textNodeCount - 1);
         }
         else
         {

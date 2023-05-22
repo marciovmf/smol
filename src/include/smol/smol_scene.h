@@ -56,7 +56,7 @@ namespace smol
     //
    
 #ifndef SMOL_MODULE_GAME
-    Handle<SceneNode> createNode(SceneNode::Type type, Transform& transform);
+    Handle<SceneNode> createNode(SceneNode::Type type, const Transform& transform);
     void destroyNode(Handle<SceneNode> handle);
 #endif
 

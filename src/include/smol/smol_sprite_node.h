@@ -8,8 +8,9 @@
 
 namespace smol
 {
-  struct SpriteBatcher;
+  class Transform;
   struct Vector3;
+  struct SpriteBatcher;
 
   struct SMOL_ENGINE_API SpriteNode final : public NodeComponent
   {
@@ -18,17 +19,14 @@ namespace smol
     float width;
     float height;
     Color color;
-    int angle;
 
   static Handle<SceneNode> create(
       Handle<SpriteBatcher> batcher,
       const Rect& rect,
-      const Vector3& position,
+      const Transform& transform,
       float width,
       float height,
-      const Color& color,
-      int angle = 0,
-      Handle<SceneNode> parent = INVALID_HANDLE(SceneNode));
+      const Color& color);
 
   static void destroy(Handle<SceneNode> handle);
 

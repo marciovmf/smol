@@ -8,81 +8,12 @@
 #include <smol/smol_camera_node.h>
 #include <utility>
 #include <time.h>
-
-float drawGliph(const smol::Glyph& g, float x, float y, 
-    const smol::Kerning* kernings, uint16 kerningCount,
-    smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
-{
-  const float scale = 0.01f;
-  const float width   = g.rect.w * scale;
-  const float height  = g.rect.h * scale;
-  const float yOffset = g.yOffset * scale;
-
-  // offset by half height because our pivots are at center
-  const float xOffset = g.xOffset * scale + width/2;
-  const float xAdvance = g.xAdvance * scale;
- // offset by half height because our pivots are at center
-  y -= height/2.0f + yOffset;
-
-  // apply kerning
-  float kerning = 0.0f;
-  for (int i = 0; i < kerningCount; i++)
-  {
-    const smol::Kerning& k = kernings[i];
-    if(k.second == g.id)
-    {
-      kerning = k.amount * scale;
-      break;
-    }
-  }
-
-  smol::SpriteNode::create(batcher, g.rect,
-      smol::Vector3(x + xOffset + kerning, y, 0.0f),
-      width, height, color);
-
-  return x + xAdvance + kerning;
-}
-
-void drawString(const char* str, smol::Handle<smol::Font> font, float x, float y, smol::Handle<smol::SpriteBatcher> batcher, smol::Scene& scene, smol::Color color)
-{
-  float advance = x;
-  const smol::Kerning* kerning = nullptr;
-  uint16 kerningCount = 0;
-  
-  int glyphCount;
-  const smol::Glyph* glyphList = font->getGlyphs(&glyphCount);
-
-  const smol::Kerning* kerningList = font->getKernings();
-  const uint16 lineHeight = font->getLineHeight();
-
-  while (*str != 0)
-  {
-    for (int i = 0; i < glyphCount; i++)
-    {
-      uint16 id = (uint16) *str;
-
-      const smol::Glyph& glyph = glyphList[i];
-      if (glyph.id == id)
-      {
-        if ((char)id == '\n')
-        {
-          y -= lineHeight / 100.0f;
-          advance = x;
-        }
-        advance = drawGliph(glyph, advance, y, kerning, kerningCount, batcher, scene, color);
-        // kerning information for the next character
-        kerning = &kerningList[glyph.kerningStart];
-        kerningCount = glyph.kerningCount;
-        break;
-      }
-    }
-    str++;
-  }
-}
+#include <string.h>
 
 smol::SystemsRoot* root;
 smol::Handle<smol::Font> font;
 smol::Handle<smol::SceneNode> cameraNode;
+smol::Handle<smol::SceneNode> textNode;
 smol::Handle<smol::SceneNode> sideCamera;
 smol::Handle<smol::SceneNode> floorNode;
 smol::Handle<smol::SceneNode> node1;
@@ -240,17 +171,22 @@ void onStart()
 
   textBatcher = scene.createSpriteBatcher(fontMaterial, smol::SpriteBatcher::SCREEN);
 
-  const char* p = "Hello, Sailor!\nI'm a lumberjack and I'm ok!";
-  drawString(p, font, -5.0f, 3.0f, textBatcher, scene, smol::Color::BLACK);
-  smol::TextNode::create(textBatcher, font, smol::Vector3(-5.0f, 3.0f, 0.3f), p);
+  const char* p = "Hello, Sailor!\n";
+  textNode = smol::TextNode::create(textBatcher, font, 
+      smol::Transform()
+        .setPosition(0.0f, 1.5f, 0.0f)
+        .setParent(node1),
+      p, smol::Color::BLUE);
 
   smol::SpriteNode::create(textBatcher,
-      //smol::Rect(378, 507, 409, 481), SMOL LOGO
       smol::Rect(339, 479, 32, 32), // FOLDER
+      //smol::Rect(378, 507, 409, 481), SMOL LOGO
       //smol::Rect(270, 476, 32, 32), // CUBE
       //smol::Rect(303, 476, 32, 32), // DOCUMENT
-      smol::Vector3(0.0f, 3.0f, 0.3f),
-      0.32f, 0.32f,
+      smol::Transform()
+      .setPosition(0.0f, 1.0f, 0.0f)
+      .setParent(node1),
+      .32f, .32f,
       smol::Color::YELLOW);
 
   selectedNode = cameraNode;
@@ -274,15 +210,21 @@ inline float animateToZero(float value, float deltaTime)
 
 bool isSideCameraActive = false;
 
+
+char* buff[255];
+
 void onUpdate(float deltaTime)
 {
   smol::Keyboard& keyboard = root->keyboard;
   smol::Mouse& mouse = root->mouse;
-  smol::Renderer& renderer = root->renderer;
-  smol::ResourceManager& resourceManager = root->resourceManager;
   smol::Scene& scene = root->sceneManager.getLoadedScene();
 
   float scaleAmount = 0.0f;
+
+  const smol::Point2& cursorPos = mouse.getCursorPosition();
+  snprintf((char *) buff, sizeof(buff), "Hello Sailor\n%dx%d", cursorPos.x, cursorPos.y);
+  textNode->text.setText((const char*)buff);
+  
 
   if (keyboard.getKeyDown(smol::KEYCODE_M))
   {
@@ -295,7 +237,6 @@ void onUpdate(float deltaTime)
     sideCameraActive = !sideCameraActive;
     sideCamera->setActive(sideCameraActive);
   }
-
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {

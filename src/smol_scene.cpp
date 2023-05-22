@@ -88,10 +88,8 @@ namespace smol
   //
 
 #ifndef SMOL_MODULE_GAME
-  Handle<SceneNode> Scene::createNode(SceneNode::Type type, Transform& transform)
+  Handle<SceneNode> Scene::createNode(SceneNode::Type type, const Transform& transform)
   {
-    if (transform.getParent() == INVALID_HANDLE(SceneNode))
-      transform.setParent(Scene::ROOT);
     Handle<SceneNode> handle = nodes.add(SceneNode(this, type, transform));
     handle->setDirty(true);
     return handle;
