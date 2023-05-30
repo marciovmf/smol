@@ -40,6 +40,81 @@ namespace smol
     return fontInfo->glyph;
   }
 
+
+  Vector2 Font::computeString(const char* str,
+      Color color,
+      GlyphDrawData* drawData,
+      float lineHeightScale)
+  {
+    float x = 0.0f;
+    float y = 0.0f;
+    const smol::Kerning* kerning = nullptr;
+    uint16 kerningCount = 0;
+
+    int glyphCount;
+    const smol::Glyph* glyphList  = getGlyphs(&glyphCount);
+    const smol::Kerning* kerningList = getKernings();
+    const float lineHeight  = getLineHeight() * lineHeightScale;
+    Vector2 bounds(0.0f);
+    float advance = x;
+
+    while (*str != 0)
+    {
+      for (int i = 0; i < glyphCount; i++)
+      {
+        uint16 id = (uint16) *str;
+        const smol::Glyph& glyph = glyphList[i];
+        if (glyph.id == id)
+        {
+          if ((char)id == '\n')
+          {
+            y -= lineHeight;
+            advance = x;
+          }
+
+          // apply kerning
+          float glyphKerning = 0.0f;
+          for (int j = 0; j < kerningCount; j++)
+          {
+            const smol::Kerning& k = kerning[j];
+            if(k.second == glyph.id)
+            {
+              glyphKerning = k.amount;
+              break;
+            }
+          }
+
+          // x bounds
+          if (glyph.rect.w + advance > bounds.x)
+            bounds.x = glyph.rect.w + advance;
+
+          float glyphY = y - glyph.yOffset;
+          drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, glyphY, 0.0f);
+          drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
+          drawData->color = color;
+          drawData->uv = glyph.rect;
+          advance += glyph.xAdvance + glyphKerning;
+
+          // y bounds
+          if (abs(glyphY - glyph.rect.h)  > bounds.y)
+          {
+            bounds.y = abs(glyphY - glyph.rect.h);
+          }
+
+          // kerning information for the next character
+          kerning = &kerningList[glyph.kerningStart];
+          kerningCount = glyph.kerningCount;
+          break;
+        }
+      }
+      str++;
+      drawData++;
+    }
+
+    return bounds;
+  }
+
+
 #ifndef SMOL_MODULE_GAME
   const FontInfo* Font::getFontInfo() const
   {

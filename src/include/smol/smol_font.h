@@ -1,6 +1,9 @@
 #include <smol/smol_handle_list.h>
 #include <smol/smol_texture.h>
 #include <smol/smol_rect.h>
+#include <smol/smol_vector2.h>
+#include <smol/smol_vector3.h>
+#include <smol/smol_color.h>
 #include <smol/smol.h>
 
 #ifndef SMOL_FONT_H
@@ -8,6 +11,14 @@
 
 namespace smol
 {
+  struct GlyphDrawData
+  {
+    Vector3 position;
+    Vector2 size;
+    Rectf uv;           // in texture coords
+    Color color;
+  };
+
   struct SMOL_ENGINE_API Kerning
   {
     uint16 first;
@@ -60,6 +71,11 @@ namespace smol
 #ifndef SMOL_MODULE_GAME
     const FontInfo* getFontInfo() const;
 #endif
+
+  Vector2 computeString(const char* str,
+      Color color,
+      GlyphDrawData* drawData,
+      float lineHeightScale);
   };
 
   template class SMOL_ENGINE_API smol::HandleList<smol::Font>;

@@ -14,14 +14,7 @@ namespace smol
   class Transform;
   struct SpriteBatcher;
   struct Font;
-
-  struct GlyphDrawData
-  {
-    Vector3 position;
-    Vector2 size;
-    Rectf uv;           // in texture coords
-    Color color;
-  };
+  struct GlyphDrawData;
 
   struct SMOL_ENGINE_API TextNode final : public NodeComponent
   {
