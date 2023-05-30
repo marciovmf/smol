@@ -36,6 +36,7 @@ namespace smol
     float lineHeightScale;
     char* text;
     GlyphDrawData* drawData;
+    bool drawBackground;
 
     void setText(const char* text);
     const char* getText() const;
@@ -51,6 +52,8 @@ namespace smol
     Color getTextColor() const;
     void setBackgroundColor(Color color);
     Color getBackgroundColor() const;
+    void enableTextBackground(bool value);
+    bool isTextBackgroundEnabled() const;
     void setLineHeightScale(float scale);
     float getLineHeightScale() const;
     static void destroy(Handle<SceneNode> handle);

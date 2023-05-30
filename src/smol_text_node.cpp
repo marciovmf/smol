@@ -98,6 +98,7 @@ namespace smol
     textNode.node = handle;
     textNode.color = color;
     textNode.bgColor = Color(0.0f, 0.0f, 0.0f, 0.0f);
+    textNode.drawBackground = false;
     textNode.arena.initialize(0); // let setText() decide how much to allocate
     textNode.batcher->textNodeCount++;
     textNode.batcher->dirty = true;
@@ -129,10 +130,13 @@ namespace smol
     GlyphDrawData* background = drawData;
     this->textBounds = computeString(this->text, font, batcher, color, this->drawData+1, lineHeightScale);
 
-    background->position = Vector3(0.0f, 0.0f, -0.1f);
+    background->position = Vector3(0.0f, 0.0f, -0.2f);
     background->color = bgColor;
     background->uv = Rectf();
-    background->size = this->textBounds;
+    if (drawBackground)
+      background->size = this->textBounds;
+    else
+      background->size = Vector2(0.0f);
   }
 
   const char* TextNode::getText() const
@@ -167,6 +171,23 @@ namespace smol
   }
 
   Color TextNode::getBackgroundColor() const { return bgColor; }
+
+  void TextNode::enableTextBackground(bool value)
+  {
+    drawBackground = value;
+    if (drawData)
+    {
+      if (drawBackground)
+        drawData[0].size = this->textBounds;
+      else
+        drawData[0].size = Vector2(0.0f);
+    }
+  }
+
+  bool TextNode::isTextBackgroundEnabled() const
+  {
+    return drawBackground;
+  }
 
   void TextNode::setLineHeightScale(float scale) { lineHeightScale = scale; }
 

@@ -179,7 +179,8 @@ void onStart()
         {0.0f, 0.0f, 30.0f},
         {0.02f, 0.02f, 0.02f},
         node1),
-        "Hello, Sailor!", smol::Color::YELLOW);
+        "Hello,Sailor!",
+        smol::Color::YELLOW);
 
   const char* p = "";
   textNode = smol::TextNode::create(textBatcher, font,
@@ -292,9 +293,9 @@ void onUpdate(float deltaTime)
   {
     textNode->text.setLineHeightScale(textNode->text.getLineHeightScale() - 0.01f);
   }
-  else if (keyboard.getKey(smol::KEYCODE_P))
+  else if (keyboard.getKeyDown(smol::KEYCODE_P))
   {
-    textNode->text.setBackgroundColor(smol::Color::TRANSPARENT);
+    textNode->text.enableTextBackground(!textNode->text.isTextBackgroundEnabled());
   }
 
 
