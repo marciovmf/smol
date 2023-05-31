@@ -148,7 +148,6 @@ namespace smol
       Handle<Font> loadFont(const char* fileName);
 
       void unloadFont(Handle<Font> handle);
-
   };
 }
 
