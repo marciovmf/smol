@@ -30,7 +30,7 @@ namespace smol
   // internal utility functions
   //
 
-  static GLuint setMaterial(const Scene* scene, const Material* material)
+  static GLuint setMaterial(const Material* material)
   {
     GLuint shaderProgramId = 0; 
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
@@ -108,7 +108,7 @@ namespace smol
     {
       // use MAGENTA as default color for vertex attribute when using the default shader
       //
-      shaderProgramId = resourceManager.getShader(scene->defaultShader).glProgramId;
+      shaderProgramId = Renderer::getDefaultShaderProgram().glProgramId;
       const Color& magenta = Color::MAGENTA;
       glVertexAttrib4f(Mesh::COLOR, magenta.r, magenta.g, magenta.b, 1.0f);
     }
@@ -1316,7 +1316,7 @@ namespace smol
         {
           currentMaterialIndex = materialIndex;
           Material& material = (resourceManager.getMaterials(nullptr))[materialIndex];
-          shaderProgramId = setMaterial(&scene, &material);
+          setMaterial(&material);
         }
 
         if (node->typeIs(SceneNode::MESH)) 
