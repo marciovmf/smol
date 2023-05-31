@@ -99,6 +99,10 @@ namespace smol
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& tlColor, const Color& trColor, const Color& blColor, const Color& brColor);
     static void end(StreamBuffer& streamBuffer);
     static void flush(StreamBuffer& streamBuffer);
+
+    // static state functions
+    static void setMaterial(const Material* material);
+    static void setMaterial(Handle<Material> handle);
   };
 }
 #endif  // SMOL_RENDERER_H

@@ -30,7 +30,7 @@ namespace smol
   // internal utility functions
   //
 
-  static GLuint setMaterial(const Material* material)
+  void Renderer::setMaterial(const Material* material)
   {
     GLuint shaderProgramId = 0; 
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
@@ -167,8 +167,12 @@ namespace smol
           break;
       }
     }
+  }
 
-    return shaderProgramId;
+  void Renderer::setMaterial(Handle<Material> handle)
+  {
+    const Material* material = handle.operator->();
+    setMaterial(material);
   }
 
   static void updateGlobalShaderParams(SceneNode& cameraNode, float deltaTime)
