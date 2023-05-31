@@ -30,7 +30,7 @@ namespace smol
   // internal utility functions
   //
 
-  static GLuint setMaterial(const Scene* scene, const Material* material, const SceneNode* cameraNode)
+  static GLuint setMaterial(const Scene* scene, const Material* material)
   {
     GLuint shaderProgramId = 0; 
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
@@ -274,12 +274,9 @@ namespace smol
   //  return (uint32)((uint8)key);
   //}
 
-
-  // This function assumes a material is already bound
-  static void drawRenderable(Scene* scene, const Renderable* renderable, GLuint shaderProgramId)
+  static void drawRenderable(const Renderable* renderable)
   {
-    Mesh* mesh = SystemsRoot::get()->resourceManager.getMesh(renderable->mesh);
-
+    const Mesh* mesh = renderable->mesh.operator->();
     glBindVertexArray(mesh->vao);
 
     if (mesh->ibo != 0)
@@ -1319,7 +1316,7 @@ namespace smol
         {
           currentMaterialIndex = materialIndex;
           Material& material = (resourceManager.getMaterials(nullptr))[materialIndex];
-          shaderProgramId = setMaterial(&scene, &material, cameraNode);
+          shaderProgramId = setMaterial(&scene, &material);
         }
 
         if (node->typeIs(SceneNode::MESH)) 
@@ -1331,7 +1328,7 @@ namespace smol
               node->transform.getMatrix().e);
 
           Renderable* renderable = scene.renderables.lookup(node->mesh.renderable);
-          drawRenderable(&scene, renderable, shaderProgramId);
+          drawRenderable(renderable);
         }
         else if (node->typeIs(SceneNode::TEXT))
         {
