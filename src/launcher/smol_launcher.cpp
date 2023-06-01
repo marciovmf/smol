@@ -71,8 +71,6 @@ namespace smol
           Vector2 size = data.size;
           size.x *=  scaleX;
           size.y *=  scaleY;
-          //offset.sum();
-
           Renderer::pushSprite(buffer, offset, size, data.uv, data.color);
         }
 #endif

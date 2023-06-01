@@ -95,13 +95,12 @@ namespace smol
           //drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
           drawData->color = color;
           drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
-          const float scale = lineHeight * 0.0001;
-          drawData->position.x *= scale;
-          drawData->position.y *= scale;
-          drawData->position.z *= scale;
           drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
-          drawData->size.x *= scale;
-          drawData->size.y *= scale;
+          
+          // scale it to "1%" so it's easier to scale it propperly when rendering different sizes.
+          const float scale = 0.01f;
+          drawData->position.mult(scale);
+          drawData->size.mult(scale);
 
           // convert UVs from pixels to 0~1 range
           Rectf uvRect;

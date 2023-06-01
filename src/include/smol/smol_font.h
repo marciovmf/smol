@@ -72,10 +72,7 @@ namespace smol
     const FontInfo* getFontInfo() const;
 #endif
 
-  Vector2 computeString(const char* str,
-      Color color,
-      GlyphDrawData* drawData,
-      float lineHeightScale);
+  Vector2 computeString(const char* str, Color color, GlyphDrawData* drawData, float lineHeightScale);
   };
 
   template class SMOL_ENGINE_API smol::HandleList<smol::Font>;

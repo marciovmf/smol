@@ -18,14 +18,6 @@ vertexShader:"
   out vec4 vertColor; 
   out vec2 uv;
   void main() {
-    // Looks like it works
-    //vec3 offset = vec3(0.1, -0.5, 0);
-    //vec3 pos = (offset + vertPos ) * vec3(2.0, -2.0, 2.0) - 1;
-    //gl_Position = vec4(pos, 1.0);
-    //gl_Position.y *= -1;
-
-
-    // Works without the need of an offset
     vec3 pos = vertPos * vec3(2.0, -2.0, 2.0) - 1;
     gl_Position = vec4(pos, 1.0);
     gl_Position.y *= -1;
@@ -41,8 +33,8 @@ fragmentShader:"
   in vec4 vertColor;
   in vec2 uv;
 
-  const float width = 0.38;
-  const float edge = 0.10;
+  const float width = 0.30;
+  const float edge = 0.34;
 
   void main()
   {
