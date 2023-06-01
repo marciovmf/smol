@@ -44,7 +44,7 @@ namespace smol
     Scene& getLoadedScene();
     Rect getViewport() const;
     float getViewportAspect() const;
-    
+
     //
     // Render
     //

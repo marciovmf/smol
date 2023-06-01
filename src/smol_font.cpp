@@ -58,6 +58,8 @@ namespace smol
     Vector2 bounds(0.0f);
     float advance = x;
 
+    const Vector2 textureSize = getTexture()->getDimention();
+
     while (*str != 0)
     {
       for (int i = 0; i < glyphCount; i++)
@@ -89,11 +91,26 @@ namespace smol
             bounds.x = glyph.rect.w + advance;
 
           float glyphY = y - glyph.yOffset;
-          drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, glyphY, 0.0f);
-          drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
+          // Negative Y because sprites are pushed with flipped Y
+          //drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
           drawData->color = color;
-          drawData->uv = glyph.rect;
+          drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
+          const float scale = lineHeight * 0.0001;
+          drawData->position.x *= scale;
+          drawData->position.y *= scale;
+          drawData->position.z *= scale;
+          drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
+          drawData->size.x *= scale;
+          drawData->size.y *= scale;
+
+          // convert UVs from pixels to 0~1 range
+          Rectf uvRect;
+          uvRect.x = glyph.rect.x / (float) textureSize.x;
+          uvRect.y = 1 - (glyph.rect.y /(float) textureSize.y); 
+          uvRect.w = glyph.rect.w / (float) textureSize.x;
+          uvRect.h = glyph.rect.h / (float) textureSize.y;
           advance += glyph.xAdvance + glyphKerning;
+          drawData->uv = uvRect;
 
           // y bounds
           if (abs(glyphY - glyph.rect.h)  > bounds.y)

@@ -630,14 +630,13 @@ namespace smol
   {
     Config config(fileName);
     const ConfigEntry* entry = config.findEntry("font");
-    const uint16 size         = (uint16) entry->getVariableNumber("size");
-    const uint16 kerningCount = (uint16) entry->getVariableNumber("kerning_count");
-    const uint16 glyphCount   = (uint16) entry->getVariableNumber("glyph_count");
-    const uint16 lineHeight   = (uint16) entry->getVariableNumber("line_height");
-    const uint16 base         = (uint16) entry->getVariableNumber("base");
-    const char* bmpFileName   = entry->getVariableString("image");
-    const char* fontName      = entry->getVariableString("name");
-
+    const uint16 size         = (uint16) entry->getVariableNumber("size", true);
+    const uint16 kerningCount = (uint16) entry->getVariableNumber("kerning_count", true);
+    const uint16 glyphCount   = (uint16) entry->getVariableNumber("glyph_count", true);
+    const uint16 lineHeight   = (uint16) entry->getVariableNumber("line_height", true);
+    const uint16 base         = (uint16) entry->getVariableNumber("base", true);
+    const char* bmpFileName   = entry->getVariableString("image", "", true);
+    const char* fontName      = entry->getVariableString("name", "", true);
 
     // reserve space for the font and the font name
     size_t fontNameLen = strlen(fontName);

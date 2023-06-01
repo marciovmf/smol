@@ -65,19 +65,11 @@ namespace smol
         "A node of type '%d' was passed to SpriteBatcher::pushSpriteNode(). It can only accept SPRITE (%d) nodes",
         sceneNode->getType(), SceneNode::TEXT);
     TextNode& node = sceneNode->text;
-    float textureWidth = textureDimention.x;
-    float textureHeight = textureDimention.y;
 
     for (int i = 0; i < node.textLen; i++)
     {
       GlyphDrawData& data = node.drawData[i];
-      // convert UVs from pixels to 0~1 range
-      Rectf uvRect;
-      uvRect.x = data.uv.x / (float) textureWidth;
-      uvRect.y = 1 - (data.uv.y /(float) textureHeight); 
-      uvRect.w = data.uv.w / (float) textureWidth;
-      uvRect.h = data.uv.h / (float) textureHeight;
-      Renderer::pushSprite(buffer, data.position, data.size, uvRect, data.color);
+      Renderer::pushSprite(buffer, data.position, data.size, data.uv, data.color);
     }
   }
 

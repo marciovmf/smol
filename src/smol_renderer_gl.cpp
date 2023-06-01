@@ -1,4 +1,5 @@
 
+#include "include/smol/gl/glcorearb.h"
 #include <smol/smol_gl.h>             // must be included first
 #include <smol/smol_random.h>
 #include <smol/smol_renderer.h>
@@ -23,12 +24,7 @@ namespace smol
   const size_t SMOL_UBO_FLOAT_RANDOM_01       = (3 * sizeof(Mat4) + sizeof(float));
   const size_t SMOL_UBO_FLOAT_ELAPSED_SECONDS = (3 * sizeof(Mat4) + sizeof(float) * 2);
   const size_t SMOL_UBO_SIZE                  = 4 * sizeof(Mat4) + 3 * sizeof(float);
-
-
   const GLuint SMOL_GLOBALUBO_BINDING_POINT = 0;
-  //
-  // internal utility functions
-  //
 
   void Renderer::setMaterial(const Material* material)
   {
@@ -1082,23 +1078,24 @@ namespace smol
       flush(streamBuffer);
     }
 
+    const float y = -position.y;
+
     VertexPCU vertex[verticesPerSrprite];
     uint32 index[indicesPerSprite];
-
     // Top left 
-    vertex[0].position = {position.x,  position.y, position.z};                         // top left
+    vertex[0].position = {position.x,  y, position.z};                         // top left
     vertex[0].color     = tlColor;
     vertex[0].uv        = {uv.x, uv.y};
     // bottom right
-    vertex[1].position = {position.x + size.x,  position.y - size.y, position.z};       // bottom right
+    vertex[1].position = {position.x + size.x,  y - size.y, position.z};       // bottom right
     vertex[1].color     = brColor;
     vertex[1].uv        = {uv.x + uv.w, uv.y - uv.h};
     // top right
-    vertex[2].position = {position.x + size.x,  position.y, position.z};                // top right
+    vertex[2].position = {position.x + size.x,  y, position.z};                // top right
     vertex[2].color     = trColor;
     vertex[2].uv        = {uv.x + uv.w, uv.y};
     // bottom left
-    vertex[3].position = {position.x, position.y - size.y, position.z};                // bottom left
+    vertex[3].position = {position.x, y - size.y, position.z};                // bottom left
     vertex[3].color     = blColor;
     vertex[3].uv        = {uv.x, uv.y - uv.h};
 
@@ -1301,7 +1298,6 @@ namespace smol
       // ----------------------------------------------------------------------
       // Draw render keys
       int currentMaterialIndex = -1;
-      GLuint shaderProgramId = 0; 
       uint32 cameraLayers = cameraNode->camera.getLayerMask();
 
       for(int i = 0; i < numKeys; i++)

@@ -177,7 +177,7 @@ void onStart()
       smol::Transform(
         {0.0f, 2.0f, 0.0f},
         {0.0f, 0.0f, 30.0f},
-        {0.02f, 0.02f, 0.02f},
+        {5.0f, 5.0f, 5.0f}, 
         node1),
         "Hello,Sailor!",
         smol::Color::YELLOW);
@@ -185,9 +185,9 @@ void onStart()
   const char* p = "";
   textNode = smol::TextNode::create(textBatcher, font,
       smol::Transform(
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f},
-        {0.02f, 0.02f, 0.02f}),
+        {0.0f, 8.0f, 0.0f},
+        {0.0f, -30.0f, 0.0f},
+        {1.f, 1.f, 1.f}),
         p, smol::Color::WHITE);
     textNode->text.setBackgroundColor(smol::Color::TEAL);
 

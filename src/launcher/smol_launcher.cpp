@@ -33,6 +33,53 @@ namespace smol
 {
   namespace launcher
   {
+
+    GlyphDrawData drawData[255];
+
+    void drawEditorUI(StreamBuffer& buffer, Handle<Material> material, Handle<Font> uiFont, float screenW, float screenH)
+    {
+      Color color = Color::BLACK;
+      color.a = 0.6f;
+
+      Renderer::setMaterial(material);
+      Renderer::begin(buffer);
+
+      // fixed width;
+      float marginX = 30 / screenW;
+      float marginY = 30 / screenH;
+      float w = 800 / screenW;
+      float h = 600 / screenH;
+
+        Renderer::pushSprite(buffer,
+            Vector3(marginX, marginY, 0.0f), 
+            Vector2(w, h),
+            Rectf(), Color::BLACK, Color::BLACK, color, color);
+
+#if 1
+        // draw text
+        float fontScale = 16;
+        const float scaleX = fontScale / screenW;
+        const float scaleY = fontScale / screenH;
+        const char* text = "Hello, Sailor!\nThis is another line of text.\nAnd this is yet another line.\n.";
+        const size_t textLen = strlen(text);
+
+        uiFont->computeString(text, Color::WHITE, drawData, 1.0f);
+        for (int i = 0; i < textLen; i++)
+        {
+          GlyphDrawData& data = drawData[i];
+          Vector3 offset = Vector3(marginX + data.position.x * scaleX, marginY + data.position.y *  scaleY, 0.0f);
+          Vector2 size = data.size;
+          size.x *=  scaleX;
+          size.y *=  scaleY;
+          //offset.sum();
+
+          Renderer::pushSprite(buffer, offset, size, data.uv, data.color);
+        }
+#endif
+
+        Renderer::end(buffer);
+    }
+
     int smolMain(int argc, char** argv)
     {
       Log::verbosity(SMOL_LOGLEVEL);
@@ -87,6 +134,16 @@ namespace smol
 
       renderer.resize(displayConfig.width, displayConfig.height);
 
+      // UI stuff...
+      // Loads the UI font and material
+      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+      Handle<Font> uiFont = resourceManager.loadFont("assets/font/segoeui.font");
+      Handle<Material> uiMaterial = resourceManager.loadMaterial("assets/ui.material");
+      uiMaterial->setSampler2D("mainTex", uiFont->getTexture());
+      StreamBuffer buffer;
+      Renderer::createStreamBuffer(&buffer);
+      Camera uiCamera;
+      uiCamera.setOrthographic(100.0f, -10.0f, 10.0f);
 
       // Run game/engine
       uint64 startTime = 0;
@@ -116,6 +173,9 @@ namespace smol
 
         renderer.render(deltaTime);
         endTime = Platform::getTicks();
+
+        // draw editor ui
+        drawEditorUI(buffer, uiMaterial, uiFont, (float) windowWidth, (float) windowHeight);
       }
 
       onGameStopCallback();
