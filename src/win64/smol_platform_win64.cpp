@@ -87,6 +87,7 @@ namespace smol
 
   LRESULT smolWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
+    bool returnValue = 0;
     switch(uMsg) 
     {
       case WM_CLOSE:
@@ -111,6 +112,10 @@ namespace smol
       case WM_MOUSEMOVE:
       case WM_MBUTTONDOWN:
       case WM_MBUTTONUP:
+      case WM_LBUTTONDOWN:
+      case WM_LBUTTONUP:
+      case WM_RBUTTONDOWN:
+      case WM_RBUTTONUP:
         {
           unsigned char& buttonLeft   = internal.mouseState.button[0];
           unsigned char& buttonRight  = internal.mouseState.button[1];
@@ -131,6 +136,10 @@ namespace smol
           wasDown       = buttonMiddle;
           buttonMiddle  = (((isDown ^ wasDown) << 1) | isDown);
 
+#if 0
+          //TODO(marcio): XBUTTON1 and XBUTTON2 are broken. We need to handle
+          //WM_XBUTTONUP and WM_XBUTTONDOWN.
+          //When handling these messages we must return TRUE from this proc
           isDown        = (unsigned char) ((wParam & MK_XBUTTON1) > 0);
           wasDown       = buttonExtra1;
           buttonExtra1  = (((isDown ^ wasDown) << 1) | isDown);
@@ -138,6 +147,7 @@ namespace smol
           isDown        = (unsigned char) ((wParam & MK_XBUTTON2) > 0);
           wasDown       = buttonExtra2;
           buttonExtra2  = (((isDown ^ wasDown) << 1) | isDown);
+#endif
 
           // update cursor position
           internal.mouseState.cursor.x = GET_X_LPARAM(lParam); 
