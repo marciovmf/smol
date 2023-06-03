@@ -57,6 +57,7 @@ namespace smol
     void begin(int screenWidth, int screenHeight);
     void panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h);
     void label(GUICOntrolID id, const char* text, int32 x, int32 y);
+    bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
     void end();
 
 #ifndef SMOL_MODULE_GAME

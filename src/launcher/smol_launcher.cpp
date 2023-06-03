@@ -35,7 +35,6 @@ namespace smol
 {
   namespace launcher
   {
-
     void onEditorGUI(GUI& gui)
     {
       const Vector2 screen = gui.getScreenSize();
@@ -45,6 +44,12 @@ namespace smol
       const Rect& panelRect = Rect(30, 30, 250, 250);
       gui.panel(SMOL_CONTROL_ID, 30, 30, 400, (int32)screen.y - 60);
       gui.label(SMOL_CONTROL_ID, text, 35, 35);
+
+      if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 35, 70, 250 - 10, 30))
+        debugLogInfo("Button 1 clicked!!");
+
+      if (gui.doButton(SMOL_CONTROL_ID, "Button 2", 35, 110, 250 - 10, 30))
+        debugLogInfo("Button 2 clicked!!");
     }
 
     int smolMain(int argc, char** argv)

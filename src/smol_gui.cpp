@@ -25,31 +25,7 @@ namespace smol
   void GUI::panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h)
   {
     lastRect = Rect(x, y, w, h);
-
-    GUISkin::ID styleId;
-    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
-    if (mouseOver)
-    {
-      if ( root->mouse.getButton(MOUSE_BUTTON_LEFT))
-      {
-        activeControl = id;
-        styleId = GUISkin::FRAME_ACTIVE;
-      }
-      else 
-      {
-        hoverControl = id;
-        styleId = GUISkin::FRAME_HOVER;
-      }
-    }
-    else
-    {
-      if (activeControl == id)
-        activeControl = 0;
-      if (hoverControl == id)
-        hoverControl = 0;
-      styleId = GUISkin::FRAME;   
-    }
-
+    GUISkin::ID styleId = GUISkin::FRAME_ACTIVE;
     Renderer::pushSprite(streamBuffer,
         Vector3(x / screenW, y / screenH, 0.0f), 
         Vector2(w / screenW, h / screenH),
@@ -84,6 +60,59 @@ namespace smol
     }
   }
 
+  bool GUI::doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h)
+  {
+    lastRect = Rect(x, y, w, h);
+
+    GUISkin::ID styleId;
+    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
+    bool returnValue = false;
+
+    bool isActiveControl = activeControlId == id;
+    bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+    bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
+    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+      styleId = GUISkin::BUTTON_HOVER;
+
+      if (downThisFrame || (isDown && isActiveControl))
+      {
+        //debugLogInfo("Active control id = %d", id);
+        activeControlId = id;
+        styleId = GUISkin::BUTTON_ACTIVE;
+      }
+      else if(upThisFrame && isActiveControl)
+      {
+        //debugLogInfo("control %d clicked", id);
+        activeControlId = 0;
+        returnValue = true;
+      }
+    }
+    else
+    {
+      hoverControlId = 0;
+      styleId = GUISkin::BUTTON;
+      if (upThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
+
+
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+
+    //TODO(marcio): Work on text alignment!
+    //TODO(marcio): We cans use font lineHieght to vertical align it
+    label(id, text, x, y);
+    return returnValue;
+  }
+
   void GUI::end()
   {
     Renderer::end(streamBuffer);
@@ -104,8 +133,8 @@ namespace smol
     root = SystemsRoot::get();
 
     Color colorForText = Color(236.f / 255.f, 240.f / 255.f, 241.f / 255.f);
-    Color colorForHead = Color(41.f / 255.f, 128.f / 255.f, 185.f / 255.f);
-    Color colorForArea = Color(57.f / 255.f, 79.f / 255.f, 105.f / 255.f);
+    Color colorForHead = Color::BLUE;
+    Color colorForArea = Color::BLACK;
     //Color color_for_body = Color(44.f / 255.f, 62.f / 255.f, 80.f / 255.f);
     //Color color_for_pops = Color(33.f / 255.f, 46.f / 255.f, 60.f / 255.f);
 
@@ -114,11 +143,11 @@ namespace smol
 
     skin.color[GUISkin::BUTTON]        = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.50f );
     skin.color[GUISkin::BUTTON_HOVER]  = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.86f );
-    skin.color[GUISkin::BUTTON_ACTIVE] = Color(colorForHead.r, colorForHead.g, colorForHead.b, 1.00f );
+    skin.color[GUISkin::BUTTON_ACTIVE] = Color::MAROON;
 
     skin.color[GUISkin::FRAME]         = Color(colorForArea.r, colorForArea.g, colorForArea.b, 1.00f );
     skin.color[GUISkin::FRAME_HOVER]   = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.78f );
-    skin.color[GUISkin::FRAME_ACTIVE]  = Color(colorForHead.r, colorForHead.g, colorForHead.b, 1.00f );
+    skin.color[GUISkin::FRAME_ACTIVE]  = Color(38, 38, 38, 255);
   }
 
 #endif
