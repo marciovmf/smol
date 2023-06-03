@@ -109,6 +109,29 @@ namespace smol
         internal.mouseState.wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
         break;
 
+      case WM_XBUTTONDOWN:
+      case WM_XBUTTONUP:
+        {
+          unsigned char isDown, wasDown;
+          unsigned char& buttonExtra1 = internal.mouseState.button[3];
+          unsigned char& buttonExtra2 = internal.mouseState.button[4];
+          isDown        = (unsigned char) ((wParam & MK_XBUTTON1) > 0);
+          wasDown       = buttonExtra1;
+          buttonExtra1  = (((isDown ^ wasDown) << 1) | isDown);
+
+          isDown        = (unsigned char) ((wParam & MK_XBUTTON2) > 0);
+          wasDown       = buttonExtra2;
+          buttonExtra2  = (((isDown ^ wasDown) << 1) | isDown);
+
+          // update cursor position
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam); 
+          internal.mouseState.cursor.y = GET_Y_LPARAM(lParam);
+
+          //When handling these messages we must return TRUE from this proc
+          returnValue = true;
+        }
+          break;
+
       case WM_MOUSEMOVE:
       case WM_MBUTTONDOWN:
       case WM_MBUTTONUP:
@@ -120,8 +143,6 @@ namespace smol
           unsigned char& buttonLeft   = internal.mouseState.button[0];
           unsigned char& buttonRight  = internal.mouseState.button[1];
           unsigned char& buttonMiddle = internal.mouseState.button[2];
-          unsigned char& buttonExtra1 = internal.mouseState.button[3];
-          unsigned char& buttonExtra2 = internal.mouseState.button[4];
           unsigned char isDown, wasDown;
           
           isDown        = (unsigned char) ((wParam & MK_LBUTTON) > 0);
@@ -136,18 +157,6 @@ namespace smol
           wasDown       = buttonMiddle;
           buttonMiddle  = (((isDown ^ wasDown) << 1) | isDown);
 
-#if 0
-          //TODO(marcio): XBUTTON1 and XBUTTON2 are broken. We need to handle
-          //WM_XBUTTONUP and WM_XBUTTONDOWN.
-          //When handling these messages we must return TRUE from this proc
-          isDown        = (unsigned char) ((wParam & MK_XBUTTON1) > 0);
-          wasDown       = buttonExtra1;
-          buttonExtra1  = (((isDown ^ wasDown) << 1) | isDown);
-
-          isDown        = (unsigned char) ((wParam & MK_XBUTTON2) > 0);
-          wasDown       = buttonExtra2;
-          buttonExtra2  = (((isDown ^ wasDown) << 1) | isDown);
-#endif
 
           // update cursor position
           internal.mouseState.cursor.x = GET_X_LPARAM(lParam); 
@@ -159,7 +168,7 @@ namespace smol
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    return 0;
+    return returnValue;
   }
 
   bool Platform::initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits, int depthBits)
