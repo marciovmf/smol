@@ -171,15 +171,22 @@ namespace smol
     setMaterial(material);
   }
 
+  void Renderer::setViewport(uint32 x, uint32 y, uint32 w, uint32 h)
+  {
+    glViewport(x, y, w, h);
+  }
+
   static void updateGlobalShaderParams(SceneNode& cameraNode, float deltaTime)
   {
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
+
     // proj
     glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_PROJ,
         sizeof(Mat4), cameraNode.camera.getProjectionMatrix().e);
     // view
     glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_VIEW,
         sizeof(Mat4), cameraNode.transform.getMatrix().inverse().e);
+
     // model
     glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_MAT4_MODEL,
         sizeof(Mat4), Mat4::initIdentity().e);

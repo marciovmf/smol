@@ -103,6 +103,7 @@ namespace smol
     // static state functions
     static void setMaterial(const Material* material);
     static void setMaterial(Handle<Material> handle);
+    static void setViewport(uint32 x, uint32 y, uint32 w, uint32 h);
   };
 }
 #endif  // SMOL_RENDERER_H

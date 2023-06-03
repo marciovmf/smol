@@ -10,6 +10,8 @@
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
 #include <smol/smol_vector2.h>
+#include <smol/smol_gui.h>
+#include <string.h>
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -34,48 +36,15 @@ namespace smol
   namespace launcher
   {
 
-    GlyphDrawData drawData[255];
-
-    void drawEditorUI(StreamBuffer& buffer, Handle<Material> material, Handle<Font> uiFont, float screenW, float screenH)
+    void onEditorGUI(GUI& gui)
     {
-      Color color = Color::BLACK;
-      color.a = 0.6f;
-
-      Renderer::setMaterial(material);
-      Renderer::begin(buffer);
-
-      // fixed width;
-      float marginX = 30 / screenW;
-      float marginY = 30 / screenH;
-      float w = 800 / screenW;
-      float h = 600 / screenH;
-
-        Renderer::pushSprite(buffer,
-            Vector3(marginX, marginY, 0.0f), 
-            Vector2(w, h),
-            Rectf(), Color::BLACK, Color::BLACK, color, color);
-
-#if 1
-        // draw text
-        float fontScale = 16;
-        const float scaleX = fontScale / screenW;
-        const float scaleY = fontScale / screenH;
-        const char* text = "Hello, Sailor!\nThis is another line of text.\nAnd this is yet another line.\n.";
-        const size_t textLen = strlen(text);
-
-        uiFont->computeString(text, Color::WHITE, drawData, 1.0f);
-        for (int i = 0; i < textLen; i++)
-        {
-          GlyphDrawData& data = drawData[i];
-          Vector3 offset = Vector3(marginX + data.position.x * scaleX, marginY + data.position.y *  scaleY, 0.0f);
-          Vector2 size = data.size;
-          size.x *=  scaleX;
-          size.y *=  scaleY;
-          Renderer::pushSprite(buffer, offset, size, data.uv, data.color);
-        }
-#endif
-
-        Renderer::end(buffer);
+      const Vector2 screen = gui.getScreenSize();
+      const Point2 mousePos = SystemsRoot::get()->mouse.getCursorPosition();
+      char text[128];
+      snprintf(text, 128, "mosue:\n%d,%d", mousePos.x, mousePos.y);
+      const Rect& panelRect = Rect(30, 30, 250, 250);
+      gui.panel(SMOL_CONTROL_ID, 30, 30, 400, (int32)screen.y - 60);
+      gui.label(SMOL_CONTROL_ID, text, 35, 35);
     }
 
     int smolMain(int argc, char** argv)
@@ -102,6 +71,9 @@ namespace smol
 
       SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
         Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
+
+      SMOL_GAME_CALLBACK_ONGUI onGameGUICallback = (SMOL_GAME_CALLBACK_ONGUI)
+        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONGUI);
 
       if (! (game && onGameStartCallback && onGameStopCallback && onGameUpdateCallback))
       {
@@ -140,13 +112,13 @@ namespace smol
       uiMaterial->setSampler2D("mainTex", uiFont->getTexture());
       StreamBuffer buffer;
       Renderer::createStreamBuffer(&buffer);
-      Camera uiCamera;
-      uiCamera.setOrthographic(100.0f, -10.0f, 10.0f);
 
       // Run game/engine
       uint64 startTime = 0;
       uint64 endTime = 0;
       onGameStartCallback();
+
+      GUI gui(uiMaterial, uiFont);
 
       while(! Platform::getWindowCloseFlag(window))
       {
@@ -169,11 +141,27 @@ namespace smol
           renderer.resize(windowWidth, windowHeight);
         }
 
+        // render scene
         renderer.render(deltaTime);
+
+        // GUI
+        //gui.getMaterial()->setVec2("screenSize", Vector2((float)windowWidth, (float) windowHeight));
+        Renderer::setMaterial(gui.getMaterial());
+
+        if (onGameGUICallback)
+        {
+          gui.begin(windowWidth, windowHeight);
+          onGameGUICallback(gui);
+          gui.end();
+        }
         endTime = Platform::getTicks();
 
-        // draw editor ui
-        drawEditorUI(buffer, uiMaterial, uiFont, (float) windowWidth, (float) windowHeight);
+        Renderer::setViewport(0, 0, windowWidth, windowHeight);
+        gui.begin(windowWidth, windowHeight);
+        onEditorGUI(gui);
+        gui.end();
+
+
       }
 
       onGameStopCallback();

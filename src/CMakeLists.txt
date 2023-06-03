@@ -115,6 +115,8 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
   ${SOURCE_PATH}/smol_cfg_parser.cpp
   ${SOURCE_PATH}/include/smol/smol_mesh_data.h
+  ${SOURCE_PATH}/include/smol/smol_gui.h
+  ${SOURCE_PATH}/smol_gui.cpp
   ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 

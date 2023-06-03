@@ -41,12 +41,11 @@ namespace smol
   }
 
 
-  Vector2 Font::computeString(const char* str,
-      Color color,
-      GlyphDrawData* drawData,
-      float lineHeightScale)
+    Vector2 Font::computeString(const char* str,
+        Color color,
+        GlyphDrawData* drawData,
+        float lineHeightScale)
   {
-    float x = 0.0f;
     float y = 0.0f;
     const smol::Kerning* kerning = nullptr;
     uint16 kerningCount = 0;
@@ -56,9 +55,11 @@ namespace smol
     const smol::Kerning* kerningList = getKernings();
     const float lineHeight  = getLineHeight() * lineHeightScale;
     Vector2 bounds(0.0f);
-    float advance = x;
+    float advance = 0.0f;
 
     const Vector2 textureSize = getTexture()->getDimention();
+    // scale it to "1%" so it's easier to scale it propperly when rendering different sizes.
+    const float scale = 0.01f;
 
     while (*str != 0)
     {
@@ -71,7 +72,7 @@ namespace smol
           if ((char)id == '\n')
           {
             y -= lineHeight;
-            advance = x;
+            advance = 0.0f;
           }
 
           // apply kerning
@@ -87,18 +88,18 @@ namespace smol
           }
 
           // x bounds
-          if (glyph.rect.w + advance > bounds.x)
-            bounds.x = glyph.rect.w + advance;
+          const float xBounds = (glyph.rect.w + advance) * scale;
+          if (xBounds > bounds.x)
+          {
+            bounds.x = xBounds;
+          }
 
           float glyphY = y - glyph.yOffset;
           // Negative Y because sprites are pushed with flipped Y
-          //drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
           drawData->color = color;
           drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
           drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
-          
-          // scale it to "1%" so it's easier to scale it propperly when rendering different sizes.
-          const float scale = 0.01f;
+
           drawData->position.mult(scale);
           drawData->size.mult(scale);
 
@@ -112,9 +113,11 @@ namespace smol
           drawData->uv = uvRect;
 
           // y bounds
-          if (abs(glyphY - glyph.rect.h)  > bounds.y)
+
+          const float yBounds = abs(glyphY - glyph.rect.h) * scale;
+          if ( yBounds > bounds.y)
           {
-            bounds.y = abs(glyphY - glyph.rect.h);
+            bounds.y = yBounds;
           }
 
           // kerning information for the next character
