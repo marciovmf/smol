@@ -28,6 +28,11 @@ namespace smol
       BUTTON_HOVER,
       BUTTON_ACTIVE,
 
+      TOGGLE_BUTTON,
+      TOGGLE_BUTTON_HOVER,
+      TOGGLE_BUTTON_HOVER_ACTIVE,
+      TOGGLE_BUTTON_ACTIVE,
+
       FRAME,
       FRAME_HOVER,
       FRAME_ACTIVE,
@@ -48,8 +53,8 @@ namespace smol
     Rect lastRect;
     GUISkin skin;
     SystemsRoot* root;
-    GUICOntrolID hoverControl;
-    GUICOntrolID activeControl;
+    GUICOntrolID hoverControlId;
+    GUICOntrolID activeControlId;
 
     public:
     Vector2 getScreenSize() const;
@@ -58,6 +63,7 @@ namespace smol
     void panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h);
     void label(GUICOntrolID id, const char* text, int32 x, int32 y);
     bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
+    bool doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
     void end();
 
 #ifndef SMOL_MODULE_GAME

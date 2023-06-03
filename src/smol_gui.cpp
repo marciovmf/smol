@@ -80,13 +80,11 @@ namespace smol
 
       if (downThisFrame || (isDown && isActiveControl))
       {
-        //debugLogInfo("Active control id = %d", id);
         activeControlId = id;
         styleId = GUISkin::BUTTON_ACTIVE;
       }
       else if(upThisFrame && isActiveControl)
       {
-        //debugLogInfo("control %d clicked", id);
         activeControlId = 0;
         returnValue = true;
       }
@@ -101,6 +99,60 @@ namespace smol
       }
     }
 
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+
+    //TODO(marcio): Work on text alignment!
+    //TODO(marcio): We cans use font lineHieght to vertical align it
+    label(id, text, x, y);
+    return returnValue;
+  }
+
+  bool GUI::doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
+  {
+    lastRect = Rect(x, y, w, h);
+
+    GUISkin::ID styleId;
+    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
+    bool returnValue = toggled;
+
+    bool isActiveControl = activeControlId == id;
+    bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+    bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
+    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
+
+    if (toggled)
+      styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
+    else
+      styleId = GUISkin::TOGGLE_BUTTON;
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+
+      styleId = toggled ? GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE : GUISkin::TOGGLE_BUTTON_HOVER;
+
+      if (downThisFrame || (isDown && isActiveControl))
+      {
+        activeControlId = id;
+        styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
+      }
+      else if(upThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+        returnValue = !toggled;
+      }
+    }
+    else
+    {
+      hoverControlId = 0;
+      if (upThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
 
     Renderer::pushSprite(streamBuffer,
         Vector3(x / screenW, y / screenH, 0.0f), 
@@ -144,6 +196,11 @@ namespace smol
     skin.color[GUISkin::BUTTON]        = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.50f );
     skin.color[GUISkin::BUTTON_HOVER]  = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.86f );
     skin.color[GUISkin::BUTTON_ACTIVE] = Color::MAROON;
+
+    skin.color[GUISkin::TOGGLE_BUTTON]                = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.50f );
+    skin.color[GUISkin::TOGGLE_BUTTON_HOVER]          = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.86f );
+    skin.color[GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE]   = Color(150, 0, 0, 255);
+    skin.color[GUISkin::TOGGLE_BUTTON_ACTIVE]         = Color::MAROON;
 
     skin.color[GUISkin::FRAME]         = Color(colorForArea.r, colorForArea.g, colorForArea.b, 1.00f );
     skin.color[GUISkin::FRAME_HOVER]   = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.78f );

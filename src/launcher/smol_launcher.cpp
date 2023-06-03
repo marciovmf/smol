@@ -35,6 +35,7 @@ namespace smol
 {
   namespace launcher
   {
+    bool toggleValue = false;
     void onEditorGUI(GUI& gui)
     {
       const Vector2 screen = gui.getScreenSize();
@@ -46,10 +47,12 @@ namespace smol
       gui.label(SMOL_CONTROL_ID, text, 35, 35);
 
       if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 35, 70, 250 - 10, 30))
-        debugLogInfo("Button 1 clicked!!");
+        debugLogInfo("Button 1 clicked!");
 
-      if (gui.doButton(SMOL_CONTROL_ID, "Button 2", 35, 110, 250 - 10, 30))
-        debugLogInfo("Button 2 clicked!!");
+      toggleValue = gui.doToggleButton(SMOL_CONTROL_ID, "Toggle me!", toggleValue, 35, 110, 250 - 10, 30);
+
+      snprintf(text, 128, "Toggle btn is %s", toggleValue ? "true":"false");
+      gui.label(SMOL_CONTROL_ID, text, 35, 140);
     }
 
     int smolMain(int argc, char** argv)
