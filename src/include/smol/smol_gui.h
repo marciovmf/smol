@@ -45,6 +45,13 @@ namespace smol
 
   class SMOL_ENGINE_API GUI final
   {
+    enum Align
+    {
+      LEFT,
+      CENTER,
+      RIGHT
+    };
+
     Handle<Material> material;
     float screenW;
     float screenH;
@@ -61,7 +68,7 @@ namespace smol
     Rect getLastRect() const;
     void begin(int screenWidth, int screenHeight);
     void panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h);
-    void label(GUICOntrolID id, const char* text, int32 x, int32 y);
+    void label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align = LEFT);
     bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
     bool doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
     void end();

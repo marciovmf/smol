@@ -41,7 +41,7 @@ namespace smol
       const Vector2 screen = gui.getScreenSize();
       const Point2 mousePos = SystemsRoot::get()->mouse.getCursorPosition();
       char text[128];
-      snprintf(text, 128, "mosue:\n%d,%d", mousePos.x, mousePos.y);
+      snprintf(text, 128, "mouse:\n%d,%d", mousePos.x, mousePos.y);
       const Rect& panelRect = Rect(30, 30, 250, 250);
       gui.panel(SMOL_CONTROL_ID, 30, 30, 400, (int32)screen.y - 60);
       gui.label(SMOL_CONTROL_ID, text, 35, 35);

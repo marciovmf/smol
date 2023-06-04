@@ -33,13 +33,13 @@ namespace smol
 
   }
 
-  void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y)
+  void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align)
   {
     const uint16 fontSize = skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
     const float scaleY  = fontSize / screenH;
-    const float posX    = x / screenW;
-    const float posY    = y / screenH;
+    float posX    = x / screenW;
+    float posY    = y / screenH;
     const size_t textLen = strlen(text);
 
     GlyphDrawData* drawData = (GlyphDrawData*) glyphDrawDataArena.pushSize((1 + textLen) * sizeof(GlyphDrawData));
@@ -47,8 +47,20 @@ namespace smol
     bounds.mult(scaleX, scaleY);
     lastRect = Rect((int32)posX, (int32) posY, (int32) bounds.x, (int32) bounds.y);
 
-    // Draws a solid background behind the text
-    //Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), Color::BLACK);
+
+    if (align == Align::CENTER)
+    {
+      posX -= bounds.x/2;
+      posY -= bounds.y/2;
+    }
+    else if (align == Align::RIGHT)
+    {
+      posX -= bounds.x;
+      posY -= bounds.y;
+    }
+
+    // Draws a solid background behind the text. Keep this here for debugging
+    Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), Color::BLACK);
 
     for (int i = 0; i < textLen; i++)
     {
@@ -104,9 +116,9 @@ namespace smol
         Vector2(w / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
-    //TODO(marcio): Work on text alignment!
-    //TODO(marcio): We cans use font lineHieght to vertical align it
-    label(id, text, x, y);
+    const int centerX = x + w/2;
+    const int centerY = y + h/2;
+    label(id, text, centerX, centerY, CENTER);
     return returnValue;
   }
 
@@ -159,9 +171,9 @@ namespace smol
         Vector2(w / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
-    //TODO(marcio): Work on text alignment!
-    //TODO(marcio): We cans use font lineHieght to vertical align it
-    label(id, text, x, y);
+    const int centerX = x + w/2;
+    const int centerY = y + h/2;
+    label(id, text, centerX, centerY, CENTER);
     return returnValue;
   }
 
