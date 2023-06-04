@@ -97,6 +97,7 @@ namespace smol
     static void begin(StreamBuffer& streamBuffer);
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& color);
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& tlColor, const Color& trColor, const Color& blColor, const Color& brColor);
+    static void pushLine(StreamBuffer& streamBuffer, const Vector2* points, int numPoints, const Color& color, float thickness);
     static void end(StreamBuffer& streamBuffer);
     static void flush(StreamBuffer& streamBuffer);
 

@@ -1090,19 +1090,19 @@ namespace smol
     VertexPCU vertex[verticesPerSrprite];
     uint32 index[indicesPerSprite];
     // Top left 
-    vertex[0].position = {position.x,  y, position.z};                         // top left
+    vertex[0].position = {position.x,  y, position.z};
     vertex[0].color     = tlColor;
     vertex[0].uv        = {uv.x, uv.y};
     // bottom right
-    vertex[1].position = {position.x + size.x,  y - size.y, position.z};       // bottom right
+    vertex[1].position = {position.x + size.x,  y - size.y, position.z};
     vertex[1].color     = brColor;
     vertex[1].uv        = {uv.x + uv.w, uv.y - uv.h};
     // top right
-    vertex[2].position = {position.x + size.x,  y, position.z};                // top right
+    vertex[2].position = {position.x + size.x,  y, position.z};
     vertex[2].color     = trColor;
     vertex[2].uv        = {uv.x + uv.w, uv.y};
     // bottom left
-    vertex[3].position = {position.x, y - size.y, position.z};                // bottom left
+    vertex[3].position = {position.x, y - size.y, position.z};
     vertex[3].color     = blColor;
     vertex[3].uv        = {uv.x, uv.y - uv.h};
 
@@ -1119,6 +1119,71 @@ namespace smol
     glBufferSubData(GL_ARRAY_BUFFER, streamBuffer.used * streamBuffer.elementSize, sizeof(vertex), (void*) vertex);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, numSprites * 6 * sizeof(uint32), sizeof(index), (void*) index);
     streamBuffer.used += 4;
+  }
+
+  void Renderer::pushLines(StreamBuffer& streamBuffer, const Vector2* points, int numPoints, const Color& color, float thickness)
+  {
+    const int indicesPerSprite = 6;
+    const int verticesPerSrprite = 4;
+
+    SMOL_ASSERT(streamBuffer.bound == true, "Cant pushSprite() on a StreamBuffer that is not bound. Did forget to call begin() ?");
+    SMOL_ASSERT(streamBuffer.indicesPerElement == 6,"The current StreamBuffer uses %d indices per element. Pushing a sprite assumes %d indices per element.", streamBuffer.indicesPerElement, indicesPerSprite);
+
+    if (streamBuffer.used + 4 >= streamBuffer.capacity)
+    {
+      flush(streamBuffer);
+    }
+    if (numPoints < 2)
+    {
+      debugLogWarning("Not enough points provided to pushLine()");
+      return;
+    }
+
+    Vector2 p0 = points[0];
+    p0.y = -p0.y;
+    const float ht = thickness/2.0f;
+
+    VertexPCU vertex[verticesPerSrprite];
+    for(int i = 1; i < numPoints; i++)
+    {
+      Vector2 p1 = points[i];
+      p1.y = -p1.y;
+
+      VertexPCU vertex[verticesPerSrprite];
+      uint32 index[indicesPerSprite];
+      // Top left 
+      vertex[0].position = {p0.x,  p0.y - ht, 0.0f};
+      vertex[0].color     = color;
+      vertex[0].uv        = Vector2(0.0f);
+      // bottom right
+      vertex[1].position = {p1.x,  p1.y + ht, 0.0f};
+      vertex[1].color     = color;
+      vertex[1].uv        = Vector2(0.0f);
+      // top right
+      vertex[2].position = {p1.x, p1.y - ht, 0.0f};
+      vertex[2].color     = color;
+      vertex[2].uv        = Vector2(0.0f);
+      // bottom left
+      vertex[3].position = {p0.x, p0.y + ht, 0.0f};
+      vertex[3].color     = color;
+      vertex[3].uv        = Vector2(0.0f);
+
+      int numSprites = streamBuffer.used / verticesPerSrprite;
+      int offset = numSprites * 4;
+      index[0] = offset + 0;
+      index[1] = offset + 1;
+      index[2] = offset + 2;
+      index[3] = offset + 0;
+      index[4] = offset + 3;
+      index[5] = offset + 1;
+
+      //TODO(marcio): Map GPU memory and write to it directly to void calling on gl driver so much
+      glBufferSubData(GL_ARRAY_BUFFER, streamBuffer.used * streamBuffer.elementSize, sizeof(vertex), (void*) vertex);
+      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, numSprites * 6 * sizeof(uint32), sizeof(index), (void*) index);
+      streamBuffer.used += 4;
+      p0 = p1;
+    }
+
   }
 
   void Renderer::flush(StreamBuffer& streamBuffer)
