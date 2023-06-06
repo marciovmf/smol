@@ -36,23 +36,50 @@ namespace smol
   namespace launcher
   {
     bool toggleValue = false;
+    Point2 windowPos = Point2{550, 150};
+    bool wireframeMode = false;
+    float frameTime = 0.0f;
+    float fps = 0;
+
     void onEditorGUI(GUI& gui)
     {
-      const Vector2 screen = gui.getScreenSize();
       const Point2 mousePos = SystemsRoot::get()->mouse.getCursorPosition();
       char text[128];
-      snprintf(text, 128, "mouse:\n%d,%d", mousePos.x, mousePos.y);
-      const Rect& panelRect = Rect(30, 30, 250, 250);
-      gui.panel(SMOL_CONTROL_ID, 30, 30, 400, (int32)screen.y - 60);
-      gui.label(SMOL_CONTROL_ID, text, 35, 35);
 
-      if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 35, 70, 250 - 10, 30))
-        debugLogInfo("Button 1 clicked!");
+      const int buttonHeight = 30;
+      const int vSpacing = 5;
+      int yPos = 5;
 
-      toggleValue = gui.doToggleButton(SMOL_CONTROL_ID, "Toggle me!", toggleValue, 35, 110, 250 - 10, 30);
+      windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 350);
+        if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 5, yPos, 290, buttonHeight))
+          debugLogInfo("Button 1 clicked!");
+        yPos += vSpacing + buttonHeight;
 
-      snprintf(text, 128, "Toggle btn is %s", toggleValue ? "true":"false");
-      gui.label(SMOL_CONTROL_ID, text, 35, 140);
+        snprintf(text, 128, "Wireframe mdoe: '%s'", wireframeMode ? "On":"Off");
+        wireframeMode = gui.doToggleButton(SMOL_CONTROL_ID, text, wireframeMode, 5, yPos, 290, 30);
+        yPos += vSpacing + buttonHeight + 15;
+
+        gui.label(SMOL_CONTROL_ID, "Statistics and other info", 145, yPos, GUI::Align::CENTER);
+        yPos += vSpacing + buttonHeight + 15;
+
+        gui.verticalSeparator(150, yPos, 130);
+        yPos += vSpacing + buttonHeight + 5;
+        
+        gui.label(SMOL_CONTROL_ID, "Cursor", 145, yPos, GUI::Align::RIGHT);
+        snprintf(text, sizeof(text), "%d,%d", mousePos.x, mousePos.y);
+        gui.label(SMOL_CONTROL_ID, text, 155, yPos, GUI::Align::LEFT);
+        yPos += vSpacing + buttonHeight;
+
+        gui.label(SMOL_CONTROL_ID, "Delta Time", 145, yPos, GUI::Align::RIGHT);
+        snprintf(text, sizeof(text), "%f ms", frameTime);
+        gui.label(SMOL_CONTROL_ID, text, 155, yPos, GUI::Align::LEFT);
+        yPos += vSpacing + buttonHeight;
+
+        gui.label(SMOL_CONTROL_ID, "FPS", 145, yPos, GUI::Align::RIGHT);
+        snprintf(text, sizeof(text), "%f", fps);
+        gui.label(SMOL_CONTROL_ID, text, 155, yPos, GUI::Align::LEFT);
+        yPos += vSpacing + buttonHeight;
+      gui.endWindow();
     }
 
     int smolMain(int argc, char** argv)
@@ -128,6 +155,9 @@ namespace smol
 
       GUI gui(uiMaterial, uiFont);
 
+      int numFrames = 0;
+      float frameTimeAccumulated = 0.0f;
+
       while(! Platform::getWindowCloseFlag(window))
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
@@ -150,7 +180,9 @@ namespace smol
         }
 
         // render scene
+        Renderer::setRenderMode(wireframeMode ? Renderer::RenderMode::WIREFRAME : Renderer::RenderMode::SHADED);
         renderer.render(deltaTime);
+        Renderer::setRenderMode(Renderer::RenderMode::SHADED);
 
         // GUI
         //gui.getMaterial()->setVec2("screenSize", Vector2((float)windowWidth, (float) windowHeight));
@@ -163,13 +195,21 @@ namespace smol
           gui.end();
         }
         endTime = Platform::getTicks();
-
+        
+        numFrames++;
         Renderer::setViewport(0, 0, windowWidth, windowHeight);
         gui.begin(windowWidth, windowHeight);
+        frameTime = deltaTime;
+        fps = numFrames / frameTimeAccumulated;
         onEditorGUI(gui);
         gui.end();
 
-
+        frameTimeAccumulated += deltaTime;
+        if (frameTimeAccumulated > 1.0f)
+        {
+          numFrames = 0;
+          frameTimeAccumulated = 1.0f - frameTimeAccumulated;
+        }
       }
 
       onGameStopCallback();

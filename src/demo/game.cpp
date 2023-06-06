@@ -472,8 +472,8 @@ void onUpdate(float deltaTime)
 
 void onGUI(smol::GUI& gui)
 {
-  smol::Vector2 screen = gui.getScreenSize();
-  gui.panel(SMOL_CONTROL_ID,  (int)screen.x - 40 , 0,  40, (int) screen.y);
+  //smol::Vector2 screen = gui.getScreenSize();
+  //gui.panel(SMOL_CONTROL_ID,  (int)screen.x - 40 , 0,  40, (int) screen.y);
 }
 
 void onStop()
