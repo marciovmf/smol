@@ -176,6 +176,14 @@ namespace smol
     glViewport(x, y, w, h);
   }
 
+  void Renderer::setRenderMode(RenderMode mode)
+  {
+    if (mode == WIREFRAME)
+      glPolygonMode( GL_FRONT_AND_BACK, GL_LINE);
+    else
+      glPolygonMode( GL_FRONT_AND_BACK, GL_FILL);
+  }
+
   static void updateGlobalShaderParams(SceneNode& cameraNode, float deltaTime)
   {
     glBindBuffer(GL_UNIFORM_BUFFER, globalUbo);
@@ -1151,22 +1159,45 @@ namespace smol
 
       VertexPCU vertex[verticesPerSrprite];
       uint32 index[indicesPerSprite];
-      // Top left 
-      vertex[0].position = {p0.x,  p0.y - ht, 0.0f};
-      vertex[0].color     = color;
-      vertex[0].uv        = Vector2(0.0f);
-      // bottom right
-      vertex[1].position = {p1.x,  p1.y + ht, 0.0f};
-      vertex[1].color     = color;
-      vertex[1].uv        = Vector2(0.0f);
-      // top right
-      vertex[2].position = {p1.x, p1.y - ht, 0.0f};
-      vertex[2].color     = color;
-      vertex[2].uv        = Vector2(0.0f);
-      // bottom left
-      vertex[3].position = {p0.x, p0.y + ht, 0.0f};
-      vertex[3].color     = color;
-      vertex[3].uv        = Vector2(0.0f);
+
+      if (abs(p0.x - p1.x) > abs(p0.y - p1.y))
+      {
+        // Top left 
+        vertex[0].position = {p0.x,  p0.y - ht, 0.0f};
+        vertex[0].color     = color;
+        vertex[0].uv        = Vector2(0.0f);
+        // bottom right
+        vertex[1].position = {p1.x,  p1.y + ht, 0.0f};
+        vertex[1].color     = color;
+        vertex[1].uv        = Vector2(0.0f);
+        // top right
+        vertex[2].position = {p1.x, p1.y - ht, 0.0f};
+        vertex[2].color     = color;
+        vertex[2].uv        = Vector2(0.0f);
+        // bottom left
+        vertex[3].position = {p0.x, p0.y + ht, 0.0f};
+        vertex[3].color     = color;
+        vertex[3].uv        = Vector2(0.0f);
+      }
+      else 
+      {
+        // Top left 
+        vertex[0].position = {p0.x + ht,  p0.y, 0.0f};
+        vertex[0].color     = color;
+        vertex[0].uv        = Vector2(0.0f);
+        // bottom right
+        vertex[1].position = {p1.x - ht,  p1.y, 0.0f};
+        vertex[1].color     = color;
+        vertex[1].uv        = Vector2(0.0f);
+        // top right
+        vertex[2].position = {p1.x + ht, p1.y, 0.0f};
+        vertex[2].color     = color;
+        vertex[2].uv        = Vector2(0.0f);
+        // bottom left
+        vertex[3].position = {p0.x - ht, p0.y, 0.0f};
+        vertex[3].color     = color;
+        vertex[3].uv        = Vector2(0.0f);
+      }
 
       int numSprites = streamBuffer.used / verticesPerSrprite;
       int offset = numSprites * 4;

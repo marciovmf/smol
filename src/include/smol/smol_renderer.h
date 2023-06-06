@@ -20,6 +20,7 @@ namespace smol
   // A stream buffer is an interleaved buffer meant to be overwritten frequently
   //
   struct StreamBuffer;
+
   class SMOL_ENGINE_API Renderer
   {
     Scene* scene;
@@ -33,6 +34,13 @@ namespace smol
     float screenCameraFar;
 
     public:
+
+    enum RenderMode
+    {
+      SHADED,
+      WIREFRAME
+    };
+
 
     //
     // Misc
@@ -97,7 +105,7 @@ namespace smol
     static void begin(StreamBuffer& streamBuffer);
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& color);
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& tlColor, const Color& trColor, const Color& blColor, const Color& brColor);
-    static void pushLine(StreamBuffer& streamBuffer, const Vector2* points, int numPoints, const Color& color, float thickness);
+    static void pushLines(StreamBuffer& streamBuffer, const Vector2* points, int numPoints, const Color& color, float thickness);
     static void end(StreamBuffer& streamBuffer);
     static void flush(StreamBuffer& streamBuffer);
 
@@ -105,6 +113,7 @@ namespace smol
     static void setMaterial(const Material* material);
     static void setMaterial(Handle<Material> handle);
     static void setViewport(uint32 x, uint32 y, uint32 w, uint32 h);
+    static void setRenderMode(RenderMode mode);
   };
 }
 #endif  // SMOL_RENDERER_H
