@@ -33,8 +33,126 @@ namespace smol
 
   }
 
+  void GUI::horizontalSeparator(int32 x, int32 y, int32 width)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    Vector2 point[2];
+    point[0] = {x / screenW,  y / screenH};
+    point[1] = {(x + width) / screenW, y / screenH};
+    Renderer::pushLines(streamBuffer, point, 2, skin.color[GUISkin::SEPARATOR], 2 / screenH);
+  }
+
+  void GUI::verticalSeparator(int32 x, int32 y, int32 height)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    Vector2 point[2];
+
+    point[0] = {x / screenW,  y / screenH};
+    point[1] = {x / screenW, (y + height) / screenH};
+
+    Renderer::pushLines(streamBuffer, point, 2, skin.color[GUISkin::SEPARATOR], 2 / screenW);
+  }
+
+  Point2 GUI::beginWindow(GUICOntrolID id, const char* title, int32 x, int32 y, int32 w, int32 h)
+  {
+    lastRect = Rect(x, y, w, h);
+    windowCount++;
+
+    bool isBeingDragged = draggedControlId == id;
+    const int titleBarHeight = 30;
+    Rect titleBarRect = Rect(x, y, w, titleBarHeight);
+    bool mouseOverTitleBar = titleBarRect.containsPoint(root->mouse.getCursorPosition());
+
+    // Draw title bar
+    GUISkin::ID styleId = (mouseOverTitleBar || isBeingDragged) ? GUISkin::WINDOW_TITLE_BAR_HOVER : GUISkin::WINDOW_TITLE_BAR; 
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+    label(id, title, x + 16, y + titleBarHeight/2 + 8, LEFT);
+
+    // draw the window panel
+    panel(id, x, y + titleBarHeight , w, h - titleBarHeight);
+    beginArea(x, y + titleBarHeight, w, h - titleBarHeight);
+    lastRect = Rect(x, y, w, h);
+
+    // check for dragging the title bar
+    Point2 newPos = Point2{x, y};
+    const Point2& cursorPos = root->mouse.getCursorPosition();
+    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
+
+    if(isBeingDragged)
+    {
+      if (isDown)
+      {
+        newPos.x = cursorDragOffset.x + cursorPos.x;
+        newPos.y = cursorDragOffset.y + cursorPos.y;
+      }
+      else
+      {
+        draggedControlId = 0;
+      }
+    }
+    else if (mouseOverTitleBar)
+    {
+      bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+      if (downThisFrame)
+      {
+        draggedControlId = id;
+        cursorDragOffset = Point2{x - cursorPos.x, y - cursorPos.y};
+        newPos.x = cursorDragOffset.x + cursorPos.x;
+        newPos.y = cursorDragOffset.y + cursorPos.y;
+      }
+    }
+    return newPos;
+  }
+
+  void GUI::endWindow()
+  {
+    if (windowCount == 0)
+    {
+      debugLogError("Unbalanced begin/end window calls.");
+      return;
+    }
+    windowCount--;
+    endArea();
+  }
+
+  void GUI::beginArea(int x, int y, int w, int h)
+  {
+    if ((areaCount + 1) >= MAX_NESTED_AREAS)
+    {
+      debugLogError("Too many nested areas. Maximum allowd is %d", MAX_NESTED_AREAS);
+      return;
+    }
+
+    area[areaCount] = Rect(x, y, w, h);
+    areaOffset = Rect(areaOffset.x + x, areaOffset.y + y, areaOffset.w + w, areaOffset.h + h);
+    areaCount++;
+  }
+
+  void GUI::endArea()
+  {
+    if (areaCount == 0)
+    {
+      debugLogError("Unbalanced begin/end area calls.");
+      return;
+    }
+
+    Rect& r = area[areaCount];
+    areaCount--;
+    areaOffset = Rect(areaOffset.x - r.x, areaOffset.y - r.y, areaOffset.w - r.w, areaOffset.h - r.h);
+    if (areaCount == 0)
+      areaOffset = Rect(0, 0, 0 ,0);
+  }
+
   void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align)
   {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+
     const uint16 fontSize = skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
     const float scaleY  = fontSize / screenH;
@@ -47,7 +165,6 @@ namespace smol
     bounds.mult(scaleX, scaleY);
     lastRect = Rect((int32)posX, (int32) posY, (int32) bounds.x, (int32) bounds.y);
 
-
     if (align == Align::CENTER)
     {
       posX -= bounds.x/2;
@@ -58,9 +175,14 @@ namespace smol
       posX -= bounds.x;
       posY -= bounds.y;
     }
+    else if (align == Align::LEFT)
+    {
+      posY -= bounds.y;
+    }
+
 
     // Draws a solid background behind the text. Keep this here for debugging
-    Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), Color::BLACK);
+    //Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), Color::BLACK);
 
     for (int i = 0; i < textLen; i++)
     {
@@ -74,7 +196,9 @@ namespace smol
 
   bool GUI::doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h)
   {
-    lastRect = Rect(x, y, w, h);
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x , y, w, h);
 
     GUISkin::ID styleId;
     bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
@@ -116,14 +240,17 @@ namespace smol
         Vector2(w / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
-    const int centerX = x + w/2;
-    const int centerY = y + h/2;
+    // We don't want to offset the label twice, so we remove the areaOffset
+    const int centerX = x - areaOffset.x + w/2;
+    const int centerY = y - areaOffset.y + h/2;
     label(id, text, centerX, centerY, CENTER);
     return returnValue;
   }
 
   bool GUI::doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
   {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
     lastRect = Rect(x, y, w, h);
 
     GUISkin::ID styleId;
@@ -171,8 +298,9 @@ namespace smol
         Vector2(w / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
-    const int centerX = x + w/2;
-    const int centerY = y + h/2;
+    // We don't want to offset the label twice, so we remove the areaOffset
+    const int centerX = x - areaOffset.x + w/2;
+    const int centerY = y - areaOffset.y + h/2;
     label(id, text, centerX, centerY, CENTER);
     return returnValue;
   }
@@ -194,6 +322,8 @@ namespace smol
     this->material = material;
     skin.font = font;
     skin.labelFontSize = 16;
+    areaCount = 0;
+    areaOffset = Rect(0, 0, 0, 0);
     root = SystemsRoot::get();
 
     Color colorForText = Color(236.f / 255.f, 240.f / 255.f, 241.f / 255.f);
@@ -217,6 +347,11 @@ namespace smol
     skin.color[GUISkin::FRAME]         = Color(colorForArea.r, colorForArea.g, colorForArea.b, 1.00f );
     skin.color[GUISkin::FRAME_HOVER]   = Color(colorForHead.r, colorForHead.g, colorForHead.b, 0.78f );
     skin.color[GUISkin::FRAME_ACTIVE]  = Color(38, 38, 38, 255);
+
+    skin.color[GUISkin::WINDOW_TITLE_BAR]        = Color(colorForArea.r, colorForArea.g + 0.2f, colorForArea.b, 1.00f );
+    skin.color[GUISkin::WINDOW_TITLE_BAR_HOVER]  = Color(colorForArea.r, colorForArea.g - 0.3f, colorForArea.b, 1.00f );
+
+    skin.color[GUISkin::SEPARATOR]         = Color(180, 180, 180, 50);
   }
 
 #endif

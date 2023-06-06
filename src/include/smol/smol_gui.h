@@ -5,6 +5,7 @@
 #include <smol/smol_color.h>
 #include <smol/smol_arena.h>
 #include <smol/smol_renderer.h>
+#include <smol/smol_point.h>
 #include <smol/smol_font.h>
 
 #define SMOL_CONTROL_ID (__LINE__)
@@ -37,6 +38,11 @@ namespace smol
       FRAME_HOVER,
       FRAME_ACTIVE,
 
+      WINDOW_TITLE_BAR_HOVER,
+      WINDOW_TITLE_BAR,
+
+      SEPARATOR,
+
       SKIN_COLOR_COUNT
     };
 
@@ -45,11 +51,10 @@ namespace smol
 
   class SMOL_ENGINE_API GUI final
   {
-    enum Align
+
+    enum
     {
-      LEFT,
-      CENTER,
-      RIGHT
+      MAX_NESTED_AREAS = 16
     };
 
     Handle<Material> material;
@@ -62,13 +67,38 @@ namespace smol
     SystemsRoot* root;
     GUICOntrolID hoverControlId;
     GUICOntrolID activeControlId;
+    GUICOntrolID draggedControlId;
+    Point2 cursorDragOffset;
+
+    int windowCount;
+
+    uint32 areaCount;
+    Rect area[MAX_NESTED_AREAS];
+    Rect areaOffset;
 
     public:
+
+    enum Align
+    {
+      LEFT,
+      CENTER,
+      RIGHT,
+      NONE      // use text top-left corner as origin
+    };
+
     Vector2 getScreenSize() const;
     Rect getLastRect() const;
-    void begin(int screenWidth, int screenHeight);
+    void begin(int screenWidth, int32 screenHeight);
     void panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h);
-    void label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align = LEFT);
+    void horizontalSeparator(int32 x, int32 y, int32 width);
+    void verticalSeparator(int32 x, int32 y, int32 height);
+    Point2 beginWindow(GUICOntrolID id, const char* title, int32 x, int32 y, int32 w, int32 h);
+    void endWindow();
+
+    void beginArea(int32 x, int32 y, int32 w, int32 h);
+    void endArea();
+
+    void label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align = NONE);
     bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
     bool doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
     void end();
