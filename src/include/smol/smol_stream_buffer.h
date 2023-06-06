@@ -24,6 +24,8 @@ namespace smol
     size_t elementSize;           // size of a sigle element
     Format format;
     bool bound;
+    void* vertexBuffer;
+    uint32* indexBuffer;
   };
 }
 #endif //SMOL_STREAM_BUFFER_H

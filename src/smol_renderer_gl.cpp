@@ -1036,6 +1036,15 @@ namespace smol
     glBindBuffer(GL_ARRAY_BUFFER, streamBuffer.vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, streamBuffer.ibo);
     streamBuffer.bound = true;
+
+
+    streamBuffer.vertexBuffer = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    if (!streamBuffer.vertexBuffer)
+      debugLogError("Unable to map GPU memory for StreamBuffer");
+
+    streamBuffer.indexBuffer = (uint32*) glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+    if (!streamBuffer.indexBuffer)
+      debugLogError("Unable to map GPU memory for StreamBuffer");
   }
 
   void Renderer::unbindStreamBuffer(StreamBuffer& streamBuffer)
@@ -1045,6 +1054,10 @@ namespace smol
 
     if (!streamBuffer.bound)
       return;
+
+
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1095,37 +1108,38 @@ namespace smol
 
     const float y = -position.y;
 
-    VertexPCU vertex[verticesPerSrprite];
-    uint32 index[indicesPerSprite];
+    VertexPCU* pVertex = (VertexPCU*) (streamBuffer.used * streamBuffer.elementSize + (char*) streamBuffer.vertexBuffer);
     // Top left 
-    vertex[0].position = {position.x,  y, position.z};
-    vertex[0].color     = tlColor;
-    vertex[0].uv        = {uv.x, uv.y};
+    pVertex->position = {position.x,  y, position.z};
+    pVertex->color     = tlColor;
+    pVertex->uv        = {uv.x, uv.y};
+    pVertex++;
     // bottom right
-    vertex[1].position = {position.x + size.x,  y - size.y, position.z};
-    vertex[1].color     = brColor;
-    vertex[1].uv        = {uv.x + uv.w, uv.y - uv.h};
+    pVertex->position = {position.x + size.x,  y - size.y, position.z};
+    pVertex->color     = brColor;
+    pVertex->uv        = {uv.x + uv.w, uv.y - uv.h};
+    pVertex++;
     // top right
-    vertex[2].position = {position.x + size.x,  y, position.z};
-    vertex[2].color     = trColor;
-    vertex[2].uv        = {uv.x + uv.w, uv.y};
+    pVertex->position = {position.x + size.x,  y, position.z};
+    pVertex->color     = trColor;
+    pVertex->uv        = {uv.x + uv.w, uv.y};
+    pVertex++;
     // bottom left
-    vertex[3].position = {position.x, y - size.y, position.z};
-    vertex[3].color     = blColor;
-    vertex[3].uv        = {uv.x, uv.y - uv.h};
+    pVertex->position = {position.x, y - size.y, position.z};
+    pVertex->color     = blColor;
+    pVertex->uv        = {uv.x, uv.y - uv.h};
+    pVertex++;
 
     int numSprites = streamBuffer.used / verticesPerSrprite;
     int offset = numSprites * 4;
-    index[0] = offset + 0;
-    index[1] = offset + 1;
-    index[2] = offset + 2;
-    index[3] = offset + 0;
-    index[4] = offset + 3;
-    index[5] = offset + 1;
+    uint32* pIndex = (uint32*) (numSprites * 6 * sizeof(uint32) + (char*) streamBuffer.indexBuffer);
 
-    //TODO(marcio): Map GPU memory and write to it directly to void calling on gl driver so much
-    glBufferSubData(GL_ARRAY_BUFFER, streamBuffer.used * streamBuffer.elementSize, sizeof(vertex), (void*) vertex);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, numSprites * 6 * sizeof(uint32), sizeof(index), (void*) index);
+    pIndex[0] = offset + 0;
+    pIndex[1] = offset + 1;
+    pIndex[2] = offset + 2;
+    pIndex[3] = offset + 0;
+    pIndex[4] = offset + 3;
+    pIndex[5] = offset + 1;
     streamBuffer.used += 4;
   }
 
@@ -1157,60 +1171,68 @@ namespace smol
       Vector2 p1 = points[i];
       p1.y = -p1.y;
 
-      VertexPCU vertex[verticesPerSrprite];
-      uint32 index[indicesPerSprite];
+      VertexPCU* pVertex = (VertexPCU*) (streamBuffer.used * streamBuffer.elementSize + (char*) streamBuffer.vertexBuffer);
 
       if (abs(p0.x - p1.x) > abs(p0.y - p1.y))
       {
         // Top left 
-        vertex[0].position = {p0.x,  p0.y - ht, 0.0f};
-        vertex[0].color     = color;
-        vertex[0].uv        = Vector2(0.0f);
+        pVertex->position = {p0.x,  p0.y - ht, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
         // bottom right
-        vertex[1].position = {p1.x,  p1.y + ht, 0.0f};
-        vertex[1].color     = color;
-        vertex[1].uv        = Vector2(0.0f);
+        pVertex->position = {p1.x,  p1.y + ht, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
         // top right
-        vertex[2].position = {p1.x, p1.y - ht, 0.0f};
-        vertex[2].color     = color;
-        vertex[2].uv        = Vector2(0.0f);
+        pVertex->position = {p1.x, p1.y - ht, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
         // bottom left
-        vertex[3].position = {p0.x, p0.y + ht, 0.0f};
-        vertex[3].color     = color;
-        vertex[3].uv        = Vector2(0.0f);
+        pVertex->position = {p0.x, p0.y + ht, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
       }
       else 
       {
         // Top left 
-        vertex[0].position = {p0.x + ht,  p0.y, 0.0f};
-        vertex[0].color     = color;
-        vertex[0].uv        = Vector2(0.0f);
+        pVertex->position = {p0.x + ht,  p0.y, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
         // bottom right
-        vertex[1].position = {p1.x - ht,  p1.y, 0.0f};
-        vertex[1].color     = color;
-        vertex[1].uv        = Vector2(0.0f);
+        pVertex->position = {p1.x - ht,  p1.y, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
         // top right
-        vertex[2].position = {p1.x + ht, p1.y, 0.0f};
-        vertex[2].color     = color;
-        vertex[2].uv        = Vector2(0.0f);
+        pVertex->position = {p1.x + ht, p1.y, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
         // bottom left
-        vertex[3].position = {p0.x - ht, p0.y, 0.0f};
-        vertex[3].color     = color;
-        vertex[3].uv        = Vector2(0.0f);
+        pVertex->position = {p0.x - ht, p0.y, 0.0f};
+        pVertex->color     = color;
+        pVertex->uv        = Vector2(0.0f);
+        pVertex++;
       }
 
       int numSprites = streamBuffer.used / verticesPerSrprite;
+      uint32* pIndex = (uint32*) (numSprites * 6 * sizeof(uint32) + (char*) streamBuffer.indexBuffer);
       int offset = numSprites * 4;
-      index[0] = offset + 0;
-      index[1] = offset + 1;
-      index[2] = offset + 2;
-      index[3] = offset + 0;
-      index[4] = offset + 3;
-      index[5] = offset + 1;
+      pIndex[0] = offset + 0;
+      pIndex[1] = offset + 1;
+      pIndex[2] = offset + 2;
+      pIndex[3] = offset + 0;
+      pIndex[4] = offset + 3;
+      pIndex[5] = offset + 1;
 
       //TODO(marcio): Map GPU memory and write to it directly to void calling on gl driver so much
-      glBufferSubData(GL_ARRAY_BUFFER, streamBuffer.used * streamBuffer.elementSize, sizeof(vertex), (void*) vertex);
-      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, numSprites * 6 * sizeof(uint32), sizeof(index), (void*) index);
+      //glBufferSubData(GL_ARRAY_BUFFER, streamBuffer.used * streamBuffer.elementSize, sizeof(vertex), (void*) vertex);
+      //glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, numSprites * 6 * sizeof(uint32), sizeof(index), (void*) index);
       streamBuffer.used += 4;
       p0 = p1;
     }
@@ -1222,7 +1244,13 @@ namespace smol
     int numSprites = streamBuffer.used / 4;
     int count = numSprites * 6;
 
+
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
     glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+    streamBuffer.vertexBuffer = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    streamBuffer.vertexBuffer = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+
     streamBuffer.flushCount++;
     streamBuffer.used = 0;
   }
