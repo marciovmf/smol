@@ -40,31 +40,63 @@ namespace smol
     bool wireframeMode = false;
     float frameTime = 0.0f;
     float fps = 0;
+    bool radioOption = false;
+    float sliderValue = 0.7f;
 
     void onEditorGUI(GUI& gui)
     {
       const Point2 mousePos = SystemsRoot::get()->mouse.getCursorPosition();
       char text[128];
-
       const int buttonHeight = 30;
       const int vSpacing = 5;
       int yPos = 5;
-
-      windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 350);
+      windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 390);
         if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 5, yPos, 290, buttonHeight))
           debugLogInfo("Button 1 clicked!");
         yPos += vSpacing + buttonHeight;
 
-        snprintf(text, 128, "Wireframe mdoe: '%s'", wireframeMode ? "On":"Off");
-        wireframeMode = gui.doToggleButton(SMOL_CONTROL_ID, text, wireframeMode, 5, yPos, 290, 30);
-        yPos += vSpacing + buttonHeight + 15;
+        snprintf(text, 128, "Wireframe mode: '%s'", wireframeMode ? "On":"Off");
+        wireframeMode = gui.doCheckBox(SMOL_CONTROL_ID, text, wireframeMode, 5, yPos);
+        yPos += vSpacing + buttonHeight;
 
-        gui.label(SMOL_CONTROL_ID, "Statistics and other info", 145, yPos, GUI::Align::CENTER);
-        yPos += vSpacing + buttonHeight + 15;
+        radioOption = gui.doRadioButton(SMOL_CONTROL_ID, "Affect Slider height", radioOption, 6, yPos);
+        yPos += vSpacing + buttonHeight;
 
-        gui.verticalSeparator(150, yPos, 130);
-        yPos += vSpacing + buttonHeight + 5;
-        
+        sliderValue = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderValue, 5, yPos, 290);
+        yPos += vSpacing + buttonHeight;
+
+        float sliderHandleThickness =  gui.getSkin().sliderHandleThickness;
+        sliderHandleThickness = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderHandleThickness, 5, yPos, 290);
+        gui.getSkin().sliderHandleThickness = sliderHandleThickness;
+        yPos += vSpacing + buttonHeight;
+
+        float opacity =  gui.getSkin().windowOpacity;
+        opacity = gui.doHorizontalSlider(SMOL_CONTROL_ID, opacity, 5, yPos, 290);
+        gui.getSkin().windowOpacity = opacity;
+        yPos += vSpacing + buttonHeight;
+
+        radioOption = gui.doToggleButton(SMOL_CONTROL_ID, "Affect Slider height", radioOption, 5, yPos, 290, buttonHeight);
+        yPos += vSpacing + buttonHeight;
+
+        if (radioOption)
+          gui.getSkin().sliderThickness = sliderValue;
+
+        yPos+=15;
+        snprintf(text, 128, "Slider value = %f", sliderValue);
+        gui.label(SMOL_CONTROL_ID, text, 145, yPos, GUI::Align::CENTER);
+        yPos += vSpacing + buttonHeight;
+
+        snprintf(text, 128, "Frame time %fs", frameTime);
+        gui.label(SMOL_CONTROL_ID, text, 145, yPos, GUI::Align::CENTER);
+        yPos += vSpacing + buttonHeight;
+
+        snprintf(text, 128, "FPS %f", fps);
+        gui.label(SMOL_CONTROL_ID, text, 145, yPos, GUI::Align::CENTER);
+        yPos += vSpacing + buttonHeight;
+
+       
+#if 0
+        yPos += vSpacing + buttonHeight + 15;
         gui.label(SMOL_CONTROL_ID, "Cursor", 145, yPos, GUI::Align::RIGHT);
         snprintf(text, sizeof(text), "%d,%d", mousePos.x, mousePos.y);
         gui.label(SMOL_CONTROL_ID, text, 155, yPos, GUI::Align::LEFT);
@@ -79,6 +111,7 @@ namespace smol
         snprintf(text, sizeof(text), "%f", fps);
         gui.label(SMOL_CONTROL_ID, text, 155, yPos, GUI::Align::LEFT);
         yPos += vSpacing + buttonHeight;
+#endif
       gui.endWindow();
     }
 
@@ -184,8 +217,8 @@ namespace smol
         renderer.render(deltaTime);
         Renderer::setRenderMode(Renderer::RenderMode::SHADED);
 
+#if 1
         // GUI
-        //gui.getMaterial()->setVec2("screenSize", Vector2((float)windowWidth, (float) windowHeight));
         Renderer::setMaterial(gui.getMaterial());
 
         if (onGameGUICallback)
@@ -197,19 +230,20 @@ namespace smol
         endTime = Platform::getTicks();
         
         numFrames++;
-        Renderer::setViewport(0, 0, windowWidth, windowHeight);
-        gui.begin(windowWidth, windowHeight);
         frameTime = deltaTime;
         fps = numFrames / frameTimeAccumulated;
-        onEditorGUI(gui);
+        Renderer::setViewport(0, 0, windowWidth, windowHeight);
+        gui.begin(windowWidth, windowHeight);
+          onEditorGUI(gui);
         gui.end();
 
         frameTimeAccumulated += deltaTime;
         if (frameTimeAccumulated > 1.0f)
         {
           numFrames = 0;
-          frameTimeAccumulated = 1.0f - frameTimeAccumulated;
+          frameTimeAccumulated = 0.0f;
         }
+#endif
       }
 
       onGameStopCallback();

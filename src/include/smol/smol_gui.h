@@ -18,6 +18,9 @@ namespace smol
   struct SMOL_ENGINE_API GUISkin final
   {
     uint16 labelFontSize;
+    float sliderThickness;
+    float sliderHandleThickness;
+    float windowOpacity;
     Handle<Font> font;
 
     enum ID
@@ -34,10 +37,19 @@ namespace smol
       TOGGLE_BUTTON_HOVER_ACTIVE,
       TOGGLE_BUTTON_ACTIVE,
 
-      FRAME,
-      FRAME_HOVER,
-      FRAME_ACTIVE,
+      CHECKBOX,
+      CHECKBOX_HOVER,
+      CHECKBOX_ACTIVE,
+      CHECKBOX_CHECK,
 
+      SLIDER,
+      SLIDER_HANDLE,
+      SLIDER_HANDLE_HOVER,
+      SLIDER_HANDLE_ACTIVE,
+
+      PANEL,
+
+      WINDOW,
       WINDOW_TITLE_BAR_HOVER,
       WINDOW_TITLE_BAR,
 
@@ -54,7 +66,9 @@ namespace smol
 
     enum
     {
-      MAX_NESTED_AREAS = 16
+      MAX_NESTED_AREAS = 16,
+      DEFAULT_H_SPACING = 5,
+
     };
 
     Handle<Material> material;
@@ -69,12 +83,11 @@ namespace smol
     GUICOntrolID activeControlId;
     GUICOntrolID draggedControlId;
     Point2 cursorDragOffset;
-
     int windowCount;
-
     uint32 areaCount;
     Rect area[MAX_NESTED_AREAS];
     Rect areaOffset;
+
 
     public:
 
@@ -87,6 +100,7 @@ namespace smol
     };
 
     Vector2 getScreenSize() const;
+    GUISkin& getSkin();
     Rect getLastRect() const;
     void begin(int screenWidth, int32 screenHeight);
     void panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h);
@@ -101,6 +115,9 @@ namespace smol
     void label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align = NONE);
     bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
     bool doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
+    bool doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);
+    bool doCheckBox(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);
+    float doHorizontalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 w);
     void end();
 
 #ifndef SMOL_MODULE_GAME
