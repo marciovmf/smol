@@ -3,8 +3,8 @@
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
 #include <smol/smol_systems_root.h>
-#include <system_error>
 #include "smol_gui_icons.h"
+#include <system_error>
 
 namespace smol
 {
@@ -76,7 +76,7 @@ namespace smol
         Vector3(x / screenW, y / screenH, 0.0f), 
         Vector2(w / screenW, titleBarHeight / screenH),
         Rectf(), skin.color[styleId]);
-    label(id, title, x + 16, y + titleBarHeight/2 + 8, LEFT);
+    label(id, title, x + DEFAULT_H_SPACING, y + (titleBarHeight/2), LEFT);
 
     // draw the window panel
     Color windowColor = skin.color[GUISkin::WINDOW];
@@ -189,7 +189,7 @@ namespace smol
     }
     else if (align == Align::LEFT)
     {
-      posY -= bounds.y;
+      posY -= bounds.y/2;
     }
 
     // Draws a solid background behind the text. Keep this here for debugging
@@ -371,16 +371,21 @@ namespace smol
     const float boxH = size / screenH;
 
     tickStyle = (toggled || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), IconRADIO(), skin.color[bgStyle]);
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), IconRADIO_CHECKED(), skin.color[tickStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconRADIO(), skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconRADIO_CHECKED(), skin.color[tickStyle]);
 
     if (text)
     {
       // We don't want to offset the label twice, so we remove the areaOffset
       const int labelX = x - areaOffset.x + size + DEFAULT_H_SPACING;
-      const int labelY = y - areaOffset.y;
-      label(id, text, labelX, labelY, NONE);
+      const int labelY = y + (size/2) - areaOffset.y;
+      label(id, text, labelX, labelY, LEFT);
+      Rect textRect = getLastRect();
+      lastRect.w += textRect.w;
     }
+
+    // debug rect
+    //Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(300 / screenW, boxH), Rectf(), Color(1.0f, .0f, .0f, .3f));
     return returnValue;
   }
 
@@ -391,18 +396,15 @@ namespace smol
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
 
-    GUISkin::ID bgStyle, tickStyle;
-
     bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
     bool returnValue = toggled;
-
     bool isActiveControl = activeControlId == id;
     bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
     bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
     bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
 
-    bgStyle = GUISkin::CHECKBOX;
-    tickStyle = GUISkin::CHECKBOX;
+    GUISkin::ID bgStyle   = GUISkin::CHECKBOX;
+    GUISkin::ID tickStyle = GUISkin::CHECKBOX;
 
     if (mouseOver)
     {
@@ -439,16 +441,22 @@ namespace smol
     const float boxH = size / screenH;
 
     tickStyle = (toggled  || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), IconCHECKBOX(), skin.color[bgStyle]);
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), IconCHECKBOX_CHECKED(), skin.color[tickStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconCHECKBOX(), skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconCHECKBOX_CHECKED(), skin.color[tickStyle]);
 
     if (text)
     {
       // We don't want to offset the label twice, so we remove the areaOffset
       const int labelX = x - areaOffset.x + size + DEFAULT_H_SPACING;
-      const int labelY = y - areaOffset.y;
-      label(id, text, labelX, labelY, NONE);
+      const int labelY = y + (size/2) - areaOffset.y;
+      label(id, text, labelX, labelY, LEFT);
+      Rect textRect = getLastRect();
+      lastRect.w += textRect.w;
     }
+
+    // debug rect
+    //Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(300 / screenW, boxH), Rectf(), Color(1.0f, .0f, .0f, .3f));
+
     return returnValue;
   }
 

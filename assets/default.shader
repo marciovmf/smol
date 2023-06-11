@@ -32,9 +32,6 @@ fragmentShader:"
   in vec4 vertColor;
   in vec2 uv;
 
-  const float width = 0.45;
-  const float edge = 0.2;
-
   void main()
   {
     vec4 texColor = vec4(texture(mainTex, uv));

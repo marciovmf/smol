@@ -60,7 +60,7 @@ namespace smol
     background->position = Vector3(0.0f, 0.0f, -0.2f);
     background->color = bgColor;
     background->uv = Rectf();
-    if (drawBackground)
+    if (drawBackground || true)
       background->size = this->textBounds;
     else
       background->size = Vector2(0.0f);

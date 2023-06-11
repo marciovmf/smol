@@ -33,12 +33,12 @@ fragmentShader:"
   in vec4 vertColor;
   in vec2 uv;
 
-  const float width = 0.30;
-  const float edge = 0.34;
+  const float width = 0.18;
+  const float edge = 0.5;
 
   void main()
   {
-    if(uv.x == 0)
+    if(uv.x == 0 && uv.y == 0)
     {
       fragColor = vertColor;
       return;

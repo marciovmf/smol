@@ -114,8 +114,9 @@ namespace smol
 
           // y bounds
 
-          const float yBounds = abs(glyphY - glyph.rect.h) * scale;
-          if ( yBounds > bounds.y)
+          //const float yBounds = abs(glyphY - glyph.rect.h) * scale;
+          const float yBounds = (abs(glyphY - glyph.rect.h) + lineHeight - getBase()) * scale;
+          if (yBounds > bounds.y)
           {
             bounds.y = yBounds;
           }
