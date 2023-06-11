@@ -30,6 +30,7 @@ namespace smol
       hoverControlId = 0;
       activeControlId = 0;
       draggedControlId = 0;
+      mouseCursorPosition = Point2{-1, -1};
       mouseLButtonDownThisFrame = false;
       mouseLButtonUpThisFrame = false;
       mouseLButtonIsDown = false;
@@ -612,6 +613,7 @@ namespace smol
         Rectf(), skin.color[handleStyle]);
     return returnValue;
   }
+
 
   void GUI::end()
   {
