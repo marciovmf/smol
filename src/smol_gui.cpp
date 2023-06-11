@@ -384,8 +384,6 @@ namespace smol
       lastRect.w += textRect.w;
     }
 
-    // debug rect
-    //Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(300 / screenW, boxH), Rectf(), Color(1.0f, .0f, .0f, .3f));
     return returnValue;
   }
 
@@ -453,9 +451,6 @@ namespace smol
       Rect textRect = getLastRect();
       lastRect.w += textRect.w;
     }
-
-    // debug rect
-    //Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(300 / screenW, boxH), Rectf(), Color(1.0f, .0f, .0f, .3f));
 
     return returnValue;
   }
@@ -536,6 +531,81 @@ namespace smol
     return returnValue;
   }
 
+  float GUI::doVerticalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 h)
+  {
+    const uint32 horizontalSize = 24;
+    uint32 handleHeight = (uint32)(18 * skin.sliderHandleThickness);
+    if (handleHeight < 4) handleHeight = 4;
+
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x, y, horizontalSize, h);
+
+    float returnValue = value;
+    if (value < 0.0f) value = 0.0f;
+    if (value > 1.0f) value = 1.0f;
+    float handlePos = y + value * (h - handleHeight);
+    Rect handleRect = Rect(x, (int32)handlePos, horizontalSize, handleHeight);
+
+    const Point2& cursorPos = root->mouse.getCursorPosition();
+    bool mouseOverHandle = handleRect.containsPoint(cursorPos);
+    bool isBeingDragged = draggedControlId == id;
+    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
+    GUISkin::ID handleStyle = GUISkin::SLIDER_HANDLE;
+
+    if(isBeingDragged)
+    {
+      if (isDown)
+      {
+        handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
+        handlePos = (float)(cursorDragOffset.y + cursorPos.y);
+      }
+      else
+      {
+        handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
+        draggedControlId = 0;
+      }
+
+    }
+    else if (mouseOverHandle)
+    {
+      handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
+      bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+      if (downThisFrame)
+      {
+        handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
+        draggedControlId = id;
+        cursorDragOffset = Point2{(int)handlePos - cursorPos.y, 0};
+        handlePos = (float)(cursorDragOffset.y + cursorPos.y);
+      }
+    }
+
+    const int32 bottomLimit = y;
+    const int32 topLimit = y + h - handleHeight;
+    const int32 sliderLength = topLimit - bottomLimit;
+
+    if (handlePos > topLimit)
+      handlePos = (float) topLimit;
+    if (handlePos < bottomLimit)
+      handlePos = (float) bottomLimit;
+    returnValue = (handlePos- y) / (float) sliderLength;
+
+    // vertical line
+    const float halfHorizontalSize = horizontalSize / 2.0f;
+    const float lineThickness = horizontalSize * skin.sliderThickness;
+    const float halfLinethickness = halfHorizontalSize * skin.sliderThickness;
+    Renderer::pushSprite(streamBuffer,
+        Vector3((x + halfHorizontalSize - halfLinethickness) / screenW, y / screenH, 0.0f), 
+        Vector2(lineThickness / screenW, h / screenH),
+        Rectf(), skin.color[GUISkin::SLIDER]);
+
+    // handle
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, handlePos / screenH, 0.0f), 
+        Vector2(horizontalSize / screenW, handleHeight / screenH),
+        Rectf(), skin.color[handleStyle]);
+    return returnValue;
+  }
 
   void GUI::end()
   {

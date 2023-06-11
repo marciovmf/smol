@@ -118,6 +118,7 @@ namespace smol
     bool doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);
     bool doCheckBox(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);
     float doHorizontalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 w);
+    float doVerticalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 h);
     void end();
 
 #ifndef SMOL_MODULE_GAME
