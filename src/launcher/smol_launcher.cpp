@@ -42,15 +42,18 @@ namespace smol
     float fps = 0;
     bool radioOption = false;
     float sliderValue = 0.7f;
+    int changedCount = 0;
 
     void onEditorGUI(GUI& gui)
     {
-      const Point2 mousePos = SystemsRoot::get()->mouse.getCursorPosition();
       char text[128];
       const int buttonHeight = 30;
       const int vSpacing = 5;
       int yPos = 5;
-      windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 390);
+
+      gui.enabled = changedCount < 100;
+
+      windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 450);
         if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 5, yPos, 290, buttonHeight))
           debugLogInfo("Button 1 clicked!");
         yPos += vSpacing + buttonHeight;
@@ -90,11 +93,19 @@ namespace smol
         gui.label(SMOL_CONTROL_ID, text, 145, yPos, GUI::Align::CENTER);
         yPos += vSpacing + buttonHeight;
 
+        gui.horizontalSeparator(5, yPos, 290);
+        yPos += vSpacing + buttonHeight;
+
         snprintf(text, 128, "FPS %f", fps);
         gui.label(SMOL_CONTROL_ID, text, 145, yPos, GUI::Align::CENTER);
         yPos += vSpacing + buttonHeight;
 
-       
+        changedCount += gui.changed ? 1 : 0;
+        snprintf(text, 128, "Changed count = %d", changedCount);
+        gui.label(SMOL_CONTROL_ID, text, 145, yPos, GUI::Align::CENTER);
+        yPos += vSpacing + buttonHeight;
+
+
 #if 0
         yPos += vSpacing + buttonHeight + 15;
         gui.label(SMOL_CONTROL_ID, "Cursor", 145, yPos, GUI::Align::RIGHT);

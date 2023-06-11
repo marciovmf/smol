@@ -63,7 +63,6 @@ namespace smol
 
   class SMOL_ENGINE_API GUI final
   {
-
     enum
     {
       MAX_NESTED_AREAS = 16,
@@ -71,25 +70,31 @@ namespace smol
 
     };
 
-    Handle<Material> material;
-    float screenW;
-    float screenH;
     Arena glyphDrawDataArena;
+    Handle<Material> material;
     StreamBuffer streamBuffer;
-    Rect lastRect;
     GUISkin skin;
-    SystemsRoot* root;
+    Rect lastRect;                    // Rect of the last control drawn
     GUICOntrolID hoverControlId;
     GUICOntrolID activeControlId;
     GUICOntrolID draggedControlId;
-    Point2 cursorDragOffset;
-    int windowCount;
+    Point2 cursorDragOffset;          // cursor offset related to the control it's dragging 
+    uint32 windowCount;
     uint32 areaCount;
+    float screenW;
+    float screenH;
     Rect area[MAX_NESTED_AREAS];
     Rect areaOffset;
-
+    Point2 mousePos;
+    Point2 mouseCursorPosition;
+    bool mouseLButtonDownThisFrame;
+    bool mouseLButtonUpThisFrame;
+    bool mouseLButtonIsDown;
 
     public:
+
+    bool enabled;
+    bool changed;
 
     enum Align
     {

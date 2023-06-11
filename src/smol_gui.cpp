@@ -1,5 +1,3 @@
-#include <algorithm>
-#include <ios>
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
 #include <smol/smol_systems_root.h>
@@ -18,6 +16,24 @@ namespace smol
   {
     screenW = (float) screenWidth;
     screenH = (float) screenHeight;
+    changed = false;
+    if (enabled)
+    {
+      Mouse& mouse = SystemsRoot::get()->mouse;
+      mouseLButtonDownThisFrame = mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+      mouseLButtonUpThisFrame = mouse.getButtonUp(MOUSE_BUTTON_LEFT);
+      mouseLButtonIsDown = mouse.getButton(MOUSE_BUTTON_LEFT);
+      mouseCursorPosition = mouse.getCursorPosition();
+    }
+    else
+    {
+      hoverControlId = 0;
+      activeControlId = 0;
+      draggedControlId = 0;
+      mouseLButtonDownThisFrame = false;
+      mouseLButtonUpThisFrame = false;
+      mouseLButtonIsDown = false;
+    }
 
     if (glyphDrawDataArena.getCapacity() == 0)
     {
@@ -68,7 +84,7 @@ namespace smol
     bool isBeingDragged = draggedControlId == id;
     const int titleBarHeight = 30;
     Rect titleBarRect = Rect(x, y, w, titleBarHeight);
-    bool mouseOverTitleBar = titleBarRect.containsPoint(root->mouse.getCursorPosition());
+    bool mouseOverTitleBar = titleBarRect.containsPoint(mouseCursorPosition);
 
     // Draw title bar
     GUISkin::ID styleId = (mouseOverTitleBar || isBeingDragged) ? GUISkin::WINDOW_TITLE_BAR_HOVER : GUISkin::WINDOW_TITLE_BAR; 
@@ -85,18 +101,17 @@ namespace smol
         Vector3(x / screenW, (y + titleBarHeight) / screenH, 0.0f), 
         Vector2(w / screenW, (h  - titleBarHeight) / screenH),
         Rectf(), windowColor);
-        
+
     beginArea(x, y + titleBarHeight, w, h - titleBarHeight);
     lastRect = Rect(x, y, w, h);
 
     // check for dragging the title bar
     Point2 newPos = Point2{x, y};
-    const Point2& cursorPos = root->mouse.getCursorPosition();
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
+    const Point2& cursorPos = mouseCursorPosition;
 
     if(isBeingDragged)
     {
-      if (isDown)
+      if (mouseLButtonIsDown)
       {
         newPos.x = cursorDragOffset.x + cursorPos.x;
         newPos.y = cursorDragOffset.y + cursorPos.y;
@@ -108,8 +123,7 @@ namespace smol
     }
     else if (mouseOverTitleBar)
     {
-      bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-      if (downThisFrame)
+      if (mouseLButtonDownThisFrame)
       {
         draggedControlId = id;
         cursorDragOffset = Point2{x - cursorPos.x, y - cursorPos.y};
@@ -172,8 +186,11 @@ namespace smol
     float posY    = y / screenH;
     const size_t textLen = strlen(text);
 
-    GlyphDrawData* drawData = (GlyphDrawData*) glyphDrawDataArena.pushSize((1 + textLen) * sizeof(GlyphDrawData));
-    Vector2 bounds = skin.font->computeString(text, skin.color[GUISkin::TEXT], drawData, 1.0f);
+    GlyphDrawData* drawData =
+      (GlyphDrawData*) glyphDrawDataArena.pushSize((1 + textLen) * sizeof(GlyphDrawData));
+
+    GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
+    Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, 1.0f);
     bounds.mult(scaleX, scaleY);
     lastRect = Rect((int32)posX, (int32) posY, (int32) bounds.x, (int32) bounds.y);
 
@@ -212,35 +229,32 @@ namespace smol
     lastRect = Rect(x , y, w, h);
 
     GUISkin::ID styleId;
-    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
     bool returnValue = false;
-
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
     bool isActiveControl = activeControlId == id;
-    bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-    bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
 
     if (mouseOver)
     {
       hoverControlId = id;
       styleId = GUISkin::BUTTON_HOVER;
 
-      if (downThisFrame || (isDown && isActiveControl))
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
       {
         activeControlId = id;
         styleId = GUISkin::BUTTON_ACTIVE;
       }
-      else if(upThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
         returnValue = true;
+        changed = true;
       }
     }
     else
     {
       hoverControlId = 0;
       styleId = GUISkin::BUTTON;
-      if (upThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -265,13 +279,10 @@ namespace smol
     lastRect = Rect(x, y, w, h);
 
     GUISkin::ID styleId;
-    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
     bool returnValue = toggled;
 
     bool isActiveControl = activeControlId == id;
-    bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-    bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
 
     if (toggled)
       styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
@@ -284,21 +295,22 @@ namespace smol
 
       styleId = toggled ? GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE : GUISkin::TOGGLE_BUTTON_HOVER;
 
-      if (downThisFrame || (isDown && isActiveControl))
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
       {
         activeControlId = id;
         styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
       }
-      else if(upThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
         returnValue = !toggled;
+        changed = true;
       }
     }
     else
     {
       hoverControlId = 0;
-      if (upThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -323,15 +335,11 @@ namespace smol
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
 
-    GUISkin::ID bgStyle, tickStyle;
-
-    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
+    GUISkin::ID bgStyle;
+    GUISkin::ID tickStyle;
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
     bool returnValue = toggled;
-
     bool isActiveControl = activeControlId == id;
-    bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-    bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
 
     bgStyle = GUISkin::CHECKBOX;
     tickStyle = GUISkin::CHECKBOX;
@@ -342,22 +350,23 @@ namespace smol
 
       bgStyle = GUISkin::CHECKBOX_HOVER;
 
-      if (downThisFrame || (isDown && isActiveControl))
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
       {
 
         bgStyle = GUISkin::CHECKBOX_ACTIVE;
         activeControlId = id;
       }
-      else if(upThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
         returnValue = !toggled;
+        changed = true;
       }
     }
     else
     {
       hoverControlId = 0;
-      if (upThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -394,12 +403,9 @@ namespace smol
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
 
-    bool mouseOver = lastRect.containsPoint(root->mouse.getCursorPosition());
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
     bool returnValue = toggled;
     bool isActiveControl = activeControlId == id;
-    bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-    bool upThisFrame = root->mouse.getButtonUp(MOUSE_BUTTON_LEFT);
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
 
     GUISkin::ID bgStyle   = GUISkin::CHECKBOX;
     GUISkin::ID tickStyle = GUISkin::CHECKBOX;
@@ -407,25 +413,23 @@ namespace smol
     if (mouseOver)
     {
       hoverControlId = id;
-
       bgStyle = GUISkin::CHECKBOX_HOVER;
-
-      if (downThisFrame || (isDown && isActiveControl))
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
       {
-
         bgStyle = GUISkin::CHECKBOX_ACTIVE;
         activeControlId = id;
       }
-      else if(upThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
         returnValue = !toggled;
+        changed = true;
       }
     }
     else
     {
       hoverControlId = 0;
-      if (upThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -471,15 +475,14 @@ namespace smol
     float handlePos = x + value * (w - handleWidth);
     Rect handleRect = Rect((int32)handlePos, y, handleWidth, verticalSize);
 
-    const Point2& cursorPos = root->mouse.getCursorPosition();
+    const Point2& cursorPos = mouseCursorPosition;
     bool mouseOverHandle = handleRect.containsPoint(cursorPos);
     bool isBeingDragged = draggedControlId == id;
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
     GUISkin::ID handleStyle = GUISkin::SLIDER_HANDLE;
 
     if(isBeingDragged)
     {
-      if (isDown)
+      if (mouseLButtonIsDown)
       {
         handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
         handlePos = (float)(cursorDragOffset.x + cursorPos.x);
@@ -494,8 +497,7 @@ namespace smol
     else if (mouseOverHandle)
     {
       handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
-      bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-      if (downThisFrame)
+      if (mouseLButtonDownThisFrame)
       {
         handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
         draggedControlId = id;
@@ -513,6 +515,9 @@ namespace smol
     if (handlePos < leftLimit)
       handlePos = (float) leftLimit;
     returnValue = (handlePos - x) / (float) sliderLength;
+
+    if (returnValue != value)
+      changed = true;
 
     // Horizontal line
     const float halfVerticalSize = verticalSize / 2.0f;
@@ -547,15 +552,14 @@ namespace smol
     float handlePos = y + value * (h - handleHeight);
     Rect handleRect = Rect(x, (int32)handlePos, horizontalSize, handleHeight);
 
-    const Point2& cursorPos = root->mouse.getCursorPosition();
+    const Point2& cursorPos = mouseCursorPosition;
     bool mouseOverHandle = handleRect.containsPoint(cursorPos);
     bool isBeingDragged = draggedControlId == id;
-    bool isDown = root->mouse.getButton(MOUSE_BUTTON_LEFT);
     GUISkin::ID handleStyle = GUISkin::SLIDER_HANDLE;
 
     if(isBeingDragged)
     {
-      if (isDown)
+      if (mouseLButtonIsDown)
       {
         handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
         handlePos = (float)(cursorDragOffset.y + cursorPos.y);
@@ -570,8 +574,7 @@ namespace smol
     else if (mouseOverHandle)
     {
       handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
-      bool downThisFrame = root->mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-      if (downThisFrame)
+      if (mouseLButtonDownThisFrame)
       {
         handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
         draggedControlId = id;
@@ -589,6 +592,9 @@ namespace smol
     if (handlePos < bottomLimit)
       handlePos = (float) bottomLimit;
     returnValue = (handlePos- y) / (float) sliderLength;
+    
+    if (returnValue != value)
+      changed = true;
 
     // vertical line
     const float halfHorizontalSize = horizontalSize / 2.0f;
@@ -612,7 +618,6 @@ namespace smol
     Renderer::end(streamBuffer);
   }
 
-
 #ifndef SMOL_MODULE_GAME
   Handle<Material> GUI::getMaterial() const
   {
@@ -626,8 +631,7 @@ namespace smol
     skin.labelFontSize = 16;
     areaCount = 0;
     areaOffset = Rect(0, 0, 0, 0);
-    root = SystemsRoot::get();
-
+    enabled = true;
 
     skin.sliderThickness = 0.1f;
     skin.sliderHandleThickness = 0.6f;
@@ -671,7 +675,7 @@ namespace smol
     skin.color[GUISkin::WINDOW_TITLE_BAR]       = controlSurface;
     skin.color[GUISkin::WINDOW_TITLE_BAR_HOVER] = controlSurfaceHover;
 
-    skin.color[GUISkin::SEPARATOR]              = Color(180, 180, 180);
+    skin.color[GUISkin::SEPARATOR]              = controlSurfaceHover;
   }
 
 #endif
