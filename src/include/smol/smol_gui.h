@@ -22,6 +22,10 @@ namespace smol
     float sliderHandleThickness;
     float windowOpacity;
     Handle<Font> font;
+    Rectf spriteRadioButton;
+    Rectf spriteRadioButtonChecked;
+    Rectf spriteCheckBox;
+    Rectf spriteCheckBoxChecked;
 
     enum ID
     {
@@ -70,9 +74,9 @@ namespace smol
 
     };
 
+    StreamBuffer streamBuffer;
     Arena glyphDrawDataArena;
     Handle<Material> material;
-    StreamBuffer streamBuffer;
     GUISkin skin;
     Rect lastRect;                    // Rect of the last control drawn
     GUICOntrolID hoverControlId;
@@ -127,7 +131,7 @@ namespace smol
     void end();
 
 #ifndef SMOL_MODULE_GAME
-    GUI(Handle<Material> material, Handle<Font> font);
+    void initialize(Handle<Material> material, Handle<Font> font);
     Handle<Material> getMaterial() const;
 #endif
 

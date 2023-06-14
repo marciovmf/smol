@@ -1,7 +1,6 @@
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
 #include <smol/smol_systems_root.h>
-#include "smol_gui_icons.h"
 #include <system_error>
 
 namespace smol
@@ -381,8 +380,8 @@ namespace smol
     const float boxH = size / screenH;
 
     tickStyle = (toggled || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconRADIO(), skin.color[bgStyle]);
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconRADIO_CHECKED(), skin.color[tickStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteRadioButton, skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteRadioButtonChecked, skin.color[tickStyle]);
 
     if (text)
     {
@@ -444,8 +443,8 @@ namespace smol
     const float boxH = size / screenH;
 
     tickStyle = (toggled  || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconCHECKBOX(), skin.color[bgStyle]);
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), iconCHECKBOX_CHECKED(), skin.color[tickStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteCheckBox, skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteCheckBoxChecked, skin.color[tickStyle]);
 
     if (text)
     {
@@ -626,8 +625,9 @@ namespace smol
     return material;
   }
 
-  GUI::GUI(Handle<Material> material, Handle<Font> font)
+  void GUI::initialize(Handle<Material> material, Handle<Font> font)
   {
+    Renderer::createStreamBuffer(&streamBuffer, 512);
     this->material = material;
     skin.font = font;
     skin.labelFontSize = 16;
