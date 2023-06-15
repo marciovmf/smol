@@ -84,8 +84,9 @@ namespace smol
       SystemsRoot::initialize(config);
       Mouse& mouse        = SystemsRoot::get()->mouse;
       Keyboard& keyboard  = SystemsRoot::get()->keyboard;
-      Renderer& renderer  = SystemsRoot::get()->renderer;
-      renderer.resize(displayConfig.width, displayConfig.height);
+      SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
+
+      Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
 
       Editor editor;
       editor.initialize();
@@ -111,11 +112,11 @@ namespace smol
         {
           displayConfig.width = windowWidth;
           displayConfig.height = windowHeight;
-          renderer.resize(windowWidth, windowHeight);
+          Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
         }
 
         // render scene
-        renderer.render(deltaTime);
+        sceneManager.render(deltaTime);
         editor.render(windowWidth, windowHeight);
         endTime = Platform::getTicks();
       }

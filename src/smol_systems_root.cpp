@@ -79,7 +79,6 @@ namespace smol
       seed((int32)time(0));
       SystemsRoot::instance = new SystemsRoot(config);
       SystemsRoot::instance->renderer.initialize(SystemsRoot::instance->rendererConfig);
-      SystemsRoot::instance->renderer.setScene(SystemsRoot::instance->sceneManager.getLoadedScene());
       SystemsRoot::instance->resourceManager.initialize();
     }
   }

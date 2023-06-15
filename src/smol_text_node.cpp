@@ -17,9 +17,9 @@ namespace smol
       const char* text,
       const Color& color)
   {
-    Scene& scene = SystemsRoot::get()->sceneManager.getLoadedScene();
+    Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
     Handle<SceneNode> handle = scene.createNode(SceneNode::Type::TEXT, transform);
-    TextNode& textNode = scene.getNode(handle).text;
+    TextNode& textNode = handle->text;
     textNode.batcher = batcher;
     textNode.font = font;
     textNode.node = handle;
@@ -123,7 +123,7 @@ namespace smol
   void TextNode::destroy(Handle<SceneNode> handle)
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::TEXT), "Handle passed to TextNode::destroy() is not of type TEXT");
-    SystemsRoot::get()->sceneManager.getLoadedScene().destroyNode(handle);
+    SystemsRoot::get()->sceneManager.getCurrentScene().destroyNode(handle);
     handle->sprite.batcher->textNodeCount--;
   }
 

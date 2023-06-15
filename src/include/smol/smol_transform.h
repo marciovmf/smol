@@ -6,8 +6,6 @@
 #include <smol/smol_mat4.h>
 #include <smol/smol_handle_list.h>
 
-#define DEFAULT_PARENT_NODE (Handle<SceneNode>{(int) 0, (int) 0})
-
 namespace smol
 {
   struct SceneNode;
@@ -31,7 +29,7 @@ namespace smol
         Vector3 position  = Vector3(0.0f),
         Vector3 rotation  = Vector3(0.0f),
         Vector3 scale     = Vector3(1.0f),
-        Handle<SceneNode> parent = DEFAULT_PARENT_NODE);
+        Handle<SceneNode> parent = INVALID_HANDLE(SceneNode));
 
     bool update(const Scene& scene);
 

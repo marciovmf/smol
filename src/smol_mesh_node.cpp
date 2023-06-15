@@ -8,7 +8,7 @@ namespace smol
 {
     Handle<SceneNode> MeshNode::create(Handle<Renderable> renderable, Transform& transform)
     {
-      Scene& scene = SystemsRoot::get()->sceneManager.getLoadedScene();
+      Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
       Handle<SceneNode> handle = scene.createNode(SceneNode::Type::MESH, transform);
       handle->mesh.renderable = renderable;
       return handle;
@@ -17,6 +17,6 @@ namespace smol
   void MeshNode::destroy(Handle<SceneNode> handle)
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::MESH), "Handle passed to MeshNode::destroy() is not of type MESH");
-    SystemsRoot::get()->sceneManager.getLoadedScene().destroyNode(handle);
+    SystemsRoot::get()->sceneManager.getCurrentScene().destroyNode(handle);
   }
 }

@@ -5,7 +5,7 @@
 namespace smol
 {
   Camera::Camera() :
-    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
+    clearOperation(Renderer::ClearBufferFlag::CLEAR_COLOR_BUFFER | Renderer::ClearBufferFlag::CLEAR_DEPTH_BUFFER),
     priority(0),
     layers(Layer::LAYER_0),
     rect(0.0f, 0.0f, 1.0f, 1.0f),
@@ -14,8 +14,7 @@ namespace smol
 
   Camera& Camera::setPerspective(float fov, float zNear, float zFar)
   {
-    Rect viewport = SystemsRoot::get()->renderer.getViewport();
-
+    Rect viewport = Renderer::getViewport();
     // Display might be minimized or reduced to size 0
     if (viewport.h > 0)
     {
@@ -31,7 +30,7 @@ namespace smol
 
   Camera& Camera::setOrthographic(float size, float zNear, float zFar)
   {
-    Rect viewport = SystemsRoot::get()->renderer.getViewport();
+    Rect viewport = Renderer::getViewport();
     // Display might be minimized or reduced to size 0
     if (viewport.h > 0)
     {

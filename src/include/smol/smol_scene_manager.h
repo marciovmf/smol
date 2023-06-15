@@ -15,8 +15,9 @@ namespace smol
     public:
     SceneManager();
     ~SceneManager();
-    Scene& getLoadedScene();
+    void render(float deltaTime);
+    Scene& getCurrentScene();
   };
 
 }
-#endif SMOL_SCENE_NAMAGER_H
+#endif //SMOL_SCENE_NAMAGER_H

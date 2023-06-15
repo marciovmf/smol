@@ -90,9 +90,6 @@ namespace smol
     bool returnValue = false;
     switch(uMsg) 
     {
-      case WM_CHAR:
-        printf("%c",(char) wParam);
-        break;
       case WM_CLOSE:
         PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
         break;
@@ -434,6 +431,7 @@ namespace smol
       }
     }
 
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
     return window;
   }
 

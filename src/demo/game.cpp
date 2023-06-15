@@ -38,7 +38,7 @@ void onStart()
   smol::Log::info("Game started!");
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
-  smol::Scene& scene = root->sceneManager.getLoadedScene();
+  smol::Scene& scene = root->sceneManager.getCurrentScene();
 
   // Read game specifig settings from variables.txt
   const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
@@ -351,13 +351,12 @@ void onUpdate(float deltaTime)
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F2)) {
-    cameraNode->camera
-      .setClearOperation((smol::Camera::ClearOperation::DEPTH | smol::Camera::ClearOperation::COLOR));
+    cameraNode->camera.setClearOperation((smol::Renderer::CLEAR_COLOR_BUFFER | smol::Renderer::CLEAR_DEPTH_BUFFER));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F3)) {
     cameraNode->camera
-      .setClearOperation((unsigned int)smol::Camera::ClearOperation::DEPTH);
+      .setClearOperation((unsigned int)smol::Renderer::CLEAR_DEPTH_BUFFER);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }

@@ -15,7 +15,7 @@ namespace smol
       float height,
       const Color& color)
   {
-    Scene& scene = SystemsRoot::get()->sceneManager.getLoadedScene();
+    Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
     Handle<SceneNode> handle = scene.createNode(SceneNode::Type::SPRITE, transform);
 
     handle->sprite.rect = rect;
@@ -34,7 +34,7 @@ namespace smol
   void SpriteNode::destroy(Handle<SceneNode> handle)
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::SPRITE), "Handle passed to SpriteNode::destroy() is not of type SPRITE");
-    SystemsRoot::get()->sceneManager.getLoadedScene().destroyNode(handle);
+    SystemsRoot::get()->sceneManager.getCurrentScene().destroyNode(handle);
     handle->sprite.batcher->spriteNodeCount--;
   }
 }

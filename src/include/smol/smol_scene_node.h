@@ -25,7 +25,6 @@ namespace smol
     enum Type : char
     {
       INVALID = -1,
-      ROOT = 0, // there must be only ONE root node in a scene
       CAMERA,
       MESH,
       SPRITE,

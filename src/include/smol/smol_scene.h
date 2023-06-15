@@ -20,48 +20,47 @@ namespace smol
   struct ResourceManager;
   struct SMOL_ENGINE_API Scene final
   {
-    static const Handle<SceneNode> ROOT;
+    private:
 
-    HandleList<Renderable> renderables;
-    HandleList<SceneNode> nodes;
-    HandleList<SpriteBatcher> batchers;
-    Arena renderKeys;
-    Arena renderKeysSorted;
-    Handle<smol::Texture> defaultTexture;
-    Handle<smol::ShaderProgram> defaultShader;
-    Handle<smol::Material> defaultMaterial;
-    Mat4 viewMatrix;
-    const smol::SceneNode nullSceneNode;
+      HandleList<Renderable> renderables;
+      HandleList<SceneNode> nodes;
+      HandleList<SpriteBatcher> batchers;
+      Arena renderKeys;
+      Arena renderKeysSorted;
+      Handle<smol::Texture> defaultTexture;
+      Handle<smol::ShaderProgram> defaultShader;
+      Handle<smol::Material> defaultMaterial;
+      Mat4 viewMatrix;
+      const smol::SceneNode nullSceneNode;
 
-    Scene();
-    ~Scene();
+    public:
+      Scene();
+      ~Scene();
 
-    //
-    // Resources
-    //
+      //
+      // Create / Destroy scene resources
+      //
 
-    Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
-    void destroyRenderable(Handle<Renderable> handle);
-    void destroyRenderable(Renderable* renderable);
+      Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
+      void destroyRenderable(Handle<Renderable> handle);
+      void destroyRenderable(Renderable* renderable);
 
-    Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
+      Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
+      void setSpriteBatcherMode(Handle<SpriteBatcher> handle);
+      void destroySpriteBatcher(Handle<SpriteBatcher> handle);
 
-    void setSpriteBatcherMode(Handle<SpriteBatcher> handle);
-    void destroySpriteBatcher(Handle<SpriteBatcher> handle);
+      int getNodeCount() const;
+      const SceneNode* getNodes(uint32* count = nullptr) const;
 
-    //
-    // Scene Node creation
-    //
-   
 #ifndef SMOL_MODULE_GAME
-    Handle<SceneNode> createNode(SceneNode::Type type, const Transform& transform);
-    void destroyNode(Handle<SceneNode> handle);
+      Handle<SceneNode> createNode(SceneNode::Type type, const Transform& transform);
+      void destroyNode(Handle<SceneNode> handle);
 #endif
 
-    //
-    // misc
-    //
-    SceneNode& getNode(Handle<SceneNode> handle) const;
+      //
+      // Render
+      //
+      void render(float deltaTime);
   };
 }
 
