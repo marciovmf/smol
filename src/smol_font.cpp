@@ -40,97 +40,115 @@ namespace smol
     return fontInfo->glyph;
   }
 
-
-    Vector2 Font::computeString(const char* str,
-        Color color,
-        GlyphDrawData* drawData,
-        float lineHeightScale)
+  Vector2 Font::computeString(const char* str,
+      Color color,
+      GlyphDrawData* drawData,
+      float maxLineWidth,
+      float lineHeightScale)
   {
-    float y = 0.0f;
-    const smol::Kerning* kerning = nullptr;
+    int glyphCount = 0;
     uint16 kerningCount = 0;
-
-    int glyphCount;
     const smol::Glyph* glyphList  = getGlyphs(&glyphCount);
+    const smol::Kerning* kerning = nullptr;
     const smol::Kerning* kerningList = getKernings();
-    const float lineHeight  = getLineHeight() * lineHeightScale;
+    const float lineHeight =  (float)getLineHeight();
     Vector2 bounds(0.0f);
     float advance = 0.0f;
+    float y = 0.0f;
 
     const Vector2 textureSize = getTexture()->getDimention();
-    // scale it to "1%" so it's easier to scale it propperly when rendering different sizes.
-    const float scale = 0.01f;
-
     while (*str != 0)
     {
       for (int i = 0; i < glyphCount; i++)
       {
         uint16 id = (uint16) *str;
         const smol::Glyph& glyph = glyphList[i];
-        if (glyph.id == id)
+
+        if (glyph.id != id)
+          continue;
+
+        if ((char)id == '\n')
         {
-          if ((char)id == '\n')
-          {
-            y -= lineHeight;
-            advance = 0.0f;
-          }
+          advance = 0.0f;
+          y -= lineHeight * lineHeightScale;
+          bounds.y += lineHeight * lineHeightScale;
+        }
 
-          // apply kerning
-          float glyphKerning = 0.0f;
-          for (int j = 0; j < kerningCount; j++)
-          {
-            const smol::Kerning& k = kerning[j];
-            if(k.second == glyph.id)
-            {
-              glyphKerning = k.amount;
-              break;
-            }
-          }
+        if (bounds.y == 0.0f)
+          bounds.y = lineHeight;
 
-          // x bounds
-          const float xBounds = (glyph.rect.w + advance) * scale;
+        // Check for kerning
+        float glyphKerning = 0.0f;
+        for (int j = 0; j < kerningCount; j++)
+        {
+          const smol::Kerning& k = kerning[j];
+          if(k.second == glyph.id)
+          {
+            glyphKerning = k.amount;
+            break;
+          }
+        }
+
+        float glyphX = 0.0f;
+        float glyphY = 0.0f;
+
+        // x bounds
+        float xBounds = (glyph.rect.w + advance);
+        // Break line when possible
+
+        if ( xBounds / lineHeight > maxLineWidth && maxLineWidth > 0.000f) 
+        {
+          advance = 0.0f;
+          glyphX = 0.0f;
+          y -= lineHeight * lineHeightScale;
+          bounds.y += lineHeight * lineHeightScale;
+        }
+        else
+        {
+          glyphX = advance + glyph.xOffset + glyphKerning;
           if (xBounds > bounds.x)
           {
             bounds.x = xBounds;
           }
-
-          float glyphY = y - glyph.yOffset;
-          // Negative Y because sprites are pushed with flipped Y
-          drawData->color = color;
-          drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
-          drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
-
-          drawData->position.mult(scale);
-          drawData->size.mult(scale);
-
-          // convert UVs from pixels to 0~1 range
-          Rectf uvRect;
-          uvRect.x = glyph.rect.x / (float) textureSize.x;
-          uvRect.y = 1 - (glyph.rect.y /(float) textureSize.y); 
-          uvRect.w = glyph.rect.w / (float) textureSize.x;
-          uvRect.h = glyph.rect.h / (float) textureSize.y;
-          advance += glyph.xAdvance + glyphKerning;
-          drawData->uv = uvRect;
-
-          // y bounds
-
-          //const float yBounds = abs(glyphY - glyph.rect.h) * scale;
-          const float yBounds = (abs(glyphY - glyph.rect.h) + lineHeight - getBase()) * scale;
-          if (yBounds > bounds.y)
-          {
-            bounds.y = yBounds;
-          }
-
-          // kerning information for the next character
-          kerning = &kerningList[glyph.kerningStart];
-          kerningCount = glyph.kerningCount;
-          break;
         }
+
+        glyphY = y - glyph.yOffset;
+
+
+        // Negative Y because sprites are pushed with flipped Y
+        drawData->color = color;
+        drawData->position = smol::Vector3(glyphX, -glyphY, 0.0f);
+        drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
+
+        /**
+         * We need a way to output text at the same scale regardless of the image
+         * size or space each glyph occupies in the image. We achieve this by
+         * dividing glyphs coordinates byt the font's lineHeight property which
+         * is measured in pixels. As no glyph is expected to exceed the
+         * lineHeight, this results in coordinates ranging from 0.0 to 1.0
+         */
+        drawData->position.div(lineHeight);
+        drawData->size.div(lineHeight);
+
+        // convert UVs from pixels to 0~1 range
+        Rectf uvRect;
+        uvRect.x = glyph.rect.x / (float) textureSize.x;
+        uvRect.y = 1 - (glyph.rect.y /(float) textureSize.y); 
+        uvRect.w = glyph.rect.w / (float) textureSize.x;
+        uvRect.h = glyph.rect.h / (float) textureSize.y;
+        advance += glyph.xAdvance + glyphKerning;
+        drawData->uv = uvRect;
+
+        // kerning information for the next character
+        kerning = &kerningList[glyph.kerningStart];
+        kerningCount = glyph.kerningCount;
+        break;
       }
       str++;
       drawData++;
     }
 
+    bounds.div(lineHeight);
     return bounds;
   }
 

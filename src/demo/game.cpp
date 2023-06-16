@@ -179,7 +179,7 @@ void onStart()
       smol::Transform(
         {0.0f, 2.0f, 0.0f},
         {0.0f, 0.0f, 30.0f},
-        {5.0f, 5.0f, 5.0f}, 
+        {1.0f, 1.0f, 1.0f}, 
         node1),
         "Hello,Sailor!",
         smol::Color::YELLOW);
@@ -189,7 +189,7 @@ void onStart()
       smol::Transform(
         {0.0f, 8.0f, 0.0f},
         {0.0f, -45.0f, 0.0f},
-        {1.f, 1.f, 1.f}),
+        {1.0f, 1.0f, 1.0f}), 
         p, smol::Color::WHITE);
     textNode->text.setBackgroundColor(smol::Color::TEAL);
 

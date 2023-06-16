@@ -12,10 +12,11 @@
 namespace smol
 {
   Point2 windowPos = Point2{550, 150};
-  bool wireframeMode = false;
   bool radioOption = false;
   float sliderLineThickness = 0.2f;
   float sliderHandleThickness = 0.2f;
+  float fontSizeAdjust = 0.0f;
+  float lineHeightAdjust = 0.5f;
 
   void Editor::initialize()
   {
@@ -49,8 +50,8 @@ namespace smol
         debugLogInfo("Button 1 clicked!");
       yPos += vSpacing + buttonHeight;
 
-      snprintf(text, 128, "Wireframe mode: '%s'", wireframeMode ? "On":"Off");
-      wireframeMode = gui.doCheckBox(SMOL_CONTROL_ID, text, wireframeMode, 5, yPos);
+      snprintf(text, 128, "Text debug background : '%s'", gui.drawLabelDebugBackground ? "On":"Off");
+      gui.drawLabelDebugBackground = gui.doCheckBox(SMOL_CONTROL_ID, text, gui.drawLabelDebugBackground, 5, yPos);
       yPos += vSpacing + buttonHeight;
 
       radioOption = gui.doRadioButton(SMOL_CONTROL_ID, "Affect Sliders", radioOption, 6, yPos);
@@ -70,13 +71,26 @@ namespace smol
         gui.getSkin().sliderHandleThickness = sliderHandleThickness;
       }
 
-    float opacity =  gui.getSkin().windowOpacity;
-        opacity = gui.doHorizontalSlider(SMOL_CONTROL_ID, opacity, 5, yPos, 290);
-        gui.getSkin().windowOpacity = opacity;
-        yPos += vSpacing + buttonHeight;
+      // Slider opacity
+      float opacity = gui.getSkin().windowOpacity;
+      opacity = gui.doHorizontalSlider(SMOL_CONTROL_ID, opacity, 5, yPos, 290);
+      gui.getSkin().windowOpacity = opacity;
+      yPos += vSpacing + buttonHeight;
 
-    gui.endWindow();
-    gui.end();
+      // Slider text size
+      fontSizeAdjust = gui.doHorizontalSlider(SMOL_CONTROL_ID, fontSizeAdjust, 5, yPos, 290);
+      gui.getSkin().labelFontSize = 16 + ( 8 * fontSizeAdjust);
+      yPos += vSpacing + buttonHeight;
+
+      lineHeightAdjust = gui.doHorizontalSlider(SMOL_CONTROL_ID, lineHeightAdjust, 5, yPos, 290);
+      gui.getSkin().lineHeightAdjust = 2 * lineHeightAdjust - 1;
+      yPos += vSpacing + buttonHeight;
+
+
+      gui.label(SMOL_CONTROL_ID, "This is a very long line of text. This text was intentionally written without line breaks in order to be really long.", 5, yPos, 290);
+
+      gui.endWindow();
+      gui.end();
 
   }
 

@@ -90,9 +90,9 @@ namespace smol
     bool returnValue = false;
     switch(uMsg) 
     {
-      case WM_CHAR:
-        printf("%c",(char) wParam);
-        break;
+      //case WM_CHAR:
+      //  printf("%c",(char) wParam);
+      //  break;
       case WM_CLOSE:
         PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
         break;

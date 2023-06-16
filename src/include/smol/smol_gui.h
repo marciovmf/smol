@@ -17,7 +17,8 @@ namespace smol
 
   struct SMOL_ENGINE_API GUISkin final
   {
-    uint16 labelFontSize;
+    float labelFontSize;
+    float lineHeightAdjust;
     float sliderThickness;
     float sliderHandleThickness;
     float windowOpacity;
@@ -30,6 +31,7 @@ namespace smol
     enum ID
     {
       TEXT,
+      TEXT_DEBUG_BACKGROUND,
       TEXT_DISABLED,
 
       BUTTON,
@@ -99,6 +101,7 @@ namespace smol
 
     bool enabled;
     bool changed;
+    bool drawLabelDebugBackground;
 
     enum Align
     {
@@ -121,7 +124,7 @@ namespace smol
     void beginArea(int32 x, int32 y, int32 w, int32 h);
     void endArea();
 
-    void label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align = NONE);
+    void label(GUICOntrolID id, const char* text, int32 x, int32 y, int w, Align align = NONE);
     bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
     bool doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
     bool doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);

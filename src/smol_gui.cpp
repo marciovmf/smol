@@ -92,7 +92,7 @@ namespace smol
         Vector3(x / screenW, y / screenH, 0.0f), 
         Vector2(w / screenW, titleBarHeight / screenH),
         Rectf(), skin.color[styleId]);
-    label(id, title, x + DEFAULT_H_SPACING, y + (titleBarHeight/2), LEFT);
+    label(id, title, x + DEFAULT_H_SPACING, y + (titleBarHeight/2), 0, LEFT);
 
     // draw the window panel
     Color windowColor = skin.color[GUISkin::WINDOW];
@@ -174,23 +174,23 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y, Align align)
+  void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, Align align)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
 
-    const uint16 fontSize = skin.labelFontSize;
+    const float fontSize =  skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
     const float scaleY  = fontSize / screenH;
-    float posX    = x / screenW;
-    float posY    = y / screenH;
+    float posX          = x / screenW;
+    float posY          = y / screenH;
     const size_t textLen = strlen(text);
 
     GlyphDrawData* drawData =
       (GlyphDrawData*) glyphDrawDataArena.pushSize((1 + textLen) * sizeof(GlyphDrawData));
 
     GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
-    Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, 1.0f);
+    Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, w / (float)fontSize, 1.0f + skin.lineHeightAdjust);
     bounds.mult(scaleX, scaleY);
     lastRect = Rect((int32)posX, (int32) posY, (int32) bounds.x, (int32) bounds.y);
 
@@ -210,7 +210,9 @@ namespace smol
     }
 
     // Draws a solid background behind the text. Keep this here for debugging
-    //Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), Color::BLACK);
+    if (drawLabelDebugBackground)
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y),
+          Rectf(), skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]);
 
     for (int i = 0; i < textLen; i++)
     {
@@ -268,7 +270,7 @@ namespace smol
     // We don't want to offset the label twice, so we remove the areaOffset
     const int centerX = x - areaOffset.x + w/2;
     const int centerY = y - areaOffset.y + h/2;
-    label(id, text, centerX, centerY, CENTER);
+    label(id, text, centerX, centerY, 0, CENTER);
     return returnValue;
   }
 
@@ -388,7 +390,7 @@ namespace smol
       // We don't want to offset the label twice, so we remove the areaOffset
       const int labelX = x - areaOffset.x + size + DEFAULT_H_SPACING;
       const int labelY = y + (size/2) - areaOffset.y;
-      label(id, text, labelX, labelY, LEFT);
+      label(id, text, labelX, labelY, 0, LEFT);
       Rect textRect = getLastRect();
       lastRect.w += textRect.w;
     }
@@ -451,7 +453,7 @@ namespace smol
       // We don't want to offset the label twice, so we remove the areaOffset
       const int labelX = x - areaOffset.x + size + DEFAULT_H_SPACING;
       const int labelY = y + (size/2) - areaOffset.y;
-      label(id, text, labelX, labelY, LEFT);
+      label(id, text, labelX, labelY, 0, LEFT);
       Rect textRect = getLastRect();
       lastRect.w += textRect.w;
     }
@@ -592,7 +594,7 @@ namespace smol
     if (handlePos < bottomLimit)
       handlePos = (float) bottomLimit;
     returnValue = (handlePos- y) / (float) sliderLength;
-    
+
     if (returnValue != value)
       changed = true;
 
@@ -634,6 +636,7 @@ namespace smol
     areaCount = 0;
     areaOffset = Rect(0, 0, 0, 0);
     enabled = true;
+    drawLabelDebugBackground = false;
 
     skin.sliderThickness = 0.1f;
     skin.sliderHandleThickness = 0.6f;
@@ -649,8 +652,9 @@ namespace smol
     const Color contrastLight           = Color(150, 150, 150);
 
 
-    skin.color[GUISkin::TEXT]          = Color::WHITE;
-    skin.color[GUISkin::TEXT_DISABLED] = Color::GRAY;
+    skin.color[GUISkin::TEXT]                   = Color::WHITE;
+    skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]  = Color::BLACK;
+    skin.color[GUISkin::TEXT_DISABLED]          = Color::GRAY;
 
     skin.color[GUISkin::BUTTON]        = controlSurface;
     skin.color[GUISkin::BUTTON_HOVER]  = controlSurfaceHover;

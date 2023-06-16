@@ -55,7 +55,7 @@ namespace smol
     strncpy(this->text, text, textLen + 1);
 
     GlyphDrawData* background = drawData;
-    this->textBounds = font->computeString(this->text, color, this->drawData+1, lineHeightScale);
+    this->textBounds = font->computeString(this->text, color, this->drawData+1, 0.0f, lineHeightScale);
 
     background->position = Vector3(0.0f, 0.0f, -0.2f);
     background->color = bgColor;
