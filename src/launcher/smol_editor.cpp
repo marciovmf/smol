@@ -13,7 +13,7 @@ namespace smol
 {
   Point2 windowPos = Point2{550, 150};
   bool radioOption = false;
-  bool breakText = false;
+  bool breakText = true;
   float sliderLineThickness = 0.3f;
   float fontSizeAdjust = 0.0f;
   float lineHeightAdjust = 0.5f;
