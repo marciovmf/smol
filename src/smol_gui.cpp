@@ -332,7 +332,7 @@ namespace smol
 
   bool GUI::doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y)
   {
-    const uint32 size = 24;
+    const uint32 size = DEFAULT_CONTROL_HEIGHT;
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
@@ -400,7 +400,7 @@ namespace smol
 
   bool GUI::doCheckBox(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y)
   {
-    const uint32 size = 24;
+    const uint32 size = DEFAULT_CONTROL_HEIGHT;
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
@@ -463,45 +463,45 @@ namespace smol
 
   float GUI::doHorizontalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 w)
   {
-    const uint32 verticalSize = 24;
-    uint32 handleWidth = (uint32)(18 * skin.sliderHandleThickness);
-    if (handleWidth < 4) handleWidth = 4;
+    //inner handle scales according to user action
+    const float handleScaleHover  = 0.8f;
+    const float handleScaleNormal = 0.65f;
+    const float handleScaleDrag   = 0.5f;
+    const uint32 handleSize = DEFAULT_CONTROL_HEIGHT;
+    float innerHandleScale = handleScaleNormal;
 
     x = areaOffset.x + x;
     y = areaOffset.y + y;
-    lastRect = Rect(x, y, w, verticalSize);
+    lastRect = Rect(x, y, w, handleSize);
 
     float returnValue = value;
     if (value < 0.0f) value = 0.0f;
     if (value > 1.0f) value = 1.0f;
-    float handlePos = x + value * (w - handleWidth);
-    Rect handleRect = Rect((int32)handlePos, y, handleWidth, verticalSize);
+    float handlePos = x + value * (w - handleSize);
+    Rect handleRect = Rect((int32)handlePos, y, handleSize, handleSize);
 
     const Point2& cursorPos = mouseCursorPosition;
     bool mouseOverHandle = handleRect.containsPoint(cursorPos);
     bool isBeingDragged = draggedControlId == id;
-    GUISkin::ID handleStyle = GUISkin::SLIDER_HANDLE;
 
     if(isBeingDragged)
     {
       if (mouseLButtonIsDown)
       {
-        handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
+        innerHandleScale = handleScaleDrag;
         handlePos = (float)(cursorDragOffset.x + cursorPos.x);
       }
       else
       {
-        handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
         draggedControlId = 0;
       }
-
     }
     else if (mouseOverHandle)
     {
-      handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
+
+      innerHandleScale = handleScaleHover;
       if (mouseLButtonDownThisFrame)
       {
-        handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
         draggedControlId = id;
         cursorDragOffset = Point2{(int)handlePos - cursorPos.x, 0};
         handlePos = (float)(cursorDragOffset.x + cursorPos.x);
@@ -509,7 +509,7 @@ namespace smol
     }
 
     const int32 leftLimit = x;
-    const int32 rightLimit = x + w - handleWidth;
+    const int32 rightLimit = x + w - handleSize;
     const int32 sliderLength = rightLimit - leftLimit;
 
     if (handlePos > rightLimit)
@@ -522,96 +522,118 @@ namespace smol
       changed = true;
 
     // Horizontal line
-    const float halfVerticalSize = verticalSize / 2.0f;
-    const float lineThickness = verticalSize * skin.sliderThickness;
-    const float halfLinethickness = halfVerticalSize * skin.sliderThickness;
+    const float halfHandleSize = handleSize / 2.0f;
+    const float lineThickness = handleSize * skin.sliderThickness;
+    const float halfLinethickness = halfHandleSize * skin.sliderThickness;
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, (y + halfVerticalSize - halfLinethickness) / screenH, 0.0f), 
+        Vector3(x / screenW, (y + halfHandleSize - halfLinethickness) / screenH, 0.0f), 
         Vector2(w / screenW, lineThickness / screenH),
         Rectf(), skin.color[GUISkin::SLIDER]);
 
     // handle
     Renderer::pushSprite(streamBuffer,
         Vector3(handlePos / screenW, y / screenH, 0.0f), 
-        Vector2(handleWidth / screenW, verticalSize / screenH),
-        Rectf(), skin.color[handleStyle]);
+        Vector2(handleSize / screenW, handleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE]);
+
+    // inner handle
+    float innerHandleSize = handleSize * innerHandleScale;
+    float halfInnerHandleSize = innerHandleSize / 2.0f;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(
+          (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenW,
+          (y + halfHandleSize - halfInnerHandleSize) / screenH, 0.0f), 
+        Vector2(innerHandleSize / screenW, innerHandleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE_INNER]);
+
     return returnValue;
   }
 
   float GUI::doVerticalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 h)
   {
-    const uint32 horizontalSize = 24;
-    uint32 handleHeight = (uint32)(18 * skin.sliderHandleThickness);
-    if (handleHeight < 4) handleHeight = 4;
+    //inner handle scales according to user action
+    const float handleScaleHover  = 0.8f;
+    const float handleScaleNormal = 0.65f;
+    const float handleScaleDrag   = 0.5f;
+    const uint32 handleSize = DEFAULT_CONTROL_HEIGHT;
+    float innerHandleScale = handleScaleNormal;
 
     x = areaOffset.x + x;
     y = areaOffset.y + y;
-    lastRect = Rect(x, y, horizontalSize, h);
+    lastRect = Rect(x, y, handleSize, h);
 
     float returnValue = value;
     if (value < 0.0f) value = 0.0f;
     if (value > 1.0f) value = 1.0f;
-    float handlePos = y + value * (h - handleHeight);
-    Rect handleRect = Rect(x, (int32)handlePos, horizontalSize, handleHeight);
+    float handlePos = y + value * (h - handleSize);
+    Rect handleRect = Rect(x, (int32)handlePos, handleSize, handleSize);
 
     const Point2& cursorPos = mouseCursorPosition;
     bool mouseOverHandle = handleRect.containsPoint(cursorPos);
     bool isBeingDragged = draggedControlId == id;
-    GUISkin::ID handleStyle = GUISkin::SLIDER_HANDLE;
 
     if(isBeingDragged)
     {
       if (mouseLButtonIsDown)
       {
-        handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
+        innerHandleScale = handleScaleDrag;
         handlePos = (float)(cursorDragOffset.y + cursorPos.y);
       }
       else
       {
-        handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
         draggedControlId = 0;
       }
-
     }
     else if (mouseOverHandle)
     {
-      handleStyle = GUISkin::SLIDER_HANDLE_HOVER;
+      innerHandleScale = handleScaleHover;
       if (mouseLButtonDownThisFrame)
       {
-        handleStyle = GUISkin::SLIDER_HANDLE_ACTIVE;
         draggedControlId = id;
-        cursorDragOffset = Point2{(int)handlePos - cursorPos.y, 0};
+        cursorDragOffset = Point2{0, (int)handlePos - cursorPos.y};
         handlePos = (float)(cursorDragOffset.y + cursorPos.y);
       }
     }
 
     const int32 bottomLimit = y;
-    const int32 topLimit = y + h - handleHeight;
+    const int32 topLimit = y + h - handleSize;
     const int32 sliderLength = topLimit - bottomLimit;
 
     if (handlePos > topLimit)
       handlePos = (float) topLimit;
     if (handlePos < bottomLimit)
       handlePos = (float) bottomLimit;
-    returnValue = (handlePos- y) / (float) sliderLength;
+    returnValue = (handlePos - y) / (float) sliderLength;
 
     if (returnValue != value)
       changed = true;
 
     // vertical line
-    const float halfHorizontalSize = horizontalSize / 2.0f;
-    const float lineThickness = horizontalSize * skin.sliderThickness;
-    const float halfLinethickness = halfHorizontalSize * skin.sliderThickness;
+    const float halfHandleSize = handleSize / 2.0f;
+    const float lineThickness = handleSize * skin.sliderThickness;
+    const float halfLinethickness = halfHandleSize * skin.sliderThickness;
     Renderer::pushSprite(streamBuffer,
-        Vector3((x + halfHorizontalSize - halfLinethickness) / screenW, y / screenH, 0.0f), 
+        Vector3((x + halfHandleSize - halfLinethickness) / screenW, y / screenH, 0.0f), 
         Vector2(lineThickness / screenW, h / screenH),
         Rectf(), skin.color[GUISkin::SLIDER]);
 
     // handle
     Renderer::pushSprite(streamBuffer,
         Vector3(x / screenW, handlePos / screenH, 0.0f), 
-        Vector2(horizontalSize / screenW, handleHeight / screenH),
-        Rectf(), skin.color[handleStyle]);
+        Vector2(handleSize / screenW, handleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE]);
+
+    // inner handle
+    float innerHandleSize = handleSize * innerHandleScale;
+    float halfInnerHandleSize = innerHandleSize / 2.0f;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(
+          (x + halfHandleSize - halfInnerHandleSize) / screenW,
+          (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenH,
+          0.0f), 
+        Vector2(innerHandleSize / screenW, innerHandleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE_INNER]);
+
     return returnValue;
   }
 
@@ -639,7 +661,6 @@ namespace smol
     drawLabelDebugBackground = false;
 
     skin.sliderThickness = 0.1f;
-    skin.sliderHandleThickness = 0.6f;
     skin.windowOpacity = .9f;
 
     const Color windowBackground        = Color(29, 29, 29);
@@ -671,9 +692,8 @@ namespace smol
     skin.color[GUISkin::CHECKBOX_CHECK]         = Color::WHITE;
 
     skin.color[GUISkin::SLIDER]                 = contrastLight;
-    skin.color[GUISkin::SLIDER_HANDLE]          = controlBackground;
-    skin.color[GUISkin::SLIDER_HANDLE_HOVER]    = Color::WHITE;
-    skin.color[GUISkin::SLIDER_HANDLE_ACTIVE]   = Color::BLACK;
+    skin.color[GUISkin::SLIDER_HANDLE]          = contrastLight;
+    skin.color[GUISkin::SLIDER_HANDLE_INNER]    = controlBackground;
 
     skin.color[GUISkin::PANEL]                  = panelBackground;
 

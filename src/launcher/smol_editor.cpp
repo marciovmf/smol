@@ -13,7 +13,7 @@ namespace smol
 {
   Point2 windowPos = Point2{550, 150};
   bool radioOption = false;
-  float sliderLineThickness = 0.2f;
+  float sliderLineThickness = 0.3f;
   float sliderHandleThickness = 0.2f;
   float fontSizeAdjust = 0.0f;
   float lineHeightAdjust = 0.5f;
@@ -31,6 +31,7 @@ namespace smol
     skin.spriteCheckBoxChecked = iconCHECKBOX_CHECKED();
     skin.spriteRadioButton = iconRADIO();
     skin.spriteRadioButtonChecked = iconRADIO_CHECKED();
+    skin.spriteSliderHandle = iconSLIDER_HANDLE();
   }
 
   void Editor::render(int windowWidth, int windowHeight)
@@ -61,14 +62,9 @@ namespace smol
       sliderLineThickness = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderLineThickness, 5, yPos, 290);
       yPos += vSpacing + buttonHeight;
 
-      // Slider handle thickness
-    sliderHandleThickness = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderHandleThickness, 5, yPos, 290);
-      yPos += vSpacing + buttonHeight;
-
       if (radioOption)
       {
         gui.getSkin().sliderThickness = sliderLineThickness;
-        gui.getSkin().sliderHandleThickness = sliderHandleThickness;
       }
 
       // Slider opacity

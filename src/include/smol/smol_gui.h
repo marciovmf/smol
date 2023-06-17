@@ -20,13 +20,13 @@ namespace smol
     float labelFontSize;
     float lineHeightAdjust;
     float sliderThickness;
-    float sliderHandleThickness;
     float windowOpacity;
     Handle<Font> font;
     Rectf spriteRadioButton;
     Rectf spriteRadioButtonChecked;
     Rectf spriteCheckBox;
     Rectf spriteCheckBoxChecked;
+    Rectf spriteSliderHandle;
 
     enum ID
     {
@@ -50,8 +50,7 @@ namespace smol
 
       SLIDER,
       SLIDER_HANDLE,
-      SLIDER_HANDLE_HOVER,
-      SLIDER_HANDLE_ACTIVE,
+      SLIDER_HANDLE_INNER,
 
       PANEL,
 
@@ -73,6 +72,7 @@ namespace smol
     {
       MAX_NESTED_AREAS = 16,
       DEFAULT_H_SPACING = 5,
+      DEFAULT_CONTROL_HEIGHT = 18,
 
     };
 
