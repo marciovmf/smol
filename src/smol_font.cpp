@@ -41,96 +41,142 @@ namespace smol
   }
 
 
-    Vector2 Font::computeString(const char* str,
-        Color color,
-        GlyphDrawData* drawData,
-        float lineHeightScale)
-  {
-    float y = 0.0f;
-    const smol::Kerning* kerning = nullptr;
-    uint16 kerningCount = 0;
 
-    int glyphCount;
+  Vector2 Font::computeString(const char* str,
+      Color color,
+      GlyphDrawData* drawData,
+      float maxLineWidth,
+      float lineHeightScale)
+  {
+    int glyphCount = 0;
+    uint16 kerningCount = 0;
     const smol::Glyph* glyphList  = getGlyphs(&glyphCount);
+    const smol::Kerning* kerning = nullptr;
     const smol::Kerning* kerningList = getKernings();
-    const float lineHeight  = getLineHeight() * lineHeightScale;
+    const float lineHeight =  (float)getLineHeight();
     Vector2 bounds(0.0f);
     float advance = 0.0f;
-
+    float y = 0.0f;
+    char* wordBreakStrPosition = nullptr;
+    GlyphDrawData* wordBreakDrawDataPosition = nullptr;
     const Vector2 textureSize = getTexture()->getDimention();
-    // scale it to "1%" so it's easier to scale it propperly when rendering different sizes.
-    const float scale = 0.01f;
+    bool breakTextIfTooLong = maxLineWidth > 0.00f;
 
     while (*str != 0)
     {
       for (int i = 0; i < glyphCount; i++)
       {
+        float glyphX = 0.0f;
+        float glyphY = 0.0f;
         uint16 id = (uint16) *str;
         const smol::Glyph& glyph = glyphList[i];
-        if (glyph.id == id)
+
+        if (glyph.id != id)
+          continue;
+
+        if ((char)id == '\n')
         {
-          if ((char)id == '\n')
+          advance = 0.0f;
+          y -= lineHeight * lineHeightScale;
+          bounds.y += lineHeight * lineHeightScale;
+          // We don't remember word breaks across lines
+          wordBreakStrPosition = nullptr;
+          wordBreakDrawDataPosition = nullptr;
+        }
+        else if ((char) id == ' ')
+        {
+          // Avoid getting stuck in a loop in case of trying to break long words.
+          if (wordBreakStrPosition == str)
           {
-            y -= lineHeight;
-            advance = 0.0f;
+            wordBreakStrPosition = nullptr;
+            wordBreakDrawDataPosition = nullptr;
           }
-
-          // apply kerning
-          float glyphKerning = 0.0f;
-          for (int j = 0; j < kerningCount; j++)
+          else 
           {
-            const smol::Kerning& k = kerning[j];
-            if(k.second == glyph.id)
-            {
-              glyphKerning = k.amount;
-              break;
-            }
+            // We save the position of white spaces so we can break the text at this position later it necessary.
+            wordBreakStrPosition = (char*) str;
+            wordBreakDrawDataPosition = drawData;
           }
+        }
 
-          // x bounds
-          const float xBounds = (glyph.rect.w + advance) * scale;
+        if (bounds.y == 0.0f)
+          bounds.y = lineHeight;
+
+        // Check for kerning
+        float glyphKerning = 0.0f;
+        for (int j = 0; j < kerningCount; j++)
+        {
+          const smol::Kerning& k = kerning[j];
+          if(k.second == glyph.id)
+          {
+            glyphKerning = k.amount;
+            break;
+          }
+        }
+
+        // Should we break the text if it's too long ?
+        float xBounds = (glyph.rect.w + advance);
+        if (breakTextIfTooLong && (xBounds / lineHeight) > maxLineWidth)
+        {
+          advance = 0.0f;
+          glyphX = 0.0f;
+          y -= lineHeight * lineHeightScale;
+          bounds.y += lineHeight * lineHeightScale;
+
+          // Can we break it from the previous white space ?
+          if(wordBreakStrPosition)
+          {
+            str = wordBreakStrPosition;
+            drawData = wordBreakDrawDataPosition;
+            continue;
+          }
+        }
+        else
+        {
+          glyphX = advance + glyph.xOffset + glyphKerning;
           if (xBounds > bounds.x)
           {
             bounds.x = xBounds;
           }
-
-          float glyphY = y - glyph.yOffset;
-          // Negative Y because sprites are pushed with flipped Y
-          drawData->color = color;
-          drawData->position = smol::Vector3(advance + glyph.xOffset + glyphKerning, -glyphY, 0.0f);
-          drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
-
-          drawData->position.mult(scale);
-          drawData->size.mult(scale);
-
-          // convert UVs from pixels to 0~1 range
-          Rectf uvRect;
-          uvRect.x = glyph.rect.x / (float) textureSize.x;
-          uvRect.y = 1 - (glyph.rect.y /(float) textureSize.y); 
-          uvRect.w = glyph.rect.w / (float) textureSize.x;
-          uvRect.h = glyph.rect.h / (float) textureSize.y;
-          advance += glyph.xAdvance + glyphKerning;
-          drawData->uv = uvRect;
-
-          // y bounds
-
-          //const float yBounds = abs(glyphY - glyph.rect.h) * scale;
-          const float yBounds = (abs(glyphY - glyph.rect.h) + lineHeight - getBase()) * scale;
-          if (yBounds > bounds.y)
-          {
-            bounds.y = yBounds;
-          }
-
-          // kerning information for the next character
-          kerning = &kerningList[glyph.kerningStart];
-          kerningCount = glyph.kerningCount;
-          break;
         }
+
+        glyphY = y - glyph.yOffset;
+
+
+        // Negative Y because sprites are pushed with flipped Y
+        drawData->color = color;
+        drawData->position = smol::Vector3(glyphX, -glyphY, 0.0f);
+        drawData->size = Vector2(glyph.rect.w, glyph.rect.h);
+
+        /**
+         * We need a way to output text at the same scale regardless of the image
+         * size or space each glyph occupies in the image. We achieve this by
+         * dividing glyphs coordinates byt the font's lineHeight property which
+         * is measured in pixels. As no glyph is expected to exceed the
+         * lineHeight, this results in coordinates ranging from 0.0 to 1.0
+         */
+        drawData->position.div(lineHeight);
+        drawData->size.div(lineHeight);
+
+        // convert UVs from pixels to 0~1 range
+        Rectf uvRect;
+        uvRect.x = glyph.rect.x / (float) textureSize.x;
+        uvRect.y = 1 - (glyph.rect.y /(float) textureSize.y); 
+        uvRect.w = glyph.rect.w / (float) textureSize.x;
+        uvRect.h = glyph.rect.h / (float) textureSize.y;
+        advance += glyph.xAdvance + glyphKerning;
+        drawData->uv = uvRect;
+
+        // kerning information for the next character
+        kerning = &kerningList[glyph.kerningStart];
+        kerningCount = glyph.kerningCount;
+        break;
       }
       str++;
       drawData++;
     }
 
+    bounds.div(lineHeight);
     return bounds;
   }
 

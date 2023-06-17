@@ -1,5 +1,5 @@
 // This file was generated automatially. Do not edit it!
-// Last generated: 06/10/2023, 13:00:36
+// Last generated: 06/17/2023, 11:38:59
 #ifndef SMOL_GUI_ICONS_H
 #define SMOL_GUI_ICONS_H
 
@@ -31,6 +31,8 @@ namespace smol
 	inline const Rectf iconTEXTBOX(){ return Rectf(0.658203125f, 0.99609375f, 0.03125f, 0.0625f);}
 	// x = 642, y = 130, w = 32, h = 32
 	inline const Rectf iconCOMPONENT(){ return Rectf(0.626953125f, 0.74609375f, 0.03125f, 0.0625f);}
+	// x = 674, y = 162, w = 32, h = 32
+	inline const Rectf iconSLIDER_HANDLE(){ return Rectf(0.658203125f, 0.68359375f, 0.03125f, 0.0625f);}
 	// x = 546, y = 162, w = 32, h = 32
 	inline const Rectf iconCIRCLE(){ return Rectf(0.533203125f, 0.68359375f, 0.03125f, 0.0625f);}
 	// x = 578, y = 2, w = 32, h = 32
@@ -113,11 +115,12 @@ namespace smol
 		ICON_TRASH,
 		ICON_CIRCLE,
 		ICON_TEXT,
+		ICON_SLIDER_HANDLE,
 		ICON_FOLDER,
 		ICON_RESIZE_HORIZONTAL,
 		COUNT,
 		NO_ICON = -1,
-  };
+};
 
 	inline const Rectf getIcon(Icon icon)
 	{
@@ -156,6 +159,7 @@ namespace smol
 			case ICON_TRASH: return iconTRASH(); break;
 			case ICON_CIRCLE: return iconCIRCLE(); break;
 			case ICON_TEXT: return iconTEXT(); break;
+			case ICON_SLIDER_HANDLE: return iconSLIDER_HANDLE(); break;
 			case ICON_FOLDER: return iconFOLDER(); break;
 			case ICON_RESIZE_HORIZONTAL: return iconRESIZE_HORIZONTAL(); break;
 			default: return Rectf(0.0f, 0.0f, 0.0f, 0.0f); break;
