@@ -40,6 +40,8 @@ namespace smol
     return fontInfo->glyph;
   }
 
+
+
   Vector2 Font::computeString(const char* str,
       Color color,
       GlyphDrawData* drawData,
@@ -55,12 +57,17 @@ namespace smol
     Vector2 bounds(0.0f);
     float advance = 0.0f;
     float y = 0.0f;
-
+    char* wordBreakStrPosition = nullptr;
+    GlyphDrawData* wordBreakDrawDataPosition = nullptr;
     const Vector2 textureSize = getTexture()->getDimention();
+    bool breakTextIfTooLong = maxLineWidth > 0.00f;
+
     while (*str != 0)
     {
       for (int i = 0; i < glyphCount; i++)
       {
+        float glyphX = 0.0f;
+        float glyphY = 0.0f;
         uint16 id = (uint16) *str;
         const smol::Glyph& glyph = glyphList[i];
 
@@ -72,6 +79,24 @@ namespace smol
           advance = 0.0f;
           y -= lineHeight * lineHeightScale;
           bounds.y += lineHeight * lineHeightScale;
+          // We don't remember word breaks across lines
+          wordBreakStrPosition = nullptr;
+          wordBreakDrawDataPosition = nullptr;
+        }
+        else if ((char) id == ' ')
+        {
+          // Avoid getting stuck in a loop in case of trying to break long words.
+          if (wordBreakStrPosition == str)
+          {
+            wordBreakStrPosition = nullptr;
+            wordBreakDrawDataPosition = nullptr;
+          }
+          else 
+          {
+            // We save the position of white spaces so we can break the text at this position later it necessary.
+            wordBreakStrPosition = (char*) str;
+            wordBreakDrawDataPosition = drawData;
+          }
         }
 
         if (bounds.y == 0.0f)
@@ -89,19 +114,22 @@ namespace smol
           }
         }
 
-        float glyphX = 0.0f;
-        float glyphY = 0.0f;
-
-        // x bounds
+        // Should we break the text if it's too long ?
         float xBounds = (glyph.rect.w + advance);
-        // Break line when possible
-
-        if ( xBounds / lineHeight > maxLineWidth && maxLineWidth > 0.000f) 
+        if (breakTextIfTooLong && (xBounds / lineHeight) > maxLineWidth)
         {
           advance = 0.0f;
           glyphX = 0.0f;
           y -= lineHeight * lineHeightScale;
           bounds.y += lineHeight * lineHeightScale;
+
+          // Can we break it from the previous white space ?
+          if(wordBreakStrPosition)
+          {
+            str = wordBreakStrPosition;
+            drawData = wordBreakDrawDataPosition;
+            continue;
+          }
         }
         else
         {
