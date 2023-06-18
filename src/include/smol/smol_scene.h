@@ -31,7 +31,6 @@ namespace smol
       Handle<smol::ShaderProgram> defaultShader;
       Handle<smol::Material> defaultMaterial;
       Mat4 viewMatrix;
-      const smol::SceneNode nullSceneNode;
 
     public:
       Scene();

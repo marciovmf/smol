@@ -16,12 +16,11 @@
 namespace smol
 {
   Scene::Scene():
-    renderables(1024 * sizeof(Renderable)),
-    nodes(1024 * sizeof(SceneNode)), 
-    batchers(8 * sizeof(SpriteBatcher)),
+    renderables(32),
+    nodes(32), 
+    batchers(8),
     renderKeys(1024 * sizeof(uint64)),
-    renderKeysSorted(1024 * sizeof(uint64)),
-    nullSceneNode(this, SceneNode::Type::INVALID)
+    renderKeysSorted(1024 * sizeof(uint64))
   {
     viewMatrix = Mat4::initIdentity();
   }
