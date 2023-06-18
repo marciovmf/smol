@@ -20,7 +20,7 @@ namespace smol
   float fontSizeAdjust = 0.0f;
   float lineHeightAdjust = 0.5f;
 
-  bool callbackForard(const Event& event, void* payload)
+  bool callbackForward(const Event& event, void* payload)
   {
     Editor* instance = (Editor*) payload;
     return instance->onEvent(event);
@@ -41,7 +41,7 @@ namespace smol
     skin.spriteRadioButtonChecked = iconRADIO_CHECKED();
     skin.spriteSliderHandle = iconSLIDER_HANDLE();
 
-    EventManager::get().subscribe(callbackForard, Event::TEXT);
+    EventManager::get().subscribe(callbackForward, Event::TEXT);
   }
 
   void Editor::render(int windowWidth, int windowHeight)

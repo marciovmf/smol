@@ -38,11 +38,23 @@ namespace smol
   {
     bool onEvent(const Event& event, void* payload)
     {
-      GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
-      cfg->width = event.displayEvent.width;
-      cfg->height = event.displayEvent.height;
-      Renderer::setViewport(0, 0, cfg->width, cfg->height);
-      return false; // let other handlers know about this
+      if (event.type == Event::DISPLAY)
+      {
+        GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
+        cfg->width = event.displayEvent.width;
+        cfg->height = event.displayEvent.height;
+        Renderer::setViewport(0, 0, cfg->width, cfg->height);
+        return false; // let other handlers know about this
+      }
+
+      if (event.type == Event::KEYBOARD 
+          && event.keyboardEvent.type == KeyboardEvent::KEY_UP
+          && event.keyboardEvent.keyCode == smol::KEYCODE_F2)
+      {
+        debugLogInfo("Change Application mode!"); 
+        return true; // stop the event here. We handled it.
+      }
+      return false;
     }
 
     int smolMain(int argc, char** argv)
@@ -98,7 +110,7 @@ namespace smol
       SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
 
       Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
-      EventManager::get().subscribe(onEvent, (uint32) Event::DISPLAY, &displayConfig);
+      EventManager::get().subscribe(onEvent, (uint32) (Event::DISPLAY | Event::KEYBOARD), &displayConfig);
 
       Editor editor;
       editor.initialize();

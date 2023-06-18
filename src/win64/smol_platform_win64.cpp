@@ -80,8 +80,8 @@ namespace smol
       unsigned int versionMinor;
       PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
       PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-      int pixelFormatAttribs[16];
-      int contextAttribs[16];
+      int32 pixelFormatAttribs[16];
+      int32 contextAttribs[16];
     };
 
     APIName name;
@@ -95,6 +95,12 @@ namespace smol
 
     switch(uMsg) 
     {
+      case WM_ACTIVATE:
+          evt.type = Event::APPLICATION;
+          evt.applicationEvent.type = LOWORD(wParam) == 0 ? ApplicationEvent::DEACTIVATED : ApplicationEvent::ACTIVATED;
+          EventManager::get().raise(evt);
+        break;
+
       case WM_CHAR:
         evt.type                = Event::TEXT;
         evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
@@ -108,7 +114,7 @@ namespace smol
           evt.displayEvent.type    =  DisplayEvent::RESIZED;
           evt.displayEvent.width   = LOWORD(lParam);
           evt.displayEvent.height  = HIWORD(lParam);
-          EventManager::get().raise(internal.evt);
+          EventManager::get().raise(evt);
         }
         break;
 
@@ -119,11 +125,18 @@ namespace smol
       case WM_KEYDOWN:
       case WM_KEYUP:
         {
-          int isDown = !(lParam & (1 << 31)); // 0 = pressed, 1 = released
-          int wasDown = (lParam & (1 << 30)) !=0;
-          int state = (((isDown ^ wasDown) << 1) | isDown);
-          short vkCode = (short) wParam;
-          internal.keyboardState.key[vkCode] = (unsigned char) state;
+          int32 isDown = !(lParam & (1 << 31)); // 0 = pressed, 1 = released
+          int32 wasDown = (lParam & (1 << 30)) !=0;
+          int32 state = (((isDown ^ wasDown) << 1) | isDown);
+          int16 vkCode = (int16) wParam;
+          internal.keyboardState.key[vkCode] = (uint8) state;
+
+          evt.type = Event::KEYBOARD;
+          evt.keyboardEvent.type = (wasDown && !isDown) ?
+            KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
+            
+          evt.keyboardEvent.keyCode = (uint8) vkCode;
+          EventManager::get().raise(evt);
         }
         break;
 
