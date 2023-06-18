@@ -9,11 +9,12 @@ project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
 find_package(OpenGL REQUIRED)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(SMOL_EXPORT_SDK CACHE BOOL "Export header files when building" ON)
 option(BUILD_TESTS "Build and run unit tests" ON)
 
 
 # General compiler settings
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -39,7 +40,7 @@ if(PLATFORM STREQUAL "windows")
 endif()
 
 
-list(APPEND srcs
+list(APPEND SOURCES
   # Platform
   ${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp
   ${SOURCE_PATH}/include/smol/smol_platform.h
@@ -58,6 +59,9 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_renderable.cpp
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
+  ${SOURCE_PATH}/include/smol/smol_event.h
+  ${SOURCE_PATH}/include/smol/smol_event_manager.h
+  ${SOURCE_PATH}/smol_event_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_shader.h
   ${SOURCE_PATH}/include/smol/smol_texture.h
   ${SOURCE_PATH}/include/smol/smol_material.h
@@ -116,12 +120,11 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_cfg_parser.cpp
   ${SOURCE_PATH}/include/smol/smol_mesh_data.h
   ${SOURCE_PATH}/include/smol/smol_gui.h
-  ${SOURCE_PATH}/smol_gui_icons.h 
   ${SOURCE_PATH}/smol_gui.cpp
   ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
-add_library(smol SHARED ${srcs})
+add_library(smol SHARED ${SOURCES})
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)

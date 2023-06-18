@@ -4,6 +4,8 @@
 #include <smol/smol_log.h>
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
+#include <smol/smol_event_manager.h>
+#include <smol/smol_event.h>
 #include <cstdio>
 #include <stdlib.h>
 
@@ -14,27 +16,28 @@ namespace smol
   struct PlatformInternal
   {
     char binaryPath[MAX_PATH];
+    smol::Event evt;
     KeyboardState keyboardState;
     MouseState mouseState;
     // timer data
     LARGE_INTEGER ticksPerSecond;
     LARGE_INTEGER ticksSinceEngineStartup;
-    
+
     PlatformInternal():
       keyboardState({}), mouseState({})
-    {
-      // Get binary location
-      GetModuleFileName(NULL, binaryPath, MAX_PATH);
-      char* truncatePos = strrchr(binaryPath, '\\');
-      if(truncatePos) *truncatePos = 0;
+      {
+        // Get binary location
+        GetModuleFileName(NULL, binaryPath, MAX_PATH);
+        char* truncatePos = strrchr(binaryPath, '\\');
+        if(truncatePos) *truncatePos = 0;
 
-      //Change the working directory to the binary location
-      smol::Log::info("Running from %s", binaryPath);
-      SetCurrentDirectory(binaryPath);
+        //Change the working directory to the binary location
+        smol::Log::info("Running from %s", binaryPath);
+        SetCurrentDirectory(binaryPath);
 
-      QueryPerformanceFrequency(&ticksPerSecond);
-      QueryPerformanceCounter(&ticksSinceEngineStartup);
-    }
+        QueryPerformanceFrequency(&ticksPerSecond);
+        QueryPerformanceCounter(&ticksSinceEngineStartup);
+      }
   }; 
 
   static PlatformInternal internal = PlatformInternal();
@@ -88,11 +91,27 @@ namespace smol
   LRESULT smolWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
     bool returnValue = false;
+    Event& evt = internal.evt;
+
     switch(uMsg) 
     {
       case WM_CHAR:
-        printf("%c",(char) wParam);
-      break;
+        evt.type                = Event::TEXT;
+        evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
+        evt.textEvent.character = (uint32) wParam;
+        EventManager::get().raise(internal.evt);
+        break;
+
+      case WM_SIZE:
+        {
+          evt.type                 = Event::DISPLAY;
+          evt.displayEvent.type    =  DisplayEvent::RESIZED;
+          evt.displayEvent.width   = LOWORD(lParam);
+          evt.displayEvent.height  = HIWORD(lParam);
+          EventManager::get().raise(internal.evt);
+        }
+        break;
+
       case WM_CLOSE:
         PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
         break;
@@ -114,7 +133,7 @@ namespace smol
 
       case WM_XBUTTONDOWN:
       case WM_XBUTTONUP:
-          returnValue = true;
+        returnValue = true;
       case WM_MOUSEMOVE:
       case WM_MBUTTONDOWN:
       case WM_MBUTTONUP:
@@ -129,7 +148,7 @@ namespace smol
           unsigned char& buttonExtra1 = internal.mouseState.button[3];
           unsigned char& buttonExtra2 = internal.mouseState.button[4];
           unsigned char isDown, wasDown;
-          
+
           isDown        = (unsigned char) ((wParam & MK_LBUTTON) > 0);
           wasDown       = buttonLeft;
           buttonLeft    = (((isDown ^ wasDown) << 1) | isDown);
@@ -168,24 +187,24 @@ namespace smol
     Window* dummyWindow = createWindow(0,0, "");
 
     PIXELFORMATDESCRIPTOR pfd = { 
-    sizeof(PIXELFORMATDESCRIPTOR),  //  size of this pfd
-    1,
-    PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-    PFD_TYPE_RGBA,
-    (BYTE)depthBits,
-    0, 0, 0, 0, 0, 0,
-    0,
-    0,
-    0,
-    0, 0, 0, 0,
-    (BYTE)colorBits,
-    0,
-    0,
-    PFD_MAIN_PLANE,
-    0,
-    0, 0, 0
+      sizeof(PIXELFORMATDESCRIPTOR),  //  size of this pfd
+      1,
+      PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+      PFD_TYPE_RGBA,
+      (BYTE)depthBits,
+      0, 0, 0, 0, 0, 0,
+      0,
+      0,
+      0,
+      0, 0, 0, 0,
+      (BYTE)colorBits,
+      0,
+      0,
+      PFD_MAIN_PLANE,
+      0,
+      0, 0, 0
     }; 
- 
+
     int pixelFormat = ChoosePixelFormat(dummyWindow->dc, &pfd);
     if (! pixelFormat)
     {

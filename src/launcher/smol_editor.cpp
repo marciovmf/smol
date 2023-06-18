@@ -7,6 +7,8 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_gui.h>
 #include <smol/smol_point.h>
+#include <smol/smol_event.h>
+#include <smol/smol_event_manager.h>
 #include <string.h>
 
 namespace smol
@@ -17,6 +19,12 @@ namespace smol
   float sliderLineThickness = 0.3f;
   float fontSizeAdjust = 0.0f;
   float lineHeightAdjust = 0.5f;
+
+  bool callbackForard(const Event& event, void* payload)
+  {
+    Editor* instance = (Editor*) payload;
+    return instance->onEvent(event);
+  }
 
   void Editor::initialize()
   {
@@ -32,6 +40,8 @@ namespace smol
     skin.spriteRadioButton = iconRADIO();
     skin.spriteRadioButtonChecked = iconRADIO_CHECKED();
     skin.spriteSliderHandle = iconSLIDER_HANDLE();
+
+    EventManager::get().subscribe(callbackForard, Event::TEXT);
   }
 
   void Editor::render(int windowWidth, int windowHeight)
@@ -93,7 +103,14 @@ namespace smol
 
   }
 
+  bool Editor::onEvent(const Event& event)
+  {
+    debugLogInfo("TextEvent %c", (char)event.textEvent.character);
+    return true;
+  }
+
   void Editor::terminate()
   {
   }
+
 }

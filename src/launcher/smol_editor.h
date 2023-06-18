@@ -3,10 +3,15 @@
 #include <smol/smol_gui.h>
 namespace smol
 {
+  struct Event;
+
   class Editor
   {
     GUI gui;
+    private:
+
     public:
+    bool onEvent(const Event& event);
     void initialize();
     void render(int windowWidth, int windowHeight);
     void terminate();

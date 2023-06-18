@@ -29,11 +29,22 @@
 #endif
 
 #define SMOL_VARIABLES_FILE ((const char*) "assets/variables.txt")
+#include <smol/smol_event_manager.h>
+#include <smol/smol_event.h>
 
 namespace smol
 {
   namespace launcher
   {
+    bool onEvent(const Event& event, void* payload)
+    {
+      GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
+      cfg->width = event.displayEvent.width;
+      cfg->height = event.displayEvent.height;
+      Renderer::setViewport(0, 0, cfg->width, cfg->height);
+      return false; // let other handlers know about this
+    }
+
     int smolMain(int argc, char** argv)
     {
       Log::verbosity(SMOL_LOGLEVEL);
@@ -87,6 +98,7 @@ namespace smol
       SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
 
       Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
+      EventManager::get().subscribe(onEvent, (uint32) Event::DISPLAY, &displayConfig);
 
       Editor editor;
       editor.initialize();
@@ -103,21 +115,8 @@ namespace smol
         keyboard.update();
         onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
-
-        // check for resize.
-        //TODO(marcio): Make an event system so we get notified when this happens.
-        int windowWidth, windowHeight;
-        Platform::getWindowSize(window, &windowWidth, &windowHeight);
-        if (windowWidth != displayConfig.width || windowHeight != displayConfig.height)
-        {
-          displayConfig.width = windowWidth;
-          displayConfig.height = windowHeight;
-          Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
-        }
-
-        // render scene
         sceneManager.render(deltaTime);
-        editor.render(windowWidth, windowHeight);
+        editor.render(displayConfig.width, displayConfig.height);
         endTime = Platform::getTicks();
       }
 
