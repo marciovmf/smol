@@ -25,13 +25,15 @@ namespace smol
   class SMOL_ENGINE_API EventManager final
   {
     HandleList<EventHandler> handlers;
+    Arena events;
     EventManager();
 
     public:
     static EventManager& get();
-    EventHandlerId subscribe(EventHandlerCallback handlerFunc, uint32 eventMask, void* context = nullptr);
-    void unsubscribe(EventHandlerId handler);
-    void raise(const Event& event);
+    EventHandlerId addHandler(EventHandlerCallback handlerFunc, uint32 eventMask, void* context = nullptr);
+    void removeHandler(EventHandlerId handler);
+    void pushEvent(const Event& event);
+    void dispatchEvents();
     EventManager(const EventManager&) = delete;
     EventManager& operator=(const EventManager&) = delete;
   };

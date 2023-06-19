@@ -44,17 +44,9 @@ namespace smol
         cfg->width = event.displayEvent.width;
         cfg->height = event.displayEvent.height;
         Renderer::setViewport(0, 0, cfg->width, cfg->height);
-        return false; // let other handlers know about this
       }
 
-      if (event.type == Event::KEYBOARD 
-          && event.keyboardEvent.type == KeyboardEvent::KEY_UP
-          && event.keyboardEvent.keyCode == smol::KEYCODE_F2)
-      {
-        debugLogInfo("Change Application mode!"); 
-        return true; // stop the event here. We handled it.
-      }
-      return false;
+      return false; // let other handlers know about this
     }
 
     int smolMain(int argc, char** argv)
@@ -103,14 +95,16 @@ namespace smol
         Platform::captureCursor(window);
 
       Platform::getWindowSize(window, &displayConfig.width, &displayConfig.height);
+
       // Initialize systems root
       SystemsRoot::initialize(config);
       Mouse& mouse        = SystemsRoot::get()->mouse;
       Keyboard& keyboard  = SystemsRoot::get()->keyboard;
       SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
+      EventManager& eventManager = EventManager::get();
 
       Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
-      EventManager::get().subscribe(onEvent, (uint32) (Event::DISPLAY | Event::KEYBOARD), &displayConfig);
+      eventManager.addHandler(onEvent, Event::DISPLAY, &displayConfig);
 
       Editor editor;
       editor.initialize();
@@ -123,12 +117,14 @@ namespace smol
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
+        Platform::updateWindowEvents(window);
         mouse.update();
         keyboard.update();
+        eventManager.dispatchEvents();
         onGameUpdateCallback(deltaTime);
-        Platform::updateWindowEvents(window);
         sceneManager.render(deltaTime);
         editor.render(displayConfig.width, displayConfig.height);
+        Platform::swapBuffers(window);
         endTime = Platform::getTicks();
       }
 

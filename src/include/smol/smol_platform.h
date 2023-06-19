@@ -56,6 +56,7 @@ namespace smol
     // Basic windowing functions
     static Window* createWindow(int width, int height, const char* title);
     static void updateWindowEvents(Window* window);
+    static void swapBuffers(Window* window);
     static bool getWindowCloseFlag(Window* window);
     static void clearWindowCloseFlag(Window* window);
     static void destroyWindow(Window* window);

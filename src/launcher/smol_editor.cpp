@@ -41,7 +41,7 @@ namespace smol
     skin.spriteRadioButtonChecked = iconRADIO_CHECKED();
     skin.spriteSliderHandle = iconSLIDER_HANDLE();
 
-    EventManager::get().subscribe(callbackForward, Event::TEXT);
+    EventManager::get().addHandler(callbackForward, Event::TEXT);
   }
 
   void Editor::render(int windowWidth, int windowHeight)

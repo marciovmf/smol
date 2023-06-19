@@ -5,7 +5,6 @@
 
 namespace smol
 {
-
   struct SMOL_ENGINE_API TextEvent
   {
     enum Type

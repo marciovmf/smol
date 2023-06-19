@@ -92,20 +92,22 @@ namespace smol
   {
     bool returnValue = false;
     Event& evt = internal.evt;
+    EventManager& eventManager = EventManager::get();
 
     switch(uMsg) 
     {
       case WM_ACTIVATE:
           evt.type = Event::APPLICATION;
           evt.applicationEvent.type = LOWORD(wParam) == 0 ? ApplicationEvent::DEACTIVATED : ApplicationEvent::ACTIVATED;
-          EventManager::get().raise(evt);
+          EventManager::get().pushEvent(evt);
         break;
 
       case WM_CHAR:
         evt.type                = Event::TEXT;
         evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
         evt.textEvent.character = (uint32) wParam;
-        EventManager::get().raise(internal.evt);
+        eventManager.pushEvent(evt);
+        
         break;
 
       case WM_SIZE:
@@ -114,7 +116,7 @@ namespace smol
           evt.displayEvent.type    =  DisplayEvent::RESIZED;
           evt.displayEvent.width   = LOWORD(lParam);
           evt.displayEvent.height  = HIWORD(lParam);
-          EventManager::get().raise(evt);
+          eventManager.pushEvent(evt);
         }
         break;
 
@@ -136,7 +138,7 @@ namespace smol
             KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
             
           evt.keyboardEvent.keyCode = (uint8) vkCode;
-          EventManager::get().raise(evt);
+          eventManager.pushEvent(evt);
         }
         break;
 
@@ -480,7 +482,6 @@ namespace smol
       wglMakeCurrent(window->dc, window->rc);
     }
 
-
     // clean up changed bit for keyboard keys
     for(int keyCode = 0; keyCode < smol::KeyboardState::MAX_KEYS; keyCode++)
     {
@@ -507,6 +508,10 @@ namespace smol
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
+  }
+
+  void Platform::swapBuffers(Window *window)
+  {
     SwapBuffers(window->dc);
   }
 

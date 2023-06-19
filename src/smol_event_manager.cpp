@@ -1,6 +1,10 @@
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
 
+#ifndef SMOL_EVENT_QUEUE_INITIAL_CAPACITY
+#define SMOL_EVENT_QUEUE_INITIAL_CAPACITY 16
+#endif
+
 namespace smol
 {
   EventHandler::EventHandler() { }
@@ -14,32 +18,45 @@ namespace smol
     return instance;
   }
 
-  EventManager::EventManager() { }
+  EventManager::EventManager(): events(SMOL_EVENT_QUEUE_INITIAL_CAPACITY * sizeof(Event)) { }
 
-  EventHandlerId EventManager::subscribe(EventHandlerCallback handlerFunc, uint32 eventMask, void* context)
+  EventHandlerId EventManager::addHandler(EventHandlerCallback handlerFunc, uint32 eventMask, void* context)
   {
     return handlers.add(EventHandler(handlerFunc, eventMask, context));
   }
 
-  void EventManager::unsubscribe(EventHandlerId handler)
+  void EventManager::removeHandler(EventHandlerId handler)
   {
     handlers.remove(handler);
   }
 
-  void EventManager::raise(const Event& event)
+  void EventManager::pushEvent(const Event& event)
+  {
+    Event* e = (Event*) events.pushSize(sizeof(Event));
+    *e = event;
+  }
+
+  void EventManager::dispatchEvents()
   {
     const uint32 numHandlers = handlers.count();
-    const EventHandler* allHandlers = handlers.getArray();
+    const EventHandler* handlerList = handlers.getArray();
+    const Event* eventList = (const Event*) events.getData();
+    uint32 eventCount = (uint32) (events.getUsed() / sizeof(Event));
 
-    for (uint32 i = 0; i < numHandlers; i++)
+    for (int i = 0; i < eventCount; i++)
     {
-      const EventHandler& handler = allHandlers[i];
-      if (event.type & handler.mask)
+      const Event& event = *eventList++;
+      for (uint32 handlerIndex = 0; handlerIndex < numHandlers; handlerIndex++)
       {
-        bool eventHandled = handler.callback(event, handler.context);
-        if (eventHandled)
-          break;
+        const EventHandler& handler = handlerList[handlerIndex];
+        if (event.type & handler.mask)
+        {
+          bool eventHandled = handler.callback(event, handler.context);
+          if (eventHandled)
+            break;
+        }
       }
     }
+    events.reset();
   }
 }
