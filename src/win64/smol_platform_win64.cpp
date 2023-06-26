@@ -6,6 +6,7 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
+#include <smol/smol_mouse.h>
 #include <cstdio>
 #include <stdlib.h>
 
@@ -90,6 +91,8 @@ namespace smol
 
   LRESULT smolWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
+    bool isMouseButtonDownEvent = false;
+    int32 mouseButtonId = -1;
     bool returnValue = false;
     Event& evt = internal.evt;
     EventManager& eventManager = EventManager::get();
@@ -97,6 +100,7 @@ namespace smol
     switch(uMsg) 
     {
       case WM_ACTIVATE:
+          // Application event
           evt.type = Event::APPLICATION;
           evt.applicationEvent.type = LOWORD(wParam) == 0 ? ApplicationEvent::DEACTIVATED : ApplicationEvent::ACTIVATED;
           EventManager::get().pushEvent(evt);
@@ -112,6 +116,7 @@ namespace smol
 
       case WM_SIZE:
         {
+          // Display event
           evt.type                 = Event::DISPLAY;
           evt.displayEvent.type    =  DisplayEvent::RESIZED;
           evt.displayEvent.width   = LOWORD(lParam);
@@ -133,35 +138,70 @@ namespace smol
           int16 vkCode = (int16) wParam;
           internal.keyboardState.key[vkCode] = (uint8) state;
 
+          // Keyboard event
           evt.type = Event::KEYBOARD;
           evt.keyboardEvent.type = (wasDown && !isDown) ?
             KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
-            
           evt.keyboardEvent.keyCode = (uint8) vkCode;
           eventManager.pushEvent(evt);
         }
         break;
 
       case WM_MOUSEWHEEL:
-        internal.mouseState.wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+        {
+          int32 delta = GET_WHEEL_DELTA_WPARAM(wParam);
+          internal.mouseState.wheelDelta = delta;
+          
+          // update cursor position
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
+          internal.mouseState.cursor.y = GET_Y_LPARAM(lParam); 
+
+          // Mouse Wheel event
+          evt.type = Event::MOUSE_WHEEL;
+          evt.mouseEvent.wheelDelta = delta;
+          evt.mouseEvent.type = delta >= 0 ? MouseEvent::WHEEL_FORWARD : MouseEvent::WHEEL_BACKWARD;
+          evt.mouseEvent.cursorX = GET_X_LPARAM(lParam); 
+          evt.mouseEvent.cursorY = GET_Y_LPARAM(lParam); 
+          eventManager.pushEvent(evt);
+        }
+        break;
+
+      case WM_MOUSEMOVE:
+        {
+          // update cursor position
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
+          internal.mouseState.cursor.y = GET_Y_LPARAM(lParam);
+
+          // Mouse Move event
+          evt.type = Event::MOUSE_MOVE;
+          evt.mouseEvent.type = MouseEvent::MOVE;
+          evt.mouseEvent.cursorX = GET_X_LPARAM(lParam); 
+          evt.mouseEvent.cursorY = GET_Y_LPARAM(lParam); 
+          eventManager.pushEvent(evt);
+        }
         break;
 
       case WM_XBUTTONDOWN:
       case WM_XBUTTONUP:
+        mouseButtonId = GET_XBUTTON_WPARAM (wParam) == XBUTTON1 ? MOUSE_BUTTON_EXTRA_0 : MOUSE_BUTTON_EXTRA_1;
         returnValue = true;
-      case WM_MOUSEMOVE:
-      case WM_MBUTTONDOWN:
-      case WM_MBUTTONUP:
       case WM_LBUTTONDOWN:
       case WM_LBUTTONUP:
+        mouseButtonId = MOUSE_BUTTON_LEFT;
+      case WM_MBUTTONDOWN:
+      case WM_MBUTTONUP:
+        mouseButtonId = MOUSE_BUTTON_MIDDLE;
       case WM_RBUTTONDOWN:
       case WM_RBUTTONUP:
         {
-          unsigned char& buttonLeft   = internal.mouseState.button[0];
-          unsigned char& buttonRight  = internal.mouseState.button[1];
-          unsigned char& buttonMiddle = internal.mouseState.button[2];
-          unsigned char& buttonExtra1 = internal.mouseState.button[3];
-          unsigned char& buttonExtra2 = internal.mouseState.button[4];
+          if (mouseButtonId != -1)
+            mouseButtonId = MOUSE_BUTTON_RIGHT;
+
+          unsigned char& buttonLeft   = internal.mouseState.button[MOUSE_BUTTON_LEFT];
+          unsigned char& buttonRight  = internal.mouseState.button[MOUSE_BUTTON_RIGHT];
+          unsigned char& buttonMiddle = internal.mouseState.button[MOUSE_BUTTON_MIDDLE];
+          unsigned char& buttonExtra1 = internal.mouseState.button[MOUSE_BUTTON_EXTRA_0];
+          unsigned char& buttonExtra2 = internal.mouseState.button[MOUSE_BUTTON_EXTRA_1];
           unsigned char isDown, wasDown;
 
           isDown        = (unsigned char) ((wParam & MK_LBUTTON) > 0);
@@ -185,8 +225,16 @@ namespace smol
           buttonExtra2  = (((isDown ^ wasDown) << 1) | isDown);
 
           // update cursor position
-          internal.mouseState.cursor.x = GET_X_LPARAM(lParam); 
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
           internal.mouseState.cursor.y = GET_Y_LPARAM(lParam);
+
+          // Mouse Button event
+          evt.type = Event::MOUSE_BUTTON;
+          evt.mouseEvent.type = isMouseButtonDownEvent ? MouseEvent::BUTTON_DOWN : MouseEvent::BUTTON_UP;
+          evt.mouseEvent.mouseButton = (uint8) mouseButtonId;
+          evt.mouseEvent.cursorX = GET_X_LPARAM(lParam);
+          evt.mouseEvent.cursorY = GET_Y_LPARAM(lParam);
+          eventManager.pushEvent(evt);
         }
         break;
 

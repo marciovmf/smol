@@ -74,6 +74,29 @@ namespace smol
     void* data2;
   };
 
+  struct SMOL_ENGINE_API MouseEvent
+  {
+    enum Type
+    {
+      MOVE,
+      BUTTON_UP,
+      BUTTON_DOWN,
+      WHEEL_FORWARD,
+      WHEEL_BACKWARD,
+    };
+
+    Type type;
+    int cursorX;
+    int cursorY;
+
+    union
+    {
+      int32 wheelDelta;
+      uint8 mouseButton;
+    };
+
+  };
+
   struct SMOL_ENGINE_API Event
   {
     enum Type
@@ -82,7 +105,11 @@ namespace smol
       DISPLAY       = 1 << 1,
       TEXT          = 1 << 2,
       APPLICATION   = 1 << 3,
-      KEYBOARD      = 1 << 4
+      KEYBOARD      = 1 << 4,
+      MOUSE_MOVE    = 1 << 5,
+      MOUSE_BUTTON  = 1 << 6,
+      MOUSE_WHEEL   = 1 << 7,
+      ALL           = 0xFFFF
     };
 
     Type type;
@@ -93,6 +120,7 @@ namespace smol
       DisplayEvent      displayEvent;
       ApplicationEvent  applicationEvent;
       KeyboardEvent     keyboardEvent;
+      MouseEvent        mouseEvent;
     };
   };
 }

@@ -41,9 +41,9 @@ namespace smol
     const uint32 numHandlers = handlers.count();
     const EventHandler* handlerList = handlers.getArray();
     const Event* eventList = (const Event*) events.getData();
-    uint32 eventCount = (uint32) (events.getUsed() / sizeof(Event));
+    uint32 numEvents = (uint32) (events.getUsed() / sizeof(Event));
 
-    for (int i = 0; i < eventCount; i++)
+    for(uint32 i = 0; i < numEvents; i++)
     {
       const Event& event = *eventList++;
       for (uint32 handlerIndex = 0; handlerIndex < numHandlers; handlerIndex++)
