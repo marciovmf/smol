@@ -59,13 +59,6 @@ namespace smol
       ORTHOGRAPHIC      = 1
     };
 
-    enum ClearOperation
-    {
-      DONT_CLEAR        = 0,
-      COLOR             = 1 << 0,
-      DEPTH             = 1 << 1
-    };
-
     private:
 
     float aspect;

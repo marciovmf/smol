@@ -12,44 +12,39 @@ namespace smol
   struct Color;
   struct Image;
   struct MeshData;
-
-  struct ConfigEntry;
   struct GlobalRendererConfig;
 
   //
   // A stream buffer is an interleaved buffer meant to be overwritten frequently
   //
   struct StreamBuffer;
+
   class SMOL_ENGINE_API Renderer
   {
-    Scene* scene;
-    Rect viewport;
+
     bool enableGammaCorrection;
     bool enableMSAA;
     static ShaderProgram defaultShader;
-    bool resized;
-    float screenCameraSize;
-    float screenCameraNear;
-    float screenCameraFar;
 
     public:
+    enum ClearBufferFlag
+    {
+      CLEAR_NONE         = 0,
+      CLEAR_COLOR_BUFFER = GL_COLOR_BUFFER_BIT,
+      CLEAR_DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT,
+    };
+
+    enum RenderMode
+    {
+      SHADED,
+      WIREFRAME
+    };
 
     //
     // Misc
     //
-    Renderer ();
-    void initialize(const GlobalRendererConfig& config);
-    ~Renderer();
-    void setScene(Scene& scene);          // Unloads the current loaded scene, if any, and loads the given scene.
-    Scene& getLoadedScene();
-    Rect getViewport() const;
-    float getViewportAspect() const;
-    
-    //
-    // Render
-    //
-    void resize(int width, int height);   // Resizes the necessary resources to accomodathe the required dimentions.
-    void render(float deltaTime);         // Called once per frame to render the scene.
+    static void initialize(const GlobalRendererConfig& config);
+    void terminate();
 
     //
     // Texture resources
@@ -84,6 +79,8 @@ namespace smol
     static void updateMesh(Mesh* mesh, MeshData* meshData);
     static void destroyMesh(Mesh* mesh);
 
+    static void updateGlobalShaderParams(const Mat4& proj, const Mat4& view, const Mat4& model, float deltaTime);
+
     //
     // StreamBuffers
     //
@@ -97,12 +94,19 @@ namespace smol
     static void begin(StreamBuffer& streamBuffer);
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& color);
     static void pushSprite(StreamBuffer& streamBuffer, const Vector3& position, const Vector2& size, const Rectf& uv, const Color& tlColor, const Color& trColor, const Color& blColor, const Color& brColor);
+    static void pushLines(StreamBuffer& streamBuffer, const Vector2* points, int numPoints, const Color& color, float thickness);
     static void end(StreamBuffer& streamBuffer);
     static void flush(StreamBuffer& streamBuffer);
 
     // static state functions
     static void setMaterial(const Material* material);
     static void setMaterial(Handle<Material> handle);
+    static void setViewport(uint32 x, uint32 y, uint32 w, uint32 h);
+    static Rect getViewport();
+    static void clearBuffers(ClearBufferFlag flag);
+    static void setRenderMode(RenderMode mode);
+    static void beginScissor( uint32 x, uint32 y, uint32 w, uint32 h);
+    static void endScissor();
   };
 }
 #endif  // SMOL_RENDERER_H

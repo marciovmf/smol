@@ -24,6 +24,11 @@ namespace smol
     Vector2& mult(Vector2& other);
     Vector2& div(Vector2& other);
 
+    Vector2& sum(float x, float y);
+    Vector2& sub(float x, float y);
+    Vector2& mult(float x, float y);
+    Vector2& div(float x, float y);
+
     float length();
     Vector2& normalized();
     Vector2& abs();

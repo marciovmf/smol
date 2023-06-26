@@ -1,0 +1,709 @@
+#include <smol/smol_gui.h>
+#include <smol/smol_material.h>
+#include <smol/smol_systems_root.h>
+#include <system_error>
+
+namespace smol
+{
+  Vector2 GUI::getScreenSize() const { return Vector2(screenW, screenH); }
+
+  GUISkin& GUI::getSkin() { return skin; }
+
+  Rect GUI::getLastRect() const { return lastRect; }
+
+  void GUI::begin(int screenWidth, int screenHeight)
+  {
+    screenW = (float) screenWidth;
+    screenH = (float) screenHeight;
+    changed = false;
+    if (enabled)
+    {
+      Mouse& mouse = SystemsRoot::get()->mouse;
+      mouseLButtonDownThisFrame = mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+      mouseLButtonUpThisFrame = mouse.getButtonUp(MOUSE_BUTTON_LEFT);
+      mouseLButtonIsDown = mouse.getButton(MOUSE_BUTTON_LEFT);
+      mouseCursorPosition = mouse.getCursorPosition();
+    }
+    else
+    {
+      hoverControlId = 0;
+      activeControlId = 0;
+      draggedControlId = 0;
+      mouseCursorPosition = Point2{-1, -1};
+      mouseLButtonDownThisFrame = false;
+      mouseLButtonUpThisFrame = false;
+      mouseLButtonIsDown = false;
+    }
+
+    if (glyphDrawDataArena.getCapacity() == 0)
+    {
+      glyphDrawDataArena.initialize(256 * sizeof(GlyphDrawData));
+      Renderer::createStreamBuffer(&streamBuffer);
+    }
+    glyphDrawDataArena.reset();
+    Renderer::begin(streamBuffer);
+  }
+
+  void GUI::panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h)
+  {
+    lastRect = Rect(x, y, w, h);
+    GUISkin::ID styleId = GUISkin::PANEL;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+  }
+
+  void GUI::horizontalSeparator(int32 x, int32 y, int32 width)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    Vector2 point[2];
+    point[0] = {x / screenW,  y / screenH};
+    point[1] = {(x + width) / screenW, y / screenH};
+    Renderer::pushLines(streamBuffer, point, 2, skin.color[GUISkin::SEPARATOR], 2 / screenH);
+  }
+
+  void GUI::verticalSeparator(int32 x, int32 y, int32 height)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    Vector2 point[2];
+
+    point[0] = {x / screenW,  y / screenH};
+    point[1] = {x / screenW, (y + height) / screenH};
+
+    Renderer::pushLines(streamBuffer, point, 2, skin.color[GUISkin::SEPARATOR], 2 / screenW);
+  }
+
+  Point2 GUI::beginWindow(GUICOntrolID id, const char* title, int32 x, int32 y, int32 w, int32 h)
+  {
+    lastRect = Rect(x, y, w, h);
+    windowCount++;
+
+    bool isBeingDragged = draggedControlId == id;
+    const int titleBarHeight = 30;
+    Rect titleBarRect = Rect(x, y, w, titleBarHeight);
+    bool mouseOverTitleBar = titleBarRect.containsPoint(mouseCursorPosition);
+
+    // Draw title bar
+    GUISkin::ID styleId = (mouseOverTitleBar || isBeingDragged) ? GUISkin::WINDOW_TITLE_BAR_HOVER : GUISkin::WINDOW_TITLE_BAR; 
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, titleBarHeight / screenH),
+        Rectf(), skin.color[styleId]);
+    label(id, title, x + DEFAULT_H_SPACING, y + (titleBarHeight/2), 0, LEFT);
+
+    // draw the window panel
+    Color windowColor = skin.color[GUISkin::WINDOW];
+    windowColor.a = skin.windowOpacity;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, (y + titleBarHeight) / screenH, 0.0f), 
+        Vector2(w / screenW, (h  - titleBarHeight) / screenH),
+        Rectf(), windowColor);
+
+    beginArea(x, y + titleBarHeight, w, h - titleBarHeight);
+    lastRect = Rect(x, y, w, h);
+
+    // check for dragging the title bar
+    Point2 newPos = Point2{x, y};
+    const Point2& cursorPos = mouseCursorPosition;
+
+    if(isBeingDragged)
+    {
+      if (mouseLButtonIsDown)
+      {
+        newPos.x = cursorDragOffset.x + cursorPos.x;
+        newPos.y = cursorDragOffset.y + cursorPos.y;
+      }
+      else
+      {
+        draggedControlId = 0;
+      }
+    }
+    else if (mouseOverTitleBar)
+    {
+      if (mouseLButtonDownThisFrame)
+      {
+        draggedControlId = id;
+        cursorDragOffset = Point2{x - cursorPos.x, y - cursorPos.y};
+        newPos.x = cursorDragOffset.x + cursorPos.x;
+        newPos.y = cursorDragOffset.y + cursorPos.y;
+      }
+    }
+
+    return newPos;
+  }
+
+  void GUI::endWindow()
+  {
+    if (windowCount == 0)
+    {
+      debugLogError("Unbalanced begin/end window calls.");
+      return;
+    }
+    windowCount--;
+    endArea();
+  }
+
+  void GUI::beginArea(int x, int y, int w, int h)
+  {
+    if ((areaCount + 1) >= MAX_NESTED_AREAS)
+    {
+      debugLogError("Too many nested areas. Maximum allowd is %d", MAX_NESTED_AREAS);
+      return;
+    }
+
+    area[areaCount] = Rect(x, y, w, h);
+    areaOffset = Rect(areaOffset.x + x, areaOffset.y + y, areaOffset.w + w, areaOffset.h + h);
+    areaCount++;
+  }
+
+  void GUI::endArea()
+  {
+    if (areaCount == 0)
+    {
+      debugLogError("Unbalanced begin/end area calls.");
+      return;
+    }
+
+    Rect& r = area[areaCount];
+    areaCount--;
+    areaOffset = Rect(areaOffset.x - r.x, areaOffset.y - r.y, areaOffset.w - r.w, areaOffset.h - r.h);
+    if (areaCount == 0)
+      areaOffset = Rect(0, 0, 0 ,0);
+  }
+
+  void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, Align align)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+
+    const float fontSize =  skin.labelFontSize;
+    const float scaleX  = fontSize / screenW;
+    const float scaleY  = fontSize / screenH;
+    float posX          = x / screenW;
+    float posY          = y / screenH;
+    const size_t textLen = strlen(text);
+
+    GlyphDrawData* drawData =
+      (GlyphDrawData*) glyphDrawDataArena.pushSize((1 + textLen) * sizeof(GlyphDrawData));
+
+    GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
+    Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, w / (float)fontSize, 1.0f + skin.lineHeightAdjust);
+    bounds.mult(scaleX, scaleY);
+    lastRect = Rect((int32)posX, (int32) posY, (int32) bounds.x, (int32) bounds.y);
+
+    if (align == Align::CENTER)
+    {
+      posX -= bounds.x/2;
+      posY -= bounds.y/2;
+    }
+    else if (align == Align::RIGHT)
+    {
+      posX -= bounds.x;
+      posY -= bounds.y;
+    }
+    else if (align == Align::LEFT)
+    {
+      posY -= bounds.y/2;
+    }
+
+    // Draws a solid background behind the text. Keep this here for debugging
+    if (drawLabelDebugBackground)
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y),
+          Rectf(), skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]);
+
+    for (int i = 0; i < textLen; i++)
+    {
+      GlyphDrawData& data = drawData[i];
+      Vector3 offset = Vector3(posX + data.position.x * scaleX, posY + data.position.y *  scaleY, 0.0f);
+      Vector2 size = data.size;
+      size.mult(scaleX, scaleY);
+      Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
+    }
+  }
+
+  bool GUI::doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x , y, w, h);
+
+    GUISkin::ID styleId;
+    bool returnValue = false;
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool isActiveControl = activeControlId == id;
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+      styleId = GUISkin::BUTTON_HOVER;
+
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      {
+        activeControlId = id;
+        styleId = GUISkin::BUTTON_ACTIVE;
+      }
+      else if(mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+        returnValue = true;
+        changed = true;
+      }
+    }
+    else
+    {
+      hoverControlId = 0;
+      styleId = GUISkin::BUTTON;
+      if (mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
+
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+
+    // We don't want to offset the label twice, so we remove the areaOffset
+    const int centerX = x - areaOffset.x + w/2;
+    const int centerY = y - areaOffset.y + h/2;
+    label(id, text, centerX, centerY, 0, CENTER);
+    return returnValue;
+  }
+
+  bool GUI::doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x, y, w, h);
+
+    GUISkin::ID styleId;
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool returnValue = toggled;
+
+    bool isActiveControl = activeControlId == id;
+
+    if (toggled)
+      styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
+    else
+      styleId = GUISkin::TOGGLE_BUTTON;
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+
+      styleId = toggled ? GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE : GUISkin::TOGGLE_BUTTON_HOVER;
+
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      {
+        activeControlId = id;
+        styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
+      }
+      else if(mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+        returnValue = !toggled;
+        changed = true;
+      }
+    }
+    else
+    {
+      hoverControlId = 0;
+      if (mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
+
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+
+    // We don't want to offset the label twice, so we remove the areaOffset
+    const int centerX = x - areaOffset.x + w/2;
+    const int centerY = y - areaOffset.y + h/2;
+    label(id, text, centerX, centerY, CENTER);
+    return returnValue;
+  }
+
+  bool GUI::doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y)
+  {
+    const uint32 size = DEFAULT_CONTROL_HEIGHT;
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x, y, size, size);
+
+    GUISkin::ID bgStyle;
+    GUISkin::ID tickStyle;
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool returnValue = toggled;
+    bool isActiveControl = activeControlId == id;
+
+    bgStyle = GUISkin::CHECKBOX;
+    tickStyle = GUISkin::CHECKBOX;
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+
+      bgStyle = GUISkin::CHECKBOX_HOVER;
+
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      {
+
+        bgStyle = GUISkin::CHECKBOX_ACTIVE;
+        activeControlId = id;
+      }
+      else if(mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+        returnValue = !toggled;
+        changed = true;
+      }
+    }
+    else
+    {
+      hoverControlId = 0;
+      if (mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
+
+    // Background
+
+    const float boxX = x / screenW;
+    const float boxY = y / screenH;
+    const float boxW = size / screenW;
+    const float boxH = size / screenH;
+
+    tickStyle = (toggled || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteRadioButton, skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteRadioButtonChecked, skin.color[tickStyle]);
+
+    if (text)
+    {
+      // We don't want to offset the label twice, so we remove the areaOffset
+      const int labelX = x - areaOffset.x + size + DEFAULT_H_SPACING;
+      const int labelY = y + (size/2) - areaOffset.y;
+      label(id, text, labelX, labelY, 0, LEFT);
+      Rect textRect = getLastRect();
+      lastRect.w += textRect.w;
+    }
+
+    return returnValue;
+  }
+
+  bool GUI::doCheckBox(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y)
+  {
+    const uint32 size = DEFAULT_CONTROL_HEIGHT;
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x, y, size, size);
+
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool returnValue = toggled;
+    bool isActiveControl = activeControlId == id;
+
+    GUISkin::ID bgStyle   = GUISkin::CHECKBOX;
+    GUISkin::ID tickStyle = GUISkin::CHECKBOX;
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+      bgStyle = GUISkin::CHECKBOX_HOVER;
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      {
+        bgStyle = GUISkin::CHECKBOX_ACTIVE;
+        activeControlId = id;
+      }
+      else if(mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+        returnValue = !toggled;
+        changed = true;
+      }
+    }
+    else
+    {
+      hoverControlId = 0;
+      if (mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
+
+    // Background
+
+    const float boxX = x / screenW;
+    const float boxY = y / screenH;
+    const float boxW = size / screenW;
+    const float boxH = size / screenH;
+
+    tickStyle = (toggled  || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteCheckBox, skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteCheckBoxChecked, skin.color[tickStyle]);
+
+    if (text)
+    {
+      // We don't want to offset the label twice, so we remove the areaOffset
+      const int labelX = x - areaOffset.x + size + DEFAULT_H_SPACING;
+      const int labelY = y + (size/2) - areaOffset.y;
+      label(id, text, labelX, labelY, 0, LEFT);
+      Rect textRect = getLastRect();
+      lastRect.w += textRect.w;
+    }
+
+    return returnValue;
+  }
+
+  float GUI::doHorizontalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 w)
+  {
+    //inner handle scales according to user action
+    const float handleScaleHover  = 0.8f;
+    const float handleScaleNormal = 0.65f;
+    const float handleScaleDrag   = 0.5f;
+    const uint32 handleSize = DEFAULT_CONTROL_HEIGHT;
+    float innerHandleScale = handleScaleNormal;
+
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x, y, w, handleSize);
+
+    float returnValue = value;
+    if (value < 0.0f) value = 0.0f;
+    if (value > 1.0f) value = 1.0f;
+    float handlePos = x + value * (w - handleSize);
+    Rect handleRect = Rect((int32)handlePos, y, handleSize, handleSize);
+
+    const Point2& cursorPos = mouseCursorPosition;
+    bool mouseOverHandle = handleRect.containsPoint(cursorPos);
+    bool isBeingDragged = draggedControlId == id;
+
+    if(isBeingDragged)
+    {
+      if (mouseLButtonIsDown)
+      {
+        innerHandleScale = handleScaleDrag;
+        handlePos = (float)(cursorDragOffset.x + cursorPos.x);
+      }
+      else
+      {
+        draggedControlId = 0;
+      }
+    }
+    else if (mouseOverHandle)
+    {
+
+      innerHandleScale = handleScaleHover;
+      if (mouseLButtonDownThisFrame)
+      {
+        draggedControlId = id;
+        cursorDragOffset = Point2{(int)handlePos - cursorPos.x, 0};
+        handlePos = (float)(cursorDragOffset.x + cursorPos.x);
+      }
+    }
+
+    const int32 leftLimit = x;
+    const int32 rightLimit = x + w - handleSize;
+    const int32 sliderLength = rightLimit - leftLimit;
+
+    if (handlePos > rightLimit)
+      handlePos = (float) rightLimit;
+    if (handlePos < leftLimit)
+      handlePos = (float) leftLimit;
+    returnValue = (handlePos - x) / (float) sliderLength;
+
+    if (returnValue != value)
+      changed = true;
+
+    // Horizontal line
+    const float halfHandleSize = handleSize / 2.0f;
+    const float lineThickness = handleSize * skin.sliderThickness;
+    const float halfLinethickness = halfHandleSize * skin.sliderThickness;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, (y + halfHandleSize - halfLinethickness) / screenH, 0.0f), 
+        Vector2(w / screenW, lineThickness / screenH),
+        Rectf(), skin.color[GUISkin::SLIDER]);
+
+    // handle
+    Renderer::pushSprite(streamBuffer,
+        Vector3(handlePos / screenW, y / screenH, 0.0f), 
+        Vector2(handleSize / screenW, handleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE]);
+
+    // inner handle
+    float innerHandleSize = handleSize * innerHandleScale;
+    float halfInnerHandleSize = innerHandleSize / 2.0f;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(
+          (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenW,
+          (y + halfHandleSize - halfInnerHandleSize) / screenH, 0.0f), 
+        Vector2(innerHandleSize / screenW, innerHandleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE_INNER]);
+
+    return returnValue;
+  }
+
+  float GUI::doVerticalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 h)
+  {
+    //inner handle scales according to user action
+    const float handleScaleHover  = 0.8f;
+    const float handleScaleNormal = 0.65f;
+    const float handleScaleDrag   = 0.5f;
+    const uint32 handleSize = DEFAULT_CONTROL_HEIGHT;
+    float innerHandleScale = handleScaleNormal;
+
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x, y, handleSize, h);
+
+    float returnValue = value;
+    if (value < 0.0f) value = 0.0f;
+    if (value > 1.0f) value = 1.0f;
+    float handlePos = y + value * (h - handleSize);
+    Rect handleRect = Rect(x, (int32)handlePos, handleSize, handleSize);
+
+    const Point2& cursorPos = mouseCursorPosition;
+    bool mouseOverHandle = handleRect.containsPoint(cursorPos);
+    bool isBeingDragged = draggedControlId == id;
+
+    if(isBeingDragged)
+    {
+      if (mouseLButtonIsDown)
+      {
+        innerHandleScale = handleScaleDrag;
+        handlePos = (float)(cursorDragOffset.y + cursorPos.y);
+      }
+      else
+      {
+        draggedControlId = 0;
+      }
+    }
+    else if (mouseOverHandle)
+    {
+      innerHandleScale = handleScaleHover;
+      if (mouseLButtonDownThisFrame)
+      {
+        draggedControlId = id;
+        cursorDragOffset = Point2{0, (int)handlePos - cursorPos.y};
+        handlePos = (float)(cursorDragOffset.y + cursorPos.y);
+      }
+    }
+
+    const int32 bottomLimit = y;
+    const int32 topLimit = y + h - handleSize;
+    const int32 sliderLength = topLimit - bottomLimit;
+
+    if (handlePos > topLimit)
+      handlePos = (float) topLimit;
+    if (handlePos < bottomLimit)
+      handlePos = (float) bottomLimit;
+    returnValue = (handlePos - y) / (float) sliderLength;
+
+    if (returnValue != value)
+      changed = true;
+
+    // vertical line
+    const float halfHandleSize = handleSize / 2.0f;
+    const float lineThickness = handleSize * skin.sliderThickness;
+    const float halfLinethickness = halfHandleSize * skin.sliderThickness;
+    Renderer::pushSprite(streamBuffer,
+        Vector3((x + halfHandleSize - halfLinethickness) / screenW, y / screenH, 0.0f), 
+        Vector2(lineThickness / screenW, h / screenH),
+        Rectf(), skin.color[GUISkin::SLIDER]);
+
+    // handle
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, handlePos / screenH, 0.0f), 
+        Vector2(handleSize / screenW, handleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE]);
+
+    // inner handle
+    float innerHandleSize = handleSize * innerHandleScale;
+    float halfInnerHandleSize = innerHandleSize / 2.0f;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(
+          (x + halfHandleSize - halfInnerHandleSize) / screenW,
+          (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenH,
+          0.0f), 
+        Vector2(innerHandleSize / screenW, innerHandleSize / screenH),
+        skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE_INNER]);
+
+    return returnValue;
+  }
+
+
+  void GUI::end()
+  {
+    Renderer::end(streamBuffer);
+  }
+
+#ifndef SMOL_MODULE_GAME
+  Handle<Material> GUI::getMaterial() const
+  {
+    return material;
+  }
+
+  void GUI::initialize(Handle<Material> material, Handle<Font> font)
+  {
+    Renderer::createStreamBuffer(&streamBuffer, 512);
+    this->material = material;
+    skin.font = font;
+    skin.labelFontSize = 16;
+    areaCount = 0;
+    areaOffset = Rect(0, 0, 0, 0);
+    enabled = true;
+    drawLabelDebugBackground = false;
+
+    skin.sliderThickness = 0.1f;
+    skin.windowOpacity = .9f;
+
+    const Color windowBackground        = Color(29, 29, 29);
+    const Color panelBackground         = Color(77, 77, 77);
+    const Color controlBackground       = Color(15, 15, 15);
+    const Color controlSurface          = Color(40, 40, 40);
+    const Color controlBackgroundHoover = controlSurface;
+    const Color controlSurfaceHover     = Color(50, 50, 50);
+    const Color highlight               = Color(0, 10, 250);
+    const Color contrastLight           = Color(150, 150, 150);
+
+
+    skin.color[GUISkin::TEXT]                   = Color::WHITE;
+    skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]  = Color::BLACK;
+    skin.color[GUISkin::TEXT_DISABLED]          = Color::GRAY;
+
+    skin.color[GUISkin::BUTTON]        = controlSurface;
+    skin.color[GUISkin::BUTTON_HOVER]  = controlSurfaceHover;
+    skin.color[GUISkin::BUTTON_ACTIVE] = controlBackground;
+
+    skin.color[GUISkin::TOGGLE_BUTTON]                = controlSurface;
+    skin.color[GUISkin::TOGGLE_BUTTON_HOVER]          = controlSurfaceHover;
+    skin.color[GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE]   = highlight;
+    skin.color[GUISkin::TOGGLE_BUTTON_ACTIVE]         = highlight;
+
+    skin.color[GUISkin::CHECKBOX]               = controlBackground;
+    skin.color[GUISkin::CHECKBOX_HOVER]         = controlBackgroundHoover;
+    skin.color[GUISkin::CHECKBOX_ACTIVE]        = Color::BLACK;
+    skin.color[GUISkin::CHECKBOX_CHECK]         = Color::WHITE;
+
+    skin.color[GUISkin::SLIDER]                 = contrastLight;
+    skin.color[GUISkin::SLIDER_HANDLE]          = contrastLight;
+    skin.color[GUISkin::SLIDER_HANDLE_INNER]    = controlBackground;
+
+    skin.color[GUISkin::PANEL]                  = panelBackground;
+
+    skin.color[GUISkin::WINDOW]                 = windowBackground;
+    skin.color[GUISkin::WINDOW_TITLE_BAR]       = controlSurface;
+    skin.color[GUISkin::WINDOW_TITLE_BAR_HOVER] = controlSurfaceHover;
+
+    skin.color[GUISkin::SEPARATOR]              = controlSurfaceHover;
+  }
+
+#endif
+
+}

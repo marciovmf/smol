@@ -46,10 +46,10 @@ namespace smol
 
     Handle<SceneNode> parent = transform.getParent();
 
-    if (parent == Scene::ROOT)
+    if (parent == INVALID_HANDLE(SceneNode))
       return true;
 
-    SceneNode& parentPtr = scene.getNode(parent);
+    SceneNode& parentPtr = *(parent.operator->());
     if (!parentPtr.isValid())
       return false;
 
@@ -58,14 +58,11 @@ namespace smol
 
   void SceneNode::setParent(Handle<SceneNode> parent)
   {
-    // root nodes have no parent
-    if (type == SceneNode::ROOT)
-      return;
-
-    if (!scene.getNode(parent).isValid())
+    const SceneNode& parentNode = *(parent.operator->());
+    if (! parentNode.isValid())
     {
       Log::error("Trying to set parent of node with an invalid parent node handle");
-      transform.setParent(Scene::ROOT);
+      transform.setParent(INVALID_HANDLE(SceneNode));
       return;
     }
     transform.setParent(parent);

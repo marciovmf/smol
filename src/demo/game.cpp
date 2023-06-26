@@ -6,6 +6,7 @@
 #include <smol/smol_font.h>
 #include <smol/smol_sprite_node.h>
 #include <smol/smol_camera_node.h>
+#include <smol/smol_gui.h>
 #include <utility>
 #include <time.h>
 #include <string.h>
@@ -37,7 +38,7 @@ void onStart()
   smol::Log::info("Game started!");
   root = smol::SystemsRoot::get();
   smol::ResourceManager& resourceManager = root->resourceManager;
-  smol::Scene& scene = root->sceneManager.getLoadedScene();
+  smol::Scene& scene = root->sceneManager.getCurrentScene();
 
   // Read game specifig settings from variables.txt
   const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
@@ -104,11 +105,6 @@ void onStart()
   cameraNode = smol::CameraNode::createPerspective(60.0f, 0.01f, 3000.0f, t);
   //cameraNode = smol::CameraNode::createOrthographic(50, 0.01f, 3000.0f, t);
 
-  cameraNode->transform
-    .setRotation(0.0f, .0f, 0.0f)
-    .setPosition(0.0f, 0.0f, 0.5f);
-  cameraNode->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
-
   sideCamera = smol::CameraNode::createPerspective(60.0f, 0.01f, 3000.0f, t);
   sideCamera->transform
     .setRotation(-30.0f, 0.0f, 0.0f)
@@ -117,7 +113,13 @@ void onStart()
   sideCamera->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1));
   sideCamera->setActive(sideCameraActive);
 
-#if 0
+  cameraNode->transform
+    .setRotation(0.0f, .0f, 0.0f)
+    .setPosition(0.0f, 0.0f, 0.5f);
+  cameraNode->camera.setLayerMask((uint32)(smol::Layer::LAYER_0 | smol::Layer::LAYER_1 | smol::Layer::LAYER_2));
+
+
+#if 1
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
@@ -177,7 +179,7 @@ void onStart()
       smol::Transform(
         {0.0f, 2.0f, 0.0f},
         {0.0f, 0.0f, 30.0f},
-        {0.02f, 0.02f, 0.02f},
+        {1.0f, 1.0f, 1.0f}, 
         node1),
         "Hello,Sailor!",
         smol::Color::YELLOW);
@@ -185,9 +187,9 @@ void onStart()
   const char* p = "";
   textNode = smol::TextNode::create(textBatcher, font,
       smol::Transform(
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f},
-        {0.02f, 0.02f, 0.02f}),
+        {0.0f, 8.0f, 0.0f},
+        {0.0f, -45.0f, 0.0f},
+        {1.0f, 1.0f, 1.0f}), 
         p, smol::Color::WHITE);
     textNode->text.setBackgroundColor(smol::Color::TEAL);
 
@@ -232,7 +234,6 @@ inline float animateToZero(float value, float deltaTime)
 }
 
 bool isSideCameraActive = false;
-
 
 char* buff[255];
 
@@ -350,13 +351,12 @@ void onUpdate(float deltaTime)
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F2)) {
-    cameraNode->camera
-      .setClearOperation((smol::Camera::ClearOperation::DEPTH | smol::Camera::ClearOperation::COLOR));
+    cameraNode->camera.setClearOperation((smol::Renderer::CLEAR_COLOR_BUFFER | smol::Renderer::CLEAR_DEPTH_BUFFER));
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F3)) {
     cameraNode->camera
-      .setClearOperation((unsigned int)smol::Camera::ClearOperation::DEPTH);
+      .setClearOperation((unsigned int)smol::Renderer::CLEAR_DEPTH_BUFFER);
   }
 
   if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
@@ -466,6 +466,13 @@ void onUpdate(float deltaTime)
     float a = transform->getRotation().y + 30 * deltaTime;
     transform->setRotation(0, a, 0);
   }
+}
+
+
+void onGUI(smol::GUI& gui)
+{
+  //smol::Vector2 screen = gui.getScreenSize();
+  //gui.panel(SMOL_CONTROL_ID,  (int)screen.x - 40 , 0,  40, (int) screen.y);
 }
 
 void onStop()

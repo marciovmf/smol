@@ -4,11 +4,19 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+
+list(APPEND SRC
+    smol_launcher.cpp 
+    smol_editor.h
+    smol_editor.cpp
+  )
+
 if(WIN32)
-  set(SMOL_WINDOWS_RESOURCE_FILE "smol_launcher_resource_win64.rc")
+  list(APPEND SRC smol_launcher_resource_win64.rc)
 endif()
 
-add_executable(slauncher smol_launcher.cpp "${SMOL_WINDOWS_RESOURCE_FILE}")
+add_executable(slauncher ${SRC})
+
 target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include")
 target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include/smol")
 target_link_libraries(slauncher PRIVATE smol ${OPENGL_LIBRARY})

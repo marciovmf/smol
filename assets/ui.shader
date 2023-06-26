@@ -15,13 +15,14 @@ vertexShader:"
   layout (location = 1) in vec2 vertUVIn;
   layout (location = 4) in vec4 colorIn;
   layout (location = 3) in vec3 normalIn;
-  uniform vec4 color;
-
   out vec4 vertColor; 
   out vec2 uv;
   void main() {
-    gl_Position =  proj * view * model * vec4(vertPos, 1.0);
-    vertColor = colorIn * color;
+    vec3 pos = vertPos * vec3(2.0, -2.0, 2.0) - 1;
+    gl_Position = vec4(pos, 1.0);
+    gl_Position.y *= -1;
+
+    vertColor = colorIn;
     uv = vertUVIn;
 }
 ",
@@ -32,11 +33,20 @@ fragmentShader:"
   in vec4 vertColor;
   in vec2 uv;
 
+  const float width = 0.18;
+  const float edge = 0.5;
+
   void main()
   {
-    vec4 texColor = vec4(texture(mainTex, uv));
-    if(texColor.a < 0.3)
-        discard;
-    fragColor = texColor * vertColor;
+    if(uv.x == 0 && uv.y == 0)
+    {
+      fragColor = vertColor;
+      return;
+    }
+
+    //simple SDF rendering
+    float distance  = 1.0 - texture2D(mainTex, uv).a;
+    float alpha     = 1.0 - smoothstep(width, width + edge, distance);
+    fragColor       = vec4(vertColor.rgb, alpha);
   }
 "

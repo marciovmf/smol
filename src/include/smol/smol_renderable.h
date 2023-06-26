@@ -12,7 +12,7 @@ namespace smol
   {
     Handle<Material> material;
     Handle<Mesh> mesh;
-    Renderable::Renderable(Handle<Material> material, Handle<Mesh> mesh);
+    Renderable(Handle<Material> material, Handle<Mesh> mesh);
   };
 
   template class SMOL_ENGINE_API smol::HandleList<smol::Renderable>;

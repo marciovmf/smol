@@ -74,7 +74,7 @@ namespace smol
 
   Transform& Transform::unparent()
   {
-    this->parent = DEFAULT_PARENT_NODE;
+    this->parent = INVALID_HANDLE(SceneNode);
     dirty = true;
     return *this;
   }
@@ -89,12 +89,9 @@ namespace smol
 
   bool Transform::isDirty(const Scene& scene) const
   {
-    // the Dirty flag is meant to allow us to skip matrix calculations
-    // if neither the node or it's parents have changed
-    SceneNode& parentNode = scene.getNode(parent);
-    if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
+    if (parent != INVALID_HANDLE(SceneNode) && parent->isValid())
     {
-      return dirty || parentNode.transform.isDirty(scene);
+      return dirty || parent->transform.isDirty(scene);
     }
     return dirty;
   }
@@ -107,13 +104,13 @@ namespace smol
 
   bool Transform::update(const Scene& scene)
   {
-    SceneNode& parentNode = scene.getNode(parent);
+    SceneNode& parentNode = *(parent.operator->());
     Mat4 parentMatrix;
 
     // Do nothing if nothing changed
     if (isDirty(scene))
     {
-      if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
+      if (parent != INVALID_HANDLE(SceneNode) && parent->isValid())
       {
         parentNode.transform.update(scene);
         parentMatrix = parentNode.transform.model;

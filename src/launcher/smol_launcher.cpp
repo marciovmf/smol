@@ -10,6 +10,7 @@
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
 #include <smol/smol_vector2.h>
+#include "smol_editor.h"
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -28,11 +29,26 @@
 #endif
 
 #define SMOL_VARIABLES_FILE ((const char*) "assets/variables.txt")
+#include <smol/smol_event_manager.h>
+#include <smol/smol_event.h>
 
 namespace smol
 {
   namespace launcher
   {
+    bool onEvent(const Event& event, void* payload)
+    {
+      if (event.type == Event::DISPLAY)
+      {
+        GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
+        cfg->width = event.displayEvent.width;
+        cfg->height = event.displayEvent.height;
+        Renderer::setViewport(0, 0, cfg->width, cfg->height);
+      }
+
+      return false; // let other handlers know about this
+    }
+
     int smolMain(int argc, char** argv)
     {
       Log::verbosity(SMOL_LOGLEVEL);
@@ -79,16 +95,20 @@ namespace smol
         Platform::captureCursor(window);
 
       Platform::getWindowSize(window, &displayConfig.width, &displayConfig.height);
+
       // Initialize systems root
       SystemsRoot::initialize(config);
       Mouse& mouse        = SystemsRoot::get()->mouse;
       Keyboard& keyboard  = SystemsRoot::get()->keyboard;
-      Renderer& renderer  = SystemsRoot::get()->renderer;
+      SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
+      EventManager& eventManager = EventManager::get();
 
-      renderer.resize(displayConfig.width, displayConfig.height);
+      Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
+      eventManager.addHandler(onEvent, Event::DISPLAY, &displayConfig);
 
+      Editor editor;
+      editor.initialize();
 
-      // Run game/engine
       uint64 startTime = 0;
       uint64 endTime = 0;
       onGameStartCallback();
@@ -97,28 +117,19 @@ namespace smol
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
-
+        Platform::updateWindowEvents(window);
         mouse.update();
         keyboard.update();
+        eventManager.dispatchEvents();
         onGameUpdateCallback(deltaTime);
-        Platform::updateWindowEvents(window);
-
-        // check for resize.
-        //TODO(marcio): Make an event system so we get notified when this happens.
-        int windowWidth, windowHeight;
-        Platform::getWindowSize(window, &windowWidth, &windowHeight);
-        if (windowWidth != displayConfig.width || windowHeight != displayConfig.height)
-        {
-          displayConfig.width = windowWidth;
-          displayConfig.height = windowHeight;
-          renderer.resize(windowWidth, windowHeight);
-        }
-
-        renderer.render(deltaTime);
+        sceneManager.render(deltaTime);
+        editor.render(displayConfig.width, displayConfig.height);
+        Platform::swapBuffers(window);
         endTime = Platform::getTicks();
       }
 
       onGameStopCallback();
+      editor.terminate();
       Platform::unloadModule(game);
       Platform::destroyWindow(window);
       SystemsRoot::terminate();

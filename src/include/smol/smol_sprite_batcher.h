@@ -12,6 +12,7 @@ namespace smol
   struct Scene;
   struct Color;
   struct SceneNode;
+  struct StreamBuffer;
 
   struct SMOL_ENGINE_API SpriteBatcher final
   {
