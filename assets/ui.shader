@@ -17,13 +17,13 @@ vertexShader:"
   layout (location = 3) in vec3 normalIn;
   out vec4 vertColor; 
   out vec2 uv;
-  void main() {
-    vec3 pos = vertPos * vec3(2.0, -2.0, 2.0) - 1;
-    gl_Position = vec4(pos, 1.0);
-    gl_Position.y *= -1;
-
-    vertColor = colorIn;
-    uv = vertUVIn;
+  void main() 
+{
+  vec3 pos = vec3(vertPos.xy * vec2(2.0, -2.0) - 1, vertPos.z);
+  gl_Position = vec4(pos, 1.0);
+  gl_Position.y *= -1;
+  vertColor = colorIn;
+  uv = vertUVIn;
 }
 ",
 fragmentShader:"
