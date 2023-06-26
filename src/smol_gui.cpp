@@ -35,6 +35,11 @@ namespace smol
       mouseLButtonIsDown = false;
     }
 
+    z = 0.0f;
+    currentCursorZ = 0.0f;
+    popupCount = 0;
+    windowCount = 0;
+
     if (glyphDrawDataArena.getCapacity() == 0)
     {
       glyphDrawDataArena.initialize(256 * sizeof(GlyphDrawData));
@@ -44,7 +49,7 @@ namespace smol
     Renderer::begin(streamBuffer);
   }
 
-  void GUI::panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h)
+  void GUI::panel(GUIControlID id, int32 x, int32 y, int32 w, int32 h)
   {
     lastRect = Rect(x, y, w, h);
     GUISkin::ID styleId = GUISkin::PANEL;
@@ -76,14 +81,14 @@ namespace smol
     Renderer::pushLines(streamBuffer, point, 2, skin.color[GUISkin::SEPARATOR], 2 / screenW);
   }
 
-  Point2 GUI::beginWindow(GUICOntrolID id, const char* title, int32 x, int32 y, int32 w, int32 h)
+  Point2 GUI::beginWindow(GUIControlID id, const char* title, int32 x, int32 y, int32 w, int32 h)
   {
     lastRect = Rect(x, y, w, h);
     windowCount++;
 
     bool isBeingDragged = draggedControlId == id;
     const int titleBarHeight = 30;
-    Rect titleBarRect = Rect(x, y, w, titleBarHeight);
+    Rect titleBarRect(x, y, w, titleBarHeight);
     bool mouseOverTitleBar = titleBarRect.containsPoint(mouseCursorPosition);
 
     // Draw title bar
@@ -174,7 +179,7 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::label(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, Align align)
+  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -192,7 +197,7 @@ namespace smol
     GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
     Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, w / (float)fontSize, 1.0f + skin.lineHeightAdjust);
     bounds.mult(scaleX, scaleY);
-    lastRect = Rect((int32)posX, (int32) posY, (int32) bounds.x, (int32) bounds.y);
+  
 
     if (align == Align::CENTER)
     {
@@ -209,22 +214,24 @@ namespace smol
       posY -= bounds.y/2;
     }
 
+    lastRect = Rect((int32)(posX * screenW), (int32)(posY * screenW), (int32) (bounds.x * screenW), (int32) (bounds.y * screenH));
+
     // Draws a solid background behind the text. Keep this here for debugging
     if (drawLabelDebugBackground)
-      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y),
-          Rectf(), skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]);
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]);
 
     for (int i = 0; i < textLen; i++)
     {
       GlyphDrawData& data = drawData[i];
-      Vector3 offset = Vector3(posX + data.position.x * scaleX, posY + data.position.y *  scaleY, 0.0f);
+      Vector3 offset = Vector3(posX + data.position.x * scaleX, posY + data.position.y *  scaleY, z);
       Vector2 size = data.size;
       size.mult(scaleX, scaleY);
       Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
     }
+
   }
 
-  bool GUI::doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h)
+  bool GUI::doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -232,7 +239,7 @@ namespace smol
 
     GUISkin::ID styleId;
     bool returnValue = false;
-    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
     bool isActiveControl = activeControlId == id;
 
     if (mouseOver)
@@ -254,7 +261,7 @@ namespace smol
     }
     else
     {
-      hoverControlId = 0;
+      //hoverControlId = 0;
       styleId = GUISkin::BUTTON;
       if (mouseLButtonUpThisFrame && isActiveControl)
       {
@@ -263,7 +270,7 @@ namespace smol
     }
 
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector3(x / screenW, y / screenH, z), 
         Vector2(w / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
@@ -274,14 +281,14 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
+  bool GUI::doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     lastRect = Rect(x, y, w, h);
 
     GUISkin::ID styleId;
-    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
     bool returnValue = toggled;
 
     bool isActiveControl = activeControlId == id;
@@ -294,7 +301,6 @@ namespace smol
     if (mouseOver)
     {
       hoverControlId = id;
-
       styleId = toggled ? GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE : GUISkin::TOGGLE_BUTTON_HOVER;
 
       if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
@@ -319,7 +325,7 @@ namespace smol
     }
 
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector3(x / screenW, y / screenH, z), 
         Vector2(w / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
@@ -330,7 +336,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y)
+  bool GUI::doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
     const uint32 size = DEFAULT_CONTROL_HEIGHT;
     x = areaOffset.x + x;
@@ -339,7 +345,7 @@ namespace smol
 
     GUISkin::ID bgStyle;
     GUISkin::ID tickStyle;
-    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
     bool returnValue = toggled;
     bool isActiveControl = activeControlId == id;
 
@@ -382,8 +388,8 @@ namespace smol
     const float boxH = size / screenH;
 
     tickStyle = (toggled || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteRadioButton, skin.color[bgStyle]);
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteRadioButtonChecked, skin.color[tickStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, z), Vector2(boxW, boxH), skin.spriteRadioButton, skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, z), Vector2(boxW, boxH), skin.spriteRadioButtonChecked, skin.color[tickStyle]);
 
     if (text)
     {
@@ -398,14 +404,14 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doCheckBox(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y)
+  bool GUI::doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
     const uint32 size = DEFAULT_CONTROL_HEIGHT;
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
 
-    bool mouseOver = lastRect.containsPoint(mouseCursorPosition);
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
     bool returnValue = toggled;
     bool isActiveControl = activeControlId == id;
 
@@ -445,8 +451,8 @@ namespace smol
     const float boxH = size / screenH;
 
     tickStyle = (toggled  || isActiveControl) ? GUISkin::CHECKBOX_CHECK : GUISkin::CHECKBOX;
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteCheckBox, skin.color[bgStyle]);
-    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, 0.0f), Vector2(boxW, boxH), skin.spriteCheckBoxChecked, skin.color[tickStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, z), Vector2(boxW, boxH), skin.spriteCheckBox, skin.color[bgStyle]);
+    Renderer::pushSprite(streamBuffer, Vector3(boxX, boxY, z), Vector2(boxW, boxH), skin.spriteCheckBoxChecked, skin.color[tickStyle]);
 
     if (text)
     {
@@ -461,7 +467,7 @@ namespace smol
     return returnValue;
   }
 
-  float GUI::doHorizontalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 w)
+  float GUI::doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w)
   {
     //inner handle scales according to user action
     const float handleScaleHover  = 0.8f;
@@ -481,10 +487,11 @@ namespace smol
     Rect handleRect = Rect((int32)handlePos, y, handleSize, handleSize);
 
     const Point2& cursorPos = mouseCursorPosition;
-    bool mouseOverHandle = handleRect.containsPoint(cursorPos);
+    bool mouseOverHandle = handleRect.containsPoint(cursorPos) && (z <= currentCursorZ);
     bool isBeingDragged = draggedControlId == id;
+    bool isActiveControl = activeControlId == id;
 
-    if(isBeingDragged)
+    if(isBeingDragged && isActiveControl)
     {
       if (mouseLButtonIsDown)
       {
@@ -494,15 +501,16 @@ namespace smol
       else
       {
         draggedControlId = 0;
+        activeControlId = 0;
       }
     }
     else if (mouseOverHandle)
     {
-
       innerHandleScale = handleScaleHover;
       if (mouseLButtonDownThisFrame)
       {
         draggedControlId = id;
+        activeControlId = id;
         cursorDragOffset = Point2{(int)handlePos - cursorPos.x, 0};
         handlePos = (float)(cursorDragOffset.x + cursorPos.x);
       }
@@ -526,13 +534,13 @@ namespace smol
     const float lineThickness = handleSize * skin.sliderThickness;
     const float halfLinethickness = halfHandleSize * skin.sliderThickness;
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, (y + halfHandleSize - halfLinethickness) / screenH, 0.0f), 
+        Vector3(x / screenW, (y + halfHandleSize - halfLinethickness) / screenH, z), 
         Vector2(w / screenW, lineThickness / screenH),
         Rectf(), skin.color[GUISkin::SLIDER]);
 
     // handle
     Renderer::pushSprite(streamBuffer,
-        Vector3(handlePos / screenW, y / screenH, 0.0f), 
+        Vector3(handlePos / screenW, y / screenH, z), 
         Vector2(handleSize / screenW, handleSize / screenH),
         skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE]);
 
@@ -542,14 +550,14 @@ namespace smol
     Renderer::pushSprite(streamBuffer,
         Vector3(
           (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenW,
-          (y + halfHandleSize - halfInnerHandleSize) / screenH, 0.0f), 
+          (y + halfHandleSize - halfInnerHandleSize) / screenH, z), 
         Vector2(innerHandleSize / screenW, innerHandleSize / screenH),
         skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE_INNER]);
 
     return returnValue;
   }
 
-  float GUI::doVerticalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 h)
+  float GUI::doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h)
   {
     //inner handle scales according to user action
     const float handleScaleHover  = 0.8f;
@@ -569,7 +577,7 @@ namespace smol
     Rect handleRect = Rect(x, (int32)handlePos, handleSize, handleSize);
 
     const Point2& cursorPos = mouseCursorPosition;
-    bool mouseOverHandle = handleRect.containsPoint(cursorPos);
+    bool mouseOverHandle = handleRect.containsPoint(cursorPos) && (z <= currentCursorZ);
     bool isBeingDragged = draggedControlId == id;
 
     if(isBeingDragged)
@@ -613,13 +621,13 @@ namespace smol
     const float lineThickness = handleSize * skin.sliderThickness;
     const float halfLinethickness = halfHandleSize * skin.sliderThickness;
     Renderer::pushSprite(streamBuffer,
-        Vector3((x + halfHandleSize - halfLinethickness) / screenW, y / screenH, 0.0f), 
+        Vector3((x + halfHandleSize - halfLinethickness) / screenW, y / screenH, z), 
         Vector2(lineThickness / screenW, h / screenH),
         Rectf(), skin.color[GUISkin::SLIDER]);
 
     // handle
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, handlePos / screenH, 0.0f), 
+        Vector3(x / screenW, handlePos / screenH, z), 
         Vector2(handleSize / screenW, handleSize / screenH),
         skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE]);
 
@@ -629,14 +637,134 @@ namespace smol
     Renderer::pushSprite(streamBuffer,
         Vector3(
           (x + halfHandleSize - halfInnerHandleSize) / screenW,
-          (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenH,
-          0.0f), 
+          (handlePos + (halfHandleSize) - halfInnerHandleSize) / screenH, z), 
         Vector2(innerHandleSize / screenW, innerHandleSize / screenH),
         skin.spriteSliderHandle, skin.color[GUISkin::SLIDER_HANDLE_INNER]);
 
     return returnValue;
   }
 
+  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    popupCount++;
+
+    // We should draw on top of all previous controls...
+    z-= 0.01f * popupCount; 
+
+    int32 selectedOption = -1;
+    const Point2 mousePos = mouseCursorPosition;
+    const int vSpacing = 1;
+
+    const float totalMenuHeight = ((optionCount * skin.labelFontSize) + (optionCount * vSpacing));
+    Rect lastRect = Rect(x, y, maxWidth, (int32) totalMenuHeight);
+    Renderer::pushSprite(streamBuffer,
+        Vector3(lastRect.x / screenW, lastRect.y / screenH, z),
+        Vector2(lastRect.w / screenW, lastRect.h / screenH),
+        Rectf(), skin.color[GUISkin::MENU]);
+
+    bool isActiveControl = activeControlId == id;
+    Rectf selectionRect((float)x,(float) y,(float) maxWidth, skin.labelFontSize);
+    bool mouseOver = false;
+
+    for (uint32 i = 0; i < optionCount; i++)
+    { 
+      // Selection Highlight
+      if (selectionRect.containsPoint(mousePos) && z < currentCursorZ)
+      {
+        currentCursorZ = z;
+        hoverControlId = id;
+        mouseOver = true;
+        Renderer::pushSprite(streamBuffer,
+            Vector3(selectionRect.x / screenW, selectionRect.y / screenH, z),
+            Vector2(selectionRect.w / screenW, selectionRect.h / screenH),
+            Rectf(), skin.color[GUISkin::MENU_SELECTION]);
+
+        if (mouseLButtonDownThisFrame || (isActiveControl && mouseLButtonIsDown))
+          activeControlId = id;
+        else if(mouseLButtonUpThisFrame && isActiveControl)
+        {
+          activeControlId = 0;
+          selectedOption = i;
+          changed = true;
+        }
+      }
+
+      // label
+      label(id, options[i],
+          (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+          (int32) selectionRect.y - areaOffset.y, 0, NONE);
+      selectionRect.y += skin.labelFontSize + vSpacing;
+    }
+
+    if (mouseLButtonDownThisFrame && !mouseOver)
+    {
+      activeControlId = 0;
+      hoverControlId = 0;
+    }
+
+    // We resotre the previous global Z
+    z += 0.01f * popupCount; 
+
+    return selectedOption;
+  }
+
+  int32 GUI::doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    uint32 h = DEFAULT_CONTROL_HEIGHT;
+    lastRect = Rect(x , y, w, h);
+
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
+    bool isActiveControl = activeControlId == id;
+    
+
+    // BOX
+    GUISkin::ID styleId = mouseOver ? GUISkin::COMBO_BOX : GUISkin::COMBO_BOX_HOVER;
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, z), 
+        Vector2(w / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+
+    // RIGHT SIDE "chevron icon"
+    Renderer::pushSprite(streamBuffer,
+        Vector3((x + w - DEFAULT_CONTROL_HEIGHT - DEFAULT_H_SPACING) / screenW, y / screenH, z), 
+        Vector2((int32) DEFAULT_CONTROL_HEIGHT / screenW, (int32) DEFAULT_CONTROL_HEIGHT / screenH),
+        skin.spriteComboBoxChevron, Color::WHITE);
+
+    // Label
+    const char* text = "";
+    if (selectedIndex >= 0 && selectedIndex < (int32) optionCount)
+      text = options[selectedIndex];
+
+    x -= areaOffset.x;
+    y -= areaOffset.y;
+    // We don't want to offset the label twice, so we remove the areaOffset
+    const int labelX = x + DEFAULT_H_SPACING;
+    const int labelY = y + h/2;
+    label(id, text, labelX, labelY, 0, LEFT);
+
+    int32 newSelectedIndex = selectedIndex;
+    if (isActiveControl)
+    {
+      newSelectedIndex = doOptionList(id, options, optionCount, x, y + h, w);
+    }
+    else if (mouseOver)
+    {
+      hoverControlId = id;
+      if (mouseLButtonDownThisFrame && !isActiveControl)
+      {
+        activeControlId = id;
+      }
+    }
+
+    if (newSelectedIndex >= 0)
+      selectedIndex = newSelectedIndex;
+
+    return selectedIndex;
+  }
 
   void GUI::end()
   {
@@ -657,6 +785,7 @@ namespace smol
     skin.labelFontSize = 16;
     areaCount = 0;
     areaOffset = Rect(0, 0, 0, 0);
+    z = 0.0f;
     enabled = true;
     drawLabelDebugBackground = false;
 
@@ -672,7 +801,6 @@ namespace smol
     const Color highlight               = Color(0, 10, 250);
     const Color contrastLight           = Color(150, 150, 150);
 
-
     skin.color[GUISkin::TEXT]                   = Color::WHITE;
     skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]  = Color::BLACK;
     skin.color[GUISkin::TEXT_DISABLED]          = Color::GRAY;
@@ -685,6 +813,9 @@ namespace smol
     skin.color[GUISkin::TOGGLE_BUTTON_HOVER]          = controlSurfaceHover;
     skin.color[GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE]   = highlight;
     skin.color[GUISkin::TOGGLE_BUTTON_ACTIVE]         = highlight;
+
+    skin.color[GUISkin::COMBO_BOX]              = controlBackground;
+    skin.color[GUISkin::COMBO_BOX_HOVER]         = controlBackgroundHoover;
 
     skin.color[GUISkin::CHECKBOX]               = controlBackground;
     skin.color[GUISkin::CHECKBOX_HOVER]         = controlBackgroundHoover;
@@ -700,6 +831,10 @@ namespace smol
     skin.color[GUISkin::WINDOW]                 = windowBackground;
     skin.color[GUISkin::WINDOW_TITLE_BAR]       = controlSurface;
     skin.color[GUISkin::WINDOW_TITLE_BAR_HOVER] = controlSurfaceHover;
+
+
+    skin.color[GUISkin::MENU]             = windowBackground;
+    skin.color[GUISkin::MENU_SELECTION]   = highlight;
 
     skin.color[GUISkin::SEPARATOR]              = controlSurfaceHover;
   }

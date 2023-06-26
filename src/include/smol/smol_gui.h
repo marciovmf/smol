@@ -12,7 +12,7 @@
 
 namespace smol
 {
-  typedef uint32 GUICOntrolID;
+  typedef uint32 GUIControlID;
   struct SystemsRoot;
 
   struct SMOL_ENGINE_API GUISkin final
@@ -27,12 +27,19 @@ namespace smol
     Rectf spriteCheckBox;
     Rectf spriteCheckBoxChecked;
     Rectf spriteSliderHandle;
+    Rectf spriteComboBoxChevron;
 
     enum ID
     {
       TEXT,
       TEXT_DEBUG_BACKGROUND,
       TEXT_DISABLED,
+
+      MENU,
+      MENU_SELECTION,
+
+      COMBO_BOX,
+      COMBO_BOX_HOVER,
 
       BUTTON,
       BUTTON_HOVER,
@@ -72,7 +79,7 @@ namespace smol
     {
       MAX_NESTED_AREAS = 16,
       DEFAULT_H_SPACING = 5,
-      DEFAULT_CONTROL_HEIGHT = 18,
+      DEFAULT_CONTROL_HEIGHT = 20,
 
     };
 
@@ -81,17 +88,21 @@ namespace smol
     Handle<Material> material;
     GUISkin skin;
     Rect lastRect;                    // Rect of the last control drawn
-    GUICOntrolID hoverControlId;
-    GUICOntrolID activeControlId;
-    GUICOntrolID draggedControlId;
+    GUIControlID hoverControlId;
+    GUIControlID activeControlId;
+    GUIControlID draggedControlId;
+    float currentCursorZ;
+
     Point2 cursorDragOffset;          // cursor offset related to the control it's dragging 
     uint32 windowCount;
+    uint32 popupCount;
     uint32 areaCount;
     float screenW;
     float screenH;
     Rect area[MAX_NESTED_AREAS];
     Rect areaOffset;
-    Point2 mousePos;
+    float z;
+    //Point2 mousePos;
     Point2 mouseCursorPosition;
     bool mouseLButtonDownThisFrame;
     bool mouseLButtonUpThisFrame;
@@ -115,22 +126,25 @@ namespace smol
     GUISkin& getSkin();
     Rect getLastRect() const;
     void begin(int screenWidth, int32 screenHeight);
-    void panel(GUICOntrolID id, int32 x, int32 y, int32 w, int32 h);
+    void panel(GUIControlID id, int32 x, int32 y, int32 w, int32 h);
     void horizontalSeparator(int32 x, int32 y, int32 width);
     void verticalSeparator(int32 x, int32 y, int32 height);
-    Point2 beginWindow(GUICOntrolID id, const char* title, int32 x, int32 y, int32 w, int32 h);
+    Point2 beginWindow(GUIControlID id, const char* title, int32 x, int32 y, int32 w, int32 h);
     void endWindow();
 
     void beginArea(int32 x, int32 y, int32 w, int32 h);
     void endArea();
 
-    void label(GUICOntrolID id, const char* text, int32 x, int32 y, int w, Align align = NONE);
-    bool doButton(GUICOntrolID id, const char* text, int32 x, int32 y, int32 w, int32 h);
-    bool doToggleButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
-    bool doRadioButton(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);
-    bool doCheckBox(GUICOntrolID id, const char* text, bool toggled, int32 x, int32 y);
-    float doHorizontalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 w);
-    float doVerticalSlider(GUICOntrolID id, float value, int32 x, int32 y, int32 h);
+    void label(GUIControlID id, const char* text, int32 x, int32 y, int w, Align align = NONE);
+    bool doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h);
+    bool doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
+    bool doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
+    bool doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
+    // returns the index of the option selected. Returns -1 if nothing was selected
+    int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth);
+    int32 doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
+    float doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
+    float doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
     void end();
 
 #ifndef SMOL_MODULE_GAME
