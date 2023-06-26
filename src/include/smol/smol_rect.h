@@ -5,12 +5,14 @@
 
 namespace smol
 {
+  struct Point2;
   struct SMOL_ENGINE_API Rect
   {
     int x, y, w, h;
     Rect();
     Rect(int x, int y, int w, int h);
     Rect(const Rect& other);
+    bool containsPoint(const Point2& point) const;
   };
 
   struct SMOL_ENGINE_API Rectf
@@ -19,6 +21,7 @@ namespace smol
     Rectf();
     Rectf(float x, float y, float w, float h);
     Rectf(const Rectf& other);
+    bool containsPoint(const Point2& point) const;
   };
 }
 

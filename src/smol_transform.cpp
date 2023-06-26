@@ -1,10 +1,15 @@
 #include <smol/smol_transform.h>
-#include <smol/smol_scene_nodes.h>
+#include <smol/smol_scene_node.h>
 #include <smol/smol_systems_root.h>
 #include <smol/smol_scene.h>
 
 namespace smol
 {
+
+  Transform::Transform(Handle<SceneNode> parent)
+    : position(Vector3(0.0f)), rotation(Vector3(0.0f)), scale(Vector3(1.0f)), dirty(true), parent(parent)
+  {}
+
   Transform::Transform(Vector3 position, Vector3 rotation, Vector3 scale, Handle<SceneNode> parent)
     : position(position), rotation(rotation), scale(scale), dirty(true), parent(parent)
   {
@@ -67,6 +72,13 @@ namespace smol
     return *this;
   }
 
+  Transform& Transform::unparent()
+  {
+    this->parent = INVALID_HANDLE(SceneNode);
+    dirty = true;
+    return *this;
+  }
+
   inline const Vector3& Transform::getPosition() const { return position; }
 
   inline const Vector3& Transform::getScale() const { return scale; }
@@ -77,12 +89,9 @@ namespace smol
 
   bool Transform::isDirty(const Scene& scene) const
   {
-    // the Dirty flag is meant to allow us to skip matrix calculations
-    // if neither the node or it's parents have changed
-    SceneNode& parentNode = scene.getNode(parent);
-    if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
+    if (parent != INVALID_HANDLE(SceneNode) && parent->isValid())
     {
-      return dirty || parentNode.transform.isDirty(scene);
+      return dirty || parent->transform.isDirty(scene);
     }
     return dirty;
   }
@@ -95,13 +104,13 @@ namespace smol
 
   bool Transform::update(const Scene& scene)
   {
-    SceneNode& parentNode = scene.getNode(parent);
+    SceneNode& parentNode = *(parent.operator->());
     Mat4 parentMatrix;
 
     // Do nothing if nothing changed
     if (isDirty(scene))
     {
-      if (parentNode.isValid() && !parentNode.typeIs(SceneNode::ROOT))
+      if (parent != INVALID_HANDLE(SceneNode) && parent->isValid())
       {
         parentNode.transform.update(scene);
         parentMatrix = parentNode.transform.model;

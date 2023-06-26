@@ -1,5 +1,5 @@
 #include <smol/smol_scene.h>
-#include <smol/smol_scene_nodes.h>
+#include <smol/smol_scene_node.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_renderer.h>
@@ -12,29 +12,30 @@
 #include <string.h>
 #include <utility>
 
+#define warnInvalidHandle(typeName) debugLogWarning("Attempting to reference a '%s' resource from an invalid handle", (typeName))
 namespace smol
 {
-  // First node handle always points to the ROOT scene node
-  const Handle<SceneNode> Scene::ROOT = (Handle<SceneNode>{ (int) 0, (int) 0 });
-
-  Scene::Scene(ResourceManager& resourceManager):
-    renderables(1024 * sizeof(Renderable)),
-    nodes(1024 * sizeof(SceneNode)), 
-    batchers(8 * sizeof(SpriteBatcher)),
+  Scene::Scene():
+    renderables(32),
+    nodes(32), 
+    batchers(8),
     renderKeys(1024 * sizeof(uint64)),
-    renderKeysSorted(1024 * sizeof(uint64)),
-    mainCamera(INVALID_HANDLE(SceneNode)),
-    nullSceneNode(this, SceneNode::Type::INVALID)
+    renderKeysSorted(1024 * sizeof(uint64))
   {
     viewMatrix = Mat4::initIdentity();
-
-    // Creates a ROOT node
-    nodes.add((const SceneNode&) SceneNode(this, SceneNode::Type::ROOT));
   }
 
-  //---------------------------------------------------------------------------
-  // Scene
-  //---------------------------------------------------------------------------
+  Scene::~Scene()
+  {
+    debugLogInfo("Scene Released Renderable x%d, SpriteBatcher x%d, SceneNode x%d.", 
+        renderables.count(),
+        batchers.count(),
+        nodes.count());
+  }
+
+  //
+  // Create / Destroy scene resources
+  //
 
   Handle<Renderable> Scene::createRenderable(Handle<Material> material, Handle<Mesh> mesh)
   {
@@ -60,14 +61,10 @@ namespace smol
     }
   }
 
-  // ##################################################################
-  //  SpriteBatcher handling 
-  // ##################################################################
   Handle<SpriteBatcher> Scene::createSpriteBatcher(Handle<Material> material, int capacity)
   {
-    return batchers.add(std::move(SpriteBatcher(material, capacity)));
+    return batchers.add(SpriteBatcher(material, capacity));
   }
-
 
   void Scene::destroySpriteBatcher(Handle<SpriteBatcher> handle)
   {
@@ -78,111 +75,370 @@ namespace smol
     }
     else
     {
-      destroyRenderable(batcher->renderable);
       batchers.remove(handle);
     }
   }
 
-  //
-  // Scene Node utility functions
-  //
-  Handle<SceneNode> Scene::createMeshNode(Handle<Renderable> renderable, const Transform& transform)
+#ifndef SMOL_MODULE_GAME
+  Handle<SceneNode> Scene::createNode(SceneNode::Type type, const Transform& transform)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::MESH, transform));
-    nodes.lookup(handle)->mesh.renderable = renderable;
+    Handle<SceneNode> handle = nodes.add(SceneNode(this, type, transform));
+    handle->setDirty(true);
     return handle;
   }
+#endif
 
-  Handle<SceneNode> Scene::createSpriteNode(
-      Handle<SpriteBatcher> batcher,
-      const Rect& rect,
-      const Vector3& position,
-      float width,
-      float height,
-      const Color& color,
-      int angle,
-      Handle<SceneNode> parent)
+#ifndef SMOL_MODULE_GAME
+  void Scene::destroyNode(Handle<SceneNode> handle)
   {
-    const Transform& t = Transform(
-        position,
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(1.0f, 1.0f, 1.0f),
-        parent);
+    nodes.remove(handle);
+  }
+#endif
 
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::SPRITE, t));
-    SceneNode* node = nodes.lookup(handle);
+  int Scene::getNodeCount() const
+  {
+    return nodes.count();
+  }
 
-    node->sprite.rect = rect;
-    node->sprite.batcher = batcher;
-    node->sprite.width = width;
-    node->sprite.height = height;
-    node->sprite.angle = angle;
-    node->sprite.color = color;
+  const SceneNode* Scene::getNodes(uint32* count) const
+  {
+    if (count)
+      *count = nodes.count();
+    return nodes.getArray();
+  }
 
+  //
+  // Internal rendering utility functions
+  //
 
-    SpriteBatcher* batcherPtr = batchers.lookup(batcher);
-    if (batcherPtr)
+  /**
+   * param elements - pointer to 64bit integers to be sorted.
+   * param elementCount - number of elements on elements array.
+   * param dest - destination buffer where to put the sorted list. This buffer
+   * must be large enough for storing elementCount elements.
+   */
+  static void radixSort(uint64* elements, uint32 elementCount,  uint64* dest)
+  {
+    for(int shiftIndex = 0; shiftIndex < 32; shiftIndex+=8)
     {
-      // copy the renderable handle to the node level
-      node->sprite.renderable = batcherPtr->renderable;
-      batcherPtr->spriteCount++;
-      batcherPtr->dirty = true;
+      const uint32 bucketCount = 255;
+      uint32 buckets[bucketCount] = {};
+
+      // count key parts
+      for(uint32 i = 0; i < elementCount; i++)
+      {
+        /// note we ignore the UPPER 32bit of the key
+        uint32 element = (uint32) elements[i];
+        int32 keySlice = (element >> shiftIndex) & 0xFF; // get lower part
+        buckets[keySlice]++;
+      }
+
+      // calculate sorted positions
+      uint32 startIndex = 0;
+      for(uint32 i = 0; i < bucketCount; i++)
+      {
+        uint32 keyCount = buckets[i];
+        buckets[i] = startIndex;
+        startIndex += keyCount;
+      }
+
+      // move elements to their correct position
+      for(uint32 i = 0; i < elementCount; i++)
+      {
+        uint64 element = elements[i];
+        int32 keySlice = (element >> shiftIndex) & 0xFF; 
+        uint32 destLocation = buckets[keySlice]++;
+        // move the WHOLE 64bit key
+        dest[destLocation] = element;
+      }
+
+      // swap buffers
+      uint64* temp = elements;
+      elements = dest;
+      dest = temp;
+    }
+  }
+
+  static inline uint64 encodeRenderKey(SceneNode::Type nodeType, uint16 materialIndex, uint8 queue, uint32 nodeIndex)
+  {
+    // Render key format
+    // 64--------------------32---------------16-----------8---------------0
+    // sceneNode index       | material index  | node type | render queue
+    uint64 key = ((uint64) nodeIndex) << 32 | ((uint16) materialIndex) << 16 |  nodeType << 8 | (uint8) queue;
+    return key;
+  }
+
+  static inline uint32 getNodeIndexFromRenderKey(uint64 key)
+  {
+    return (uint32) (key >> 32);
+  }
+
+  static inline uint32 getMaterialIndexFromRenderKey(uint64 key)
+  {
+    return ((uint32) key) >> 16;
+  }
+
+  static inline uint32 getNodeTypeFromRenderKey(uint64 key)
+  {
+    return (uint32) key >> 8;
+  }
+
+  static void drawRenderable(const Renderable* renderable)
+  {
+    const Mesh* mesh = renderable->mesh.operator->();
+    glBindVertexArray(mesh->vao);
+
+    if (mesh->ibo != 0)
+    {
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+      glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+    else
+    {
+      glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
     }
 
-    return handle;
+    glBindVertexArray(0);
   }
 
-  Handle<SceneNode> Scene::createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform)
+  static int drawSpriteNodes(Scene* scene, SpriteBatcher* batcher, uint64* renderKeyList, uint32 cameraLayers)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
-    SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(fov, aspect, zNear, zFar);
-    return handle;
+    const SceneNode* allNodes = scene->getNodes();
+
+    batcher->begin();
+    for (int i = 0; i < batcher->spriteNodeCount; i++)
+    {
+      uint64 key = ((uint64*)renderKeyList)[i];
+      SceneNode* sceneNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+
+      // ignore sprites the current camera can't see
+      if(!(cameraLayers & sceneNode->getLayer()))
+        continue;
+      batcher->pushSpriteNode(sceneNode);
+    }
+    batcher->end();
+    return batcher->spriteNodeCount - 1;
   }
 
-  Handle<SceneNode> Scene::createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform)
+  void Scene::render(float deltaTime)
   {
-    Handle<SceneNode> handle = nodes.add(SceneNode(this, SceneNode::CAMERA, transform));
-    SceneNode* node = nodes.lookup(handle);
-    node->camera = Camera(left, right, top, bottom, zNear, zFar);
-    return handle;
-  }
+    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().glProgramId;
+    const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
-  void Scene::setMainCamera(Handle<SceneNode> handle)
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if (!node || !node->typeIs(SceneNode::Type::CAMERA))
-      return;
+    const SceneNode* allNodes = nodes.getArray();
+    int numNodes = nodes.count();
 
-    mainCamera = handle;
-  }
+    renderKeys.reset();
+    renderKeysSorted.reset();
 
-  Handle<SceneNode> Scene::clone(Handle<SceneNode> handle)
-  {
-    Handle<SceneNode> newHandle = nodes.reserve();
-    SceneNode* newNode = nodes.lookup(newHandle);
-    SceneNode* original = nodes.lookup(handle);
-    memcpy(newNode, original, sizeof(SceneNode));
+    // ----------------------------------------------------------------------
+    // Update sceneNodes and generate render keys
+    int numCameras = 0;
 
-    //TODO(marcio): this won't work for sprites because it does not update spriteCount on the spriteBatcher. Fix it!
-    return newHandle;
-  }
+    for(int i = 0; i < numNodes; i++)
+    {
+      SceneNode* node = (SceneNode*) &allNodes[i];
+      Renderable* renderable = nullptr;
+      uint64 key = 0;
 
-  SceneNode& Scene::getNode(Handle<SceneNode> handle) const
-  {
-    SceneNode* node = nodes.lookup(handle);
-    if(node)
-      return *node;
+      if (!node->isActiveInHierarchy())
+        continue;
 
-    return (SceneNode&) nullSceneNode;
-  }
+      switch(node->getType())
+      {
+        case SceneNode::CAMERA:
+          {
+            node->transform.update(*this);
+            key = encodeRenderKey(node->getType(), 0, node->camera.getPriority(), i);
+            numCameras++;
+          }
+          break;
 
-  Scene::~Scene()
-  {
-    debugLogInfo("Scene Released Renderable x%d, SpriteBatcher x%d, SceneNode x%d.", 
-        renderables.count(),
-        batchers.count(),
-        nodes.count());
+        case SceneNode::MESH:
+          {
+            node->transform.update(*this);
+            renderable = renderables.lookup(node->mesh.renderable);
+            Handle<Material> material = renderable->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
+          }
+          break;
+
+        case SceneNode::TEXT:
+          {
+            node->transform.update(*this);
+            if (node->transform.isDirty(*this) || node->isDirty())
+            {
+              SpriteBatcher* batcher = batchers.lookup(node->text.batcher);
+              batcher->dirty = true;
+            }
+            Handle<Material> material = node->text.batcher->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
+          }
+          break;
+        case SceneNode::SPRITE:
+          {
+            node->transform.update(*this);
+            if (node->transform.isDirty(*this) || node->isDirty())
+            {
+              SpriteBatcher* batcher = batchers.lookup(node->sprite.batcher);
+              batcher->dirty = true;
+            }
+            Handle<Material> material = node->sprite.batcher->material;
+            key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
+          }
+          break;
+
+        default:
+          continue;
+          break;
+      }
+
+      // save the key if the node is active
+      node->transform.update(*this);
+      uint64* keyPtr = (uint64*) renderKeys.pushSize(sizeof(uint64));
+      *keyPtr = key;
+    }
+
+    // ----------------------------------------------------------------------
+    // Sort keys
+    const int32 numKeysToSort = (int32) (renderKeys.getUsed() / sizeof(uint64));
+    radixSort((uint64*) renderKeys.getData(), numKeysToSort, (uint64*) renderKeysSorted.pushSize(renderKeys.getUsed()));
+
+    // Cameras will be the first nodes on the sorted list. We use that to iterate all cameras
+    uint64* allCameraKeys = (uint64*) renderKeysSorted.getData();
+    uint64* allRenderKeys = allCameraKeys + numCameras;
+    const int32 numKeys = numKeysToSort - numCameras; // don't count with camera nodes;
+
+    for(int cameraIndex = 0; cameraIndex < numCameras; cameraIndex++)
+    {
+      uint64 cameraKey = allCameraKeys[cameraIndex];
+      SceneNode* cameraNode = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(cameraKey)];
+      SMOL_ASSERT(cameraNode->typeIs(SceneNode::Type::CAMERA), "SceneNode is CAMERA", cameraNode->getType());
+
+      //TODO(marcio): When we have an event system, linsten for display resized event and only update camera matrices in case of an event.
+      cameraNode->camera.update();
+
+      // ----------------------------------------------------------------------
+      // VIEWPORT
+
+      const Rect viewport = Renderer::getViewport();
+      const Rectf& cameraRect = cameraNode->camera.getViewportRect();
+      Rect screenRect;
+      screenRect.x = (size_t)(viewport.w * cameraRect.x);
+      screenRect.y = (size_t)(viewport.h * cameraRect.y);
+      screenRect.w = (size_t)(viewport.w * cameraRect.w);
+      screenRect.h = (size_t)(viewport.h * cameraRect.h);
+
+      Renderer::setViewport((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
+
+      // ----------------------------------------------------------------------
+      // CLEAR
+      const Color& clearColor = cameraNode->camera.getClearColor();
+      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+
+      unsigned int clearOperation = cameraNode->camera.getClearOperation();
+      if (clearOperation != Renderer::ClearBufferFlag::CLEAR_NONE)
+      {
+        //TODO(marcio): This hack will allow us to clear only the camera's viewport. Remove it when we have per camera Framebuffers working.
+        Renderer::beginScissor((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
+        Renderer::clearBuffers((Renderer::ClearBufferFlag)clearOperation);
+        Renderer::endScissor();
+      }
+
+      // ----------------------------------------------------------------------
+      // set uniform buffer matrices based on current camera
+
+      Renderer::updateGlobalShaderParams(
+          cameraNode->camera.getProjectionMatrix(),
+          cameraNode->transform.getMatrix().inverse(),
+          Mat4::initIdentity(),
+          deltaTime);
+
+      // ----------------------------------------------------------------------
+      // Draw render keys
+      int currentMaterialIndex = -1;
+      uint32 cameraLayers = cameraNode->camera.getLayerMask();
+
+      for(int i = 0; i < numKeys; i++)
+      {
+        uint64 key = allRenderKeys[i];
+        SceneNode* node = (SceneNode*) &allNodes[getNodeIndexFromRenderKey(key)];
+        SceneNode::Type nodeType = (SceneNode::Type) getNodeTypeFromRenderKey(key);
+        int materialIndex = getMaterialIndexFromRenderKey(key);
+        SMOL_ASSERT(node->typeIs(nodeType), "Node Type does not match the render key node type");
+
+        node->setDirty(false);
+        node->transform.setDirty(false); // reset transform dirty flag
+
+        // Change material *if* necessary
+        if (currentMaterialIndex != materialIndex)
+        {
+          currentMaterialIndex = materialIndex;
+          Material& material = (resourceManager.getMaterials(nullptr))[materialIndex];
+          Renderer::setMaterial(&material);
+        }
+
+        if (node->typeIs(SceneNode::MESH)) 
+        {
+          if(!(cameraLayers & node->getLayer()))
+            continue;
+
+          Renderer::updateGlobalShaderParams(
+              cameraNode->camera.getProjectionMatrix(),
+              cameraNode->transform.getMatrix().inverse(),
+              node->transform.getMatrix(),
+              deltaTime);
+
+          Renderable* renderable = renderables.lookup(node->mesh.renderable);
+          drawRenderable(renderable);
+        }
+        else if (node->typeIs(SceneNode::TEXT))
+        {
+          if(!(cameraLayers & node->getLayer()))
+            continue;
+
+          Renderer::updateGlobalShaderParams(
+              cameraNode->camera.getProjectionMatrix(),
+              cameraNode->transform.getMatrix().inverse(),
+              node->transform.getMatrix(),
+              deltaTime);
+
+          SpriteBatcher* batcher = batchers.lookup(node->text.batcher);
+          batcher->begin();
+          batcher->pushTextNode(node);
+          batcher->end();
+        }
+        else if (node->typeIs(SceneNode::SPRITE))
+        {
+
+          Renderer::updateGlobalShaderParams(
+              cameraNode->camera.getProjectionMatrix(),
+              cameraNode->transform.getMatrix().inverse(),
+              node->transform.getMatrix(),
+              deltaTime);
+
+          SpriteBatcher* batcher = batchers.lookup(node->sprite.batcher);
+          drawSpriteNodes(this, batcher, allRenderKeys + i, cameraLayers);
+          i+= (batcher->spriteNodeCount - 1);
+        }
+        else
+        {
+          //TODO(marcio): Implement scpecific render logic for each type of node
+          continue; 
+        }
+      }
+    }
+
+    // unbind the last shader and textures (material)
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glUseProgram(defaultShaderProgramId);
+    for (int i = 0; i < defaultMaterial.diffuseTextureCount; i++)
+    {
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D, 0);
+    }
   }
 
 }

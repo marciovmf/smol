@@ -1,5 +1,6 @@
 #include <smol.h>
 #include <smol/smol_vector3.h>
+#include <smol/smol_vector2.h>
 #include <math.h>
 
 namespace smol
@@ -8,6 +9,9 @@ namespace smol
     x(x), y(y), z(z) {}
 
   Vector3::Vector3() {}
+
+  Vector3::Vector3(float xyz):
+    x(xyz), y(xyz), z(xyz) {}
 
   void Vector3::set(float x, float y, float z)
   {
@@ -77,6 +81,34 @@ namespace smol
     x /= other.x;
     y /= other.y;
     z /= other.z;
+    return *this;
+  }
+
+  Vector3& Vector3::sum(Vector2& other)
+  {
+    x += other.x;
+    y += other.y;
+    return *this;
+  }
+
+  Vector3& Vector3::sub(Vector2& other)
+  {
+    x -= other.x;
+    y -= other.y;
+    return *this;
+  }
+
+  Vector3& Vector3::mult(Vector2& other)
+  {
+    x *= other.x;
+    y *= other.y;
+    return *this;
+  }
+
+  Vector3& Vector3::div(Vector2& other)
+  {
+    x /= other.x;
+    y /= other.y;
     return *this;
   }
 

@@ -43,3 +43,6 @@ tags
 .exrc
 src/include/smol/smol_version.h
 project.vim
+*.rdbg
+.cache
+Session.vim

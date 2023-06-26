@@ -1,5 +1,6 @@
 #ifndef SMOL_TEXTURE_H
 #define SMOL_TEXTURE_H
+#include <smol/smol_vector2.h>
 
 namespace smol
 {
@@ -37,7 +38,12 @@ namespace smol
       unsigned int glTextureObject;
       // Other Renderer API specific goes here...
     };
+
+    inline Vector2 getDimention() const { return Vector2((float)width, (float)height); }
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::Texture>;
+  template class SMOL_ENGINE_API smol::Handle<smol::Texture>;
 }
 
 #endif  // SMOL_TEXTURE_H

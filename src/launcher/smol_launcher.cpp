@@ -10,6 +10,7 @@
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
 #include <smol/smol_vector2.h>
+#include "smol_editor.h"
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -28,24 +29,25 @@
 #endif
 
 #define SMOL_VARIABLES_FILE ((const char*) "assets/variables.txt")
+#include <smol/smol_event_manager.h>
+#include <smol/smol_event.h>
 
 namespace smol
 {
   namespace launcher
   {
-    struct WindowVariables
+    bool onEvent(const Event& event, void* payload)
     {
-      Vector2 size;
-      const char* caption;
-    }; 
+      if (event.type == Event::DISPLAY)
+      {
+        GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
+        cfg->width = event.displayEvent.width;
+        cfg->height = event.displayEvent.height;
+        Renderer::setViewport(0, 0, cfg->width, cfg->height);
+      }
 
-    struct SystemVariables
-    {
-      bool showCursor;
-      bool captureCursor;
-      int glVersionMajor;
-      int glVersionMinor;
-    };
+      return false; // let other handlers know about this
+    }
 
     int smolMain(int argc, char** argv)
     {
@@ -54,32 +56,14 @@ namespace smol
         smol::Log::toFile(SMOL_LOGFILE);
 
       // parse variables file
-      SystemVariables systemVariables;
-      WindowVariables windowVariables;
       Config config(SMOL_VARIABLES_FILE);
-      ConfigEntry* entry;
-      entry = config.findEntry("window");
-      if (entry)
-      {
-        windowVariables.size = entry->getVariableVec2("size");
-        windowVariables.caption = entry->getVariableString("caption");
-      }
+      GlobalSystemConfig systemConfig(config);
+      GlobalDisplayConfig displayConfig(config);
 
-      entry = config.findEntry("system");
-      if(entry)
-      {
-        // system variables
-        systemVariables.showCursor = entry->getVariableNumber("showCursor") > 0.0f;
-        systemVariables.captureCursor = entry->getVariableNumber("captureCursor") > 0.0f;
-        const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
-        Vector2 glVersion = entry->getVariableVec2("glVersion", defaultGlVersion);
-        systemVariables.glVersionMajor = (int) glVersion.x;
-        systemVariables.glVersionMinor = (int) glVersion.y;
-      }
-
-      if (!Platform::initOpenGL(systemVariables.glVersionMajor, systemVariables.glVersionMinor))
+      if (!Platform::initOpenGL(systemConfig.glVersionMajor, systemConfig.glVersionMinor))
         return 1;
 
+      // Load game module
       Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
       SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
         Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
@@ -96,66 +80,59 @@ namespace smol
         return 1;
       }
 
-      Window* window = Platform::createWindow((int) windowVariables.size.x,
-          (int) windowVariables.size.y, windowVariables.caption);
+      // initialie display and system stuff
+      Window* window = Platform::createWindow(displayConfig.width, displayConfig.height, displayConfig.caption);
 
-      Platform::showCursor(systemVariables.showCursor);
+      if(displayConfig.fullScreen)
+      {
+        debugLogInfo("Going fullscreen");
+        Platform::setFullScreen(window, true);
+      }
 
-      if (systemVariables.captureCursor)
+      Platform::showCursor(systemConfig.showCursor);
+
+      if (systemConfig.captureCursor)
         Platform::captureCursor(window);
 
-      int lastWidth, lastHeight;
-      Platform::getWindowSize(window, &lastWidth, &lastHeight);
-      ResourceManager resourceManager;
-      Scene scene(resourceManager);
-      Renderer renderer(scene, lastWidth, lastHeight);
-
-      Keyboard keyboardSystem;
-      Mouse mouseSystem;
+      Platform::getWindowSize(window, &displayConfig.width, &displayConfig.height);
 
       // Initialize systems root
+      SystemsRoot::initialize(config);
+      Mouse& mouse        = SystemsRoot::get()->mouse;
+      Keyboard& keyboard  = SystemsRoot::get()->keyboard;
+      SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
+      EventManager& eventManager = EventManager::get();
 
-      SystemsRoot::initialize(config,
-          renderer,
-          keyboardSystem,
-          mouseSystem, 
-          resourceManager,
-          scene);
+      Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
+      eventManager.addHandler(onEvent, Event::DISPLAY, &displayConfig);
 
-      onGameStartCallback();
+      Editor editor;
+      editor.initialize();
 
       uint64 startTime = 0;
       uint64 endTime = 0;
+      onGameStartCallback();
 
       while(! Platform::getWindowCloseFlag(window))
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
         startTime = Platform::getTicks();
-
-        mouseSystem.update();
-        keyboardSystem.update();
-        onGameUpdateCallback(deltaTime);
         Platform::updateWindowEvents(window);
-
-        // check for resize.
-        //TODO(marcio): Make an event system so we get notified when this
-        //happens.
-        int windowWidth, windowHeight;
-        Platform::getWindowSize(window, &windowWidth, &windowHeight);
-        if (windowWidth != lastWidth || windowHeight != lastHeight)
-        {
-          lastWidth = windowWidth;
-          lastHeight = windowHeight;
-          renderer.resize(windowWidth, windowHeight);
-        }
-
-        renderer.render(deltaTime);
+        mouse.update();
+        keyboard.update();
+        eventManager.dispatchEvents();
+        onGameUpdateCallback(deltaTime);
+        sceneManager.render(deltaTime);
+        editor.render(displayConfig.width, displayConfig.height);
+        Platform::swapBuffers(window);
         endTime = Platform::getTicks();
       }
 
       onGameStopCallback();
+      editor.terminate();
       Platform::unloadModule(game);
       Platform::destroyWindow(window);
+      SystemsRoot::terminate();
       return 0;
     }
   }

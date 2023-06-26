@@ -11,9 +11,6 @@
 
 namespace smol
 {
-#define SMOL_MATERIAL_MAX_TEXTURES 6
-#define SMOL_MAX_BUFFERS_PER_MESH 6
-
   struct SMOL_ENGINE_API MaterialParameter : public ShaderParameter
   {
     union
@@ -29,6 +26,12 @@ namespace smol
 
   struct SMOL_ENGINE_API Material
   {
+    enum
+    {
+      MAX_TEXTURES = 6,
+      MAX_NAME_LEN = 255
+    };
+
     enum DepthTest
     {
       DISABLE         = 0,
@@ -44,14 +47,15 @@ namespace smol
 
     enum CullFace
     {
-      BACK            = 0,
-      FRONT           = 1,
-      FRONT_AND_BACK  = 2,
-      NONE            = 3
+      NONE            = 0,
+      BACK            = 1,
+      FRONT           = 2,
+      FRONT_AND_BACK  = 3
     };
 
+    char name[MAX_NAME_LEN];
     Handle<ShaderProgram> shader;
-    Handle<Texture> textureDiffuse[SMOL_MATERIAL_MAX_TEXTURES];
+    Handle<Texture> textureDiffuse[MAX_TEXTURES];
     int diffuseTextureCount;
     int renderQueue;
     MaterialParameter parameter[SMOL_MAX_SHADER_PARAMETERS];
@@ -59,7 +63,7 @@ namespace smol
     DepthTest depthTest;
     CullFace cullFace;
 
-    Material& setSampler2D(const char* name, unsigned int value);
+    Material& setSampler2D(const char* name, Handle<Texture> handle);
     Material& setUint(const char* name, unsigned int value);
     Material& setInt(const char* name, int value);
     Material& setFloat(const char* name, float value);
@@ -70,5 +74,8 @@ namespace smol
     private:
     MaterialParameter* getParameter(const char* name, ShaderParameter::Type type);
   };
+
+  template class SMOL_ENGINE_API smol::HandleList<smol::Material>;
+  template class SMOL_ENGINE_API smol::Handle<smol::Material>;
 }
 #endif  // SMOL_MATERIAL_H

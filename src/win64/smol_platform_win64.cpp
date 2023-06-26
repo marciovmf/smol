@@ -4,6 +4,9 @@
 #include <smol/smol_log.h>
 #include <smol/smol_version.h>
 #include <smol/smol_platform.h>
+#include <smol/smol_event_manager.h>
+#include <smol/smol_event.h>
+#include <smol/smol_mouse.h>
 #include <cstdio>
 #include <stdlib.h>
 
@@ -14,27 +17,28 @@ namespace smol
   struct PlatformInternal
   {
     char binaryPath[MAX_PATH];
+    smol::Event evt;
     KeyboardState keyboardState;
     MouseState mouseState;
     // timer data
     LARGE_INTEGER ticksPerSecond;
     LARGE_INTEGER ticksSinceEngineStartup;
-    
+
     PlatformInternal():
       keyboardState({}), mouseState({})
-    {
-      // Get binary location
-      GetModuleFileName(NULL, binaryPath, MAX_PATH);
-      char* truncatePos = strrchr(binaryPath, '\\');
-      if(truncatePos) *truncatePos = 0;
+      {
+        // Get binary location
+        GetModuleFileName(NULL, binaryPath, MAX_PATH);
+        char* truncatePos = strrchr(binaryPath, '\\');
+        if(truncatePos) *truncatePos = 0;
 
-      //Change the working directory to the binary location
-      smol::Log::info("Running from %s", binaryPath);
-      SetCurrentDirectory(binaryPath);
+        //Change the working directory to the binary location
+        smol::Log::info("Running from %s", binaryPath);
+        SetCurrentDirectory(binaryPath);
 
-      QueryPerformanceFrequency(&ticksPerSecond);
-      QueryPerformanceCounter(&ticksSinceEngineStartup);
-    }
+        QueryPerformanceFrequency(&ticksPerSecond);
+        QueryPerformanceCounter(&ticksSinceEngineStartup);
+      }
   }; 
 
   static PlatformInternal internal = PlatformInternal();
@@ -48,6 +52,10 @@ namespace smol
     HDC dc;
     HGLRC rc;
     bool shouldClose = false;
+    // Window style prior to fullscreen
+    WINDOWPLACEMENT prevPlacement;
+    LONG_PTR prevStyle;
+    bool isFullScreen;
   };
 
   struct Module
@@ -73,8 +81,8 @@ namespace smol
       unsigned int versionMinor;
       PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
       PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-      int pixelFormatAttribs[16];
-      int contextAttribs[16];
+      int32 pixelFormatAttribs[16];
+      int32 contextAttribs[16];
     };
 
     APIName name;
@@ -83,8 +91,40 @@ namespace smol
 
   LRESULT smolWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
+    bool isMouseButtonDownEvent = false;
+    int32 mouseButtonId = -1;
+    bool returnValue = false;
+    Event& evt = internal.evt;
+    EventManager& eventManager = EventManager::get();
+
     switch(uMsg) 
     {
+      case WM_ACTIVATE:
+          // Application event
+          evt.type = Event::APPLICATION;
+          evt.applicationEvent.type = LOWORD(wParam) == 0 ? ApplicationEvent::DEACTIVATED : ApplicationEvent::ACTIVATED;
+          EventManager::get().pushEvent(evt);
+        break;
+
+      case WM_CHAR:
+        evt.type                = Event::TEXT;
+        evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
+        evt.textEvent.character = (uint32) wParam;
+        eventManager.pushEvent(evt);
+        
+        break;
+
+      case WM_SIZE:
+        {
+          // Display event
+          evt.type                 = Event::DISPLAY;
+          evt.displayEvent.type    =  DisplayEvent::RESIZED;
+          evt.displayEvent.width   = LOWORD(lParam);
+          evt.displayEvent.height  = HIWORD(lParam);
+          eventManager.pushEvent(evt);
+        }
+        break;
+
       case WM_CLOSE:
         PostMessageA(hwnd, SMOL_CLOSE_WINDOW, 0, 0);
         break;
@@ -92,29 +132,78 @@ namespace smol
       case WM_KEYDOWN:
       case WM_KEYUP:
         {
-          int isDown = !(lParam & (1 << 31)); // 0 = pressed, 1 = released
-          int wasDown = (lParam & (1 << 30)) !=0;
-          int state = (((isDown ^ wasDown) << 1) | isDown);
-          short vkCode = (short) wParam;
-          internal.keyboardState.key[vkCode] = (unsigned char) state;
+          int32 isDown = !(lParam & (1 << 31)); // 0 = pressed, 1 = released
+          int32 wasDown = (lParam & (1 << 30)) !=0;
+          int32 state = (((isDown ^ wasDown) << 1) | isDown);
+          int16 vkCode = (int16) wParam;
+          internal.keyboardState.key[vkCode] = (uint8) state;
+
+          // Keyboard event
+          evt.type = Event::KEYBOARD;
+          evt.keyboardEvent.type = (wasDown && !isDown) ?
+            KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
+          evt.keyboardEvent.keyCode = (uint8) vkCode;
+          eventManager.pushEvent(evt);
         }
         break;
 
       case WM_MOUSEWHEEL:
-        internal.mouseState.wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+        {
+          int32 delta = GET_WHEEL_DELTA_WPARAM(wParam);
+          internal.mouseState.wheelDelta = delta;
+          
+          // update cursor position
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
+          internal.mouseState.cursor.y = GET_Y_LPARAM(lParam); 
+
+          // Mouse Wheel event
+          evt.type = Event::MOUSE_WHEEL;
+          evt.mouseEvent.wheelDelta = delta;
+          evt.mouseEvent.type = delta >= 0 ? MouseEvent::WHEEL_FORWARD : MouseEvent::WHEEL_BACKWARD;
+          evt.mouseEvent.cursorX = GET_X_LPARAM(lParam); 
+          evt.mouseEvent.cursorY = GET_Y_LPARAM(lParam); 
+          eventManager.pushEvent(evt);
+        }
         break;
 
       case WM_MOUSEMOVE:
+        {
+          // update cursor position
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
+          internal.mouseState.cursor.y = GET_Y_LPARAM(lParam);
+
+          // Mouse Move event
+          evt.type = Event::MOUSE_MOVE;
+          evt.mouseEvent.type = MouseEvent::MOVE;
+          evt.mouseEvent.cursorX = GET_X_LPARAM(lParam); 
+          evt.mouseEvent.cursorY = GET_Y_LPARAM(lParam); 
+          eventManager.pushEvent(evt);
+        }
+        break;
+
+      case WM_XBUTTONDOWN:
+      case WM_XBUTTONUP:
+        mouseButtonId = GET_XBUTTON_WPARAM (wParam) == XBUTTON1 ? MOUSE_BUTTON_EXTRA_0 : MOUSE_BUTTON_EXTRA_1;
+        returnValue = true;
+      case WM_LBUTTONDOWN:
+      case WM_LBUTTONUP:
+        mouseButtonId = MOUSE_BUTTON_LEFT;
       case WM_MBUTTONDOWN:
       case WM_MBUTTONUP:
+        mouseButtonId = MOUSE_BUTTON_MIDDLE;
+      case WM_RBUTTONDOWN:
+      case WM_RBUTTONUP:
         {
-          unsigned char& buttonLeft   = internal.mouseState.button[0];
-          unsigned char& buttonRight  = internal.mouseState.button[1];
-          unsigned char& buttonMiddle = internal.mouseState.button[2];
-          unsigned char& buttonExtra1 = internal.mouseState.button[3];
-          unsigned char& buttonExtra2 = internal.mouseState.button[4];
+          if (mouseButtonId != -1)
+            mouseButtonId = MOUSE_BUTTON_RIGHT;
+
+          unsigned char& buttonLeft   = internal.mouseState.button[MOUSE_BUTTON_LEFT];
+          unsigned char& buttonRight  = internal.mouseState.button[MOUSE_BUTTON_RIGHT];
+          unsigned char& buttonMiddle = internal.mouseState.button[MOUSE_BUTTON_MIDDLE];
+          unsigned char& buttonExtra1 = internal.mouseState.button[MOUSE_BUTTON_EXTRA_0];
+          unsigned char& buttonExtra2 = internal.mouseState.button[MOUSE_BUTTON_EXTRA_1];
           unsigned char isDown, wasDown;
-          
+
           isDown        = (unsigned char) ((wParam & MK_LBUTTON) > 0);
           wasDown       = buttonLeft;
           buttonLeft    = (((isDown ^ wasDown) << 1) | isDown);
@@ -136,8 +225,16 @@ namespace smol
           buttonExtra2  = (((isDown ^ wasDown) << 1) | isDown);
 
           // update cursor position
-          internal.mouseState.cursor.x = GET_X_LPARAM(lParam); 
+          internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
           internal.mouseState.cursor.y = GET_Y_LPARAM(lParam);
+
+          // Mouse Button event
+          evt.type = Event::MOUSE_BUTTON;
+          evt.mouseEvent.type = isMouseButtonDownEvent ? MouseEvent::BUTTON_DOWN : MouseEvent::BUTTON_UP;
+          evt.mouseEvent.mouseButton = (uint8) mouseButtonId;
+          evt.mouseEvent.cursorX = GET_X_LPARAM(lParam);
+          evt.mouseEvent.cursorY = GET_Y_LPARAM(lParam);
+          eventManager.pushEvent(evt);
         }
         break;
 
@@ -145,7 +242,7 @@ namespace smol
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    return 0;
+    return returnValue;
   }
 
   bool Platform::initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits, int depthBits)
@@ -153,24 +250,24 @@ namespace smol
     Window* dummyWindow = createWindow(0,0, "");
 
     PIXELFORMATDESCRIPTOR pfd = { 
-    sizeof(PIXELFORMATDESCRIPTOR),  //  size of this pfd
-    1,
-    PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-    PFD_TYPE_RGBA,
-    (BYTE)depthBits,
-    0, 0, 0, 0, 0, 0,
-    0,
-    0,
-    0,
-    0, 0, 0, 0,
-    (BYTE)colorBits,
-    0,
-    0,
-    PFD_MAIN_PLANE,
-    0,
-    0, 0, 0
+      sizeof(PIXELFORMATDESCRIPTOR),  //  size of this pfd
+      1,
+      PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+      PFD_TYPE_RGBA,
+      (BYTE)depthBits,
+      0, 0, 0, 0, 0, 0,
+      0,
+      0,
+      0,
+      0, 0, 0, 0,
+      (BYTE)colorBits,
+      0,
+      0,
+      PFD_MAIN_PLANE,
+      0,
+      0, 0, 0
     }; 
- 
+
     int pixelFormat = ChoosePixelFormat(dummyWindow->dc, &pfd);
     if (! pixelFormat)
     {
@@ -208,6 +305,15 @@ namespace smol
       WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
       WGL_COLOR_BITS_ARB, colorBits,
       WGL_DEPTH_BITS_ARB, depthBits,
+      //WGL_STENCIL_BITS_ARB, 8,
+
+      // uncomment for sRGB framebuffer, from WGL_ARB_framebuffer_sRGB extension
+      // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_framebuffer_sRGB.txt
+      //WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB,  GL_TRUE, 
+      // uncomment for multisampeld framebuffer, from WGL_ARB_multisample extension
+      // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_multisample.txt
+      WGL_SAMPLE_BUFFERS_ARB, 1,
+      WGL_SAMPLES_ARB,        4, // 4x MSAA
       0
     };
 
@@ -216,6 +322,7 @@ namespace smol
       WGL_CONTEXT_MAJOR_VERSION_ARB, glVersionMajor,
       WGL_CONTEXT_MINOR_VERSION_ARB, glVersionMinor,
       WGL_CONTEXT_FLAGS_ARB,
+
 #ifdef SMOL_DEBUG
       WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif // SMOL_DEBUG
@@ -247,6 +354,59 @@ namespace smol
     GetClientRect(window->handle, &rect);
     if(width) *width = rect.right;
     if(height) *height = rect.bottom;
+  }
+
+  void Platform::setFullScreen(Window* window, bool fullScreen)
+  {
+    HWND hWnd = window->handle;
+
+    if (fullScreen && !window->isFullScreen) // Enter full screen
+    {
+      // Get the monitor's handle
+      HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+      // Get the monitor's info
+      MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+      GetMonitorInfo(hMonitor, &monitorInfo);
+      // Save the window's current style and position
+      window->prevStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
+      window->prevPlacement = { sizeof(window->prevPlacement) };
+      GetWindowPlacement(hWnd, &window->prevPlacement);
+
+      // Set the window style to full screen
+      SetWindowLongPtr(hWnd, GWL_STYLE, window->prevStyle & ~(WS_CAPTION | WS_THICKFRAME));
+      SetWindowPos(hWnd, NULL,
+          monitorInfo.rcMonitor.left,
+          monitorInfo.rcMonitor.top,
+          monitorInfo.rcMonitor.right,
+          monitorInfo.rcMonitor.bottom,
+          SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+      // Set the display settings to full screen
+      DEVMODE dmScreenSettings = { 0 };
+      dmScreenSettings.dmSize = sizeof(dmScreenSettings);
+      dmScreenSettings.dmPelsWidth = monitorInfo.rcMonitor.right;
+      dmScreenSettings.dmPelsHeight = monitorInfo.rcMonitor.bottom;
+      dmScreenSettings.dmBitsPerPel = 32;
+      dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+
+      LONG result = ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
+      if (result != DISP_CHANGE_SUCCESSFUL)
+      {
+        debugLogError("Failed to enter fullScreen mode");
+        return;
+      }
+      // Show the window in full screen mode
+      ShowWindow(hWnd, SW_MAXIMIZE);
+      window->isFullScreen = true;
+    }
+    else if (!fullScreen && window->isFullScreen) // Exit full screen
+    {
+      // restore window previous style and location
+      SetWindowLongPtr(hWnd, GWL_STYLE, window->prevStyle);
+      SetWindowPlacement(hWnd, &window->prevPlacement);
+      ShowWindow(hWnd, SW_RESTORE);
+      window->isFullScreen = false;
+    }
   }
 
   Window* Platform::createWindow(int width, int height, const char* title)
@@ -294,6 +454,7 @@ namespace smol
     Window* window = new Window;
     window->handle = windowHandle;
     window->dc = GetDC(windowHandle);
+    window->isFullScreen = false;
 
     if(globalRenderApiInfo.name == RenderAPIInfo::APIName::OPENGL)
     {
@@ -303,7 +464,7 @@ namespace smol
 
       const int* pixelFormatAttribList = (const int*)globalRenderApiInfo.gl.pixelFormatAttribs;
       const int* contextAttribList = (const int*)globalRenderApiInfo.gl.contextAttribs;
-      
+
       globalRenderApiInfo.gl.wglChoosePixelFormatARB(window->dc,
           pixelFormatAttribList,
           nullptr,
@@ -355,6 +516,7 @@ namespace smol
       }
     }
 
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
     return window;
   }
 
@@ -367,7 +529,6 @@ namespace smol
     {
       wglMakeCurrent(window->dc, window->rc);
     }
-
 
     // clean up changed bit for keyboard keys
     for(int keyCode = 0; keyCode < smol::KeyboardState::MAX_KEYS; keyCode++)
@@ -395,6 +556,10 @@ namespace smol
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
+  }
+
+  void Platform::swapBuffers(Window *window)
+  {
     SwapBuffers(window->dc);
   }
 
@@ -544,7 +709,7 @@ namespace smol
     return malloc(size);
   }
 
-  void Platform::freeMemory(void* memory, size_t size)
+  void Platform::freeMemory(void* memory)
   {
     //TODO(marceio): Confirm the memory block is the correct size when we are doing memory management.
     //TODO(marcio): Make sure passed address is not affected by alignment
@@ -575,5 +740,12 @@ namespace smol
       deltaTime = 0.016f;
 #endif
     return deltaTime;
+  }
+
+  float Platform::getSecondsSinceStartup()
+  {
+    uint64 now = Platform::getTicks();
+    uint64 ticksSinceStartup = now - internal.ticksSinceEngineStartup.QuadPart;
+    return (float)ticksSinceStartup /  internal.ticksPerSecond.QuadPart;
   }
 } 

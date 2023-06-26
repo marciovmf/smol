@@ -4,50 +4,61 @@
 
 namespace smol
 {
-  Camera::Camera(float left, float right, float top, float bottom, float zNear, float zFar)
-    :flags(Flag::CLEAR_COLOR_CHANGED),
-    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
-    clearColor(Color::GRAY),
+  Camera::Camera() :
+    clearOperation(Renderer::ClearBufferFlag::CLEAR_COLOR_BUFFER | Renderer::ClearBufferFlag::CLEAR_DEPTH_BUFFER),
+    priority(0),
     layers(Layer::LAYER_0),
-    rect(0.0f, 0.0f, 1.0f, 1.0f)
-  {
-    setOrthographic(left, right, top, bottom, zNear, zFar);
-  }
+    rect(0.0f, 0.0f, 1.0f, 1.0f),
+    clearColor(Color::GRAY)
+  {}
 
-  Camera::Camera(float fov, float aspect, float zNear, float zFar)
-    :flags(Flag::CLEAR_COLOR_CHANGED),
-    clearOperation(ClearOperation::COLOR | ClearOperation::DEPTH),
-    clearColor(Color::GRAY),
-    layers(Layer::LAYER_0),
-    rect(0.0f, 0.0f, 1.0f, 1.0f)
+  Camera& Camera::setPerspective(float fov, float zNear, float zFar)
   {
-    setPerspective(fov, aspect, zNear, zFar);
-  }
-
-  Camera& Camera::setPerspective(float fov, float aspect, float zNear, float zFar)
-  {
-    this->type = Camera::PERSPECTIVE;
-    this->fov = fov;
-    this->aspect = aspect;
-    this->zNear = zNear;
-    this->zFar = zFar;
-    this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
-    this->flags |= (unsigned int) Flag::PROJECTION_CHANGED;
+    Rect viewport = Renderer::getViewport();
+    // Display might be minimized or reduced to size 0
+    if (viewport.h > 0)
+    {
+      this->type = Camera::PERSPECTIVE;
+      this->fov = fov;
+      this->aspect = ((float)viewport.w /viewport.h);
+      this->zNear = zNear;
+      this->zFar = zFar;
+      this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);
+    }
     return *this;
   }
 
-  Camera& Camera::setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar)
+  Camera& Camera::setOrthographic(float size, float zNear, float zFar)
   {
-    this->type = Camera::ORTHOGRAPHIC;
-    this->zNear = zNear;
-    this->zFar = zFar;
-    this->left = left;
-    this->right = right;
-    this->top = top;
-    this->bottom = bottom;
-    this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
-    this->flags |= (unsigned int) Flag::PROJECTION_CHANGED;
+    Rect viewport = Renderer::getViewport();
+    // Display might be minimized or reduced to size 0
+    if (viewport.h > 0)
+    {
+      float hSize = (size * viewport.w) / viewport.h;
+
+      this->type = Camera::ORTHOGRAPHIC;
+      this->zNear = zNear;
+      this->zFar = zFar;
+      this->left = -hSize;
+      this->right = hSize;
+      this->top = size;
+      this->bottom = -size;
+      this->orthographicSize = size;
+      this->viewMatrix = Mat4::ortho(left, right, top, bottom, zNear, zFar);
+    }
     return *this;
+  }
+
+  void Camera::update()
+  {
+    if (type == Camera::PERSPECTIVE)
+    {
+      setPerspective(fov,  zNear, zFar);
+    }
+    else
+    {
+      setOrthographic(top, zNear, zFar); // size is assigned to top on orthographic cameras
+    }
   }
 
   Camera& Camera::setLayerMask(uint32 layers)
@@ -75,8 +86,6 @@ namespace smol
     if (this->rect.y < 0.0f) this->rect.y = 0.0f;
     if (this->rect.w < 0.0f) this->rect.w = 0.0f;
     if (this->rect.h < 0.0f) this->rect.h = 0.0f;
-
-    flags |= (unsigned int) Flag::VIEWPORT_CHANGED;
     return *this;
   }
 
@@ -89,10 +98,6 @@ namespace smol
   float Camera::getFarClipDistance() const { return zFar; }
 
   Camera::Type Camera::getCameraType() const { return type; }
-
-  unsigned int Camera::getStatusFlags() const { return flags; }
-
-  void Camera::resetStatusFlags() { flags = 0; };
 
   unsigned int Camera::getClearOperation() const { return clearOperation; }
 
@@ -110,8 +115,23 @@ namespace smol
   Camera& Camera::setClearColor(const Color& color)
   {
     clearColor = color;
-    flags |= Flag::CLEAR_COLOR_CHANGED;
     return *this;
   }
 
+  unsigned int Camera::getPriority() const
+  {
+    return priority;
+  }
+
+  Camera& Camera::setPriority(unsigned int priority)
+  {
+    this->priority = priority;
+    return *this;
+  }
+
+  float Camera::getOrthographicSize() const { return orthographicSize; }
+
+  float Camera::getOrthographicLeft() const { return this->left; }
+
+  float Camera::getOrthographicRight() const { return this->left; }
 }

@@ -20,19 +20,23 @@
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_mesh_data.h>
+#include <smol/smol_handle_list.h>
+#include <smol/smol_material.h>
 
 namespace smol
 {
   struct SystemsRoot;
+  class GUI;
 
   const char* SMOL_CALLBACK_NAME_ONSTART = "onStart";
   const char* SMOL_CALLBACK_NAME_ONSTOP = "onStop";
   const char* SMOL_CALLBACK_NAME_ONUPDATE = "onUpdate";
+  const char* SMOL_CALLBACK_NAME_ONGUI = "onGUI";
 
   typedef void (*SMOL_GAME_CALLBACK_ONSTART)();
   typedef void (*SMOL_GAME_CALLBACK_ONSTOP)();
   typedef void (*SMOL_GAME_CALLBACK_ONUPDATE)(float);
-
+  typedef void (*SMOL_GAME_CALLBACK_ONGUI)(smol::GUI&);
 }
 
 extern "C"
@@ -40,6 +44,7 @@ extern "C"
   SMOL_GAME_API void onStart();
   SMOL_GAME_API void onUpdate(float deltaTime);
   SMOL_GAME_API void onStop();
+  SMOL_GAME_API void onGUI(smol::GUI&);
 }
 
 #endif// SMOL_GAME_H

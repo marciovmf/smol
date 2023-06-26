@@ -9,14 +9,9 @@
 #include <smol/smol_mat4.h>
 #include <smol/smol_transform.h>
 #include <smol/smol_color.h>
-#include <smol/smol_scene_nodes.h>
-
-#define warnInvalidHandle(typeName) debugLogWarning("Attempting to destroy a '%s' resource from an invalid handle", (typeName))
-
-template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
-template class SMOL_ENGINE_API smol::HandleList<smol::Renderable>;
-template class SMOL_ENGINE_API smol::HandleList<smol::SpriteBatcher>;
-template class SMOL_ENGINE_API smol::HandleList<smol::SceneNode>;
+#include <smol/smol_scene_node.h>
+#include <smol/smol_systems_root.h>
+#include <smol/smol_sprite_batcher.h>
 
 namespace smol
 {
@@ -25,64 +20,46 @@ namespace smol
   struct ResourceManager;
   struct SMOL_ENGINE_API Scene final
   {
-    static const Handle<SceneNode> ROOT;
+    private:
 
-    HandleList<smol::Renderable> renderables;
-    HandleList<smol::SceneNode> nodes;
-    HandleList<smol::SpriteBatcher> batchers;
-    Arena renderKeys;
-    Arena renderKeysSorted;
-    Handle<smol::Texture> defaultTexture;
-    Handle<smol::ShaderProgram> defaultShader;
-    Handle<smol::Material> defaultMaterial;
-    Mat4 viewMatrix;
-    Mat4 projectionMatrix;
-    Handle<SceneNode> mainCamera;
-    Mat4 projectionMatrix2D;//TODO(marcio): remove this when we have cameras and can assign different cameras to renderables
-    const smol::SceneNode nullSceneNode;
+      HandleList<Renderable> renderables;
+      HandleList<SceneNode> nodes;
+      HandleList<SpriteBatcher> batchers;
+      Arena renderKeys;
+      Arena renderKeysSorted;
+      Handle<smol::Texture> defaultTexture;
+      Handle<smol::ShaderProgram> defaultShader;
+      Handle<smol::Material> defaultMaterial;
+      Mat4 viewMatrix;
 
-    Scene(ResourceManager& resourceManager);
-    ~Scene();
+    public:
+      Scene();
+      ~Scene();
 
-    //
-    // Resources
-    //
+      //
+      // Create / Destroy scene resources
+      //
 
-    Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
-    void destroyRenderable(Handle<Renderable> handle);
-    void destroyRenderable(Renderable* renderable);
+      Handle<Renderable> createRenderable(Handle<Material> material, Handle<Mesh> mesh);
+      void destroyRenderable(Handle<Renderable> handle);
+      void destroyRenderable(Renderable* renderable);
 
-    Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
-    void destroySpriteBatcher(Handle<SpriteBatcher> handle);
+      Handle<SpriteBatcher> createSpriteBatcher(Handle<Material> material, int capacity = 32);
+      void setSpriteBatcherMode(Handle<SpriteBatcher> handle);
+      void destroySpriteBatcher(Handle<SpriteBatcher> handle);
 
-    //
-    // Scene Node creation
-    //
-    Handle<SceneNode> createMeshNode(Handle<Renderable> renderable, const Transform& transform = Transform());
+      int getNodeCount() const;
+      const SceneNode* getNodes(uint32* count = nullptr) const;
 
-    Handle<SceneNode> createSpriteNode(
-        Handle<SpriteBatcher> batcher,
-        const Rect& rect,
-        const Vector3& position,
-        float width,
-        float height,
-        const Color& color = Color::WHITE,
-        int angle = 0,
-        Handle<SceneNode> parent = Scene::ROOT);
+#ifndef SMOL_MODULE_GAME
+      Handle<SceneNode> createNode(SceneNode::Type type, const Transform& transform);
+      void destroyNode(Handle<SceneNode> handle);
+#endif
 
-    Handle<SceneNode> createPerspectiveCameraNode(float fov, float aspect, float zNear, float zFar, const Transform& transform);
-    Handle<SceneNode> createOrthographicCameraNode(float left, float right, float top, float bottom, float zNear, float zFar, const Transform& transform);
-
-    void destroyNode(Handle<SceneNode> handle);
-    void destroyNode(SceneNode* node);
-    Handle<SceneNode> clone(Handle<SceneNode> handle);
-
-    void setMainCamera(Handle<SceneNode> handle);
-
-    //
-    // misc
-    //
-    SceneNode& getNode(Handle<SceneNode> handle) const;
+      //
+      // Render
+      //
+      void render(float deltaTime);
   };
 }
 

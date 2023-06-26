@@ -1,9 +1,14 @@
 #include <smol.h>
+#include <smol/smol_vector3.h>
 #include <smol/smol_vector4.h>
 #include <math.h>
 
 namespace smol
 {
+
+  inline Vector4::Vector4(float xyzw):
+    x(xyzw), y(xyzw), z(xyzw), w(xyzw) {}
+
   inline Vector4::Vector4(float x, float y, float z, float w):
     x(x), y(y), z(z), w(w){}
 
@@ -86,6 +91,39 @@ namespace smol
     y /= other.y;
     z /= other.z;
     w /= other.w;
+    return *this;
+  }
+
+
+  Vector4& Vector4::sum(Vector3& other)
+  {
+    x += other.x;
+    y += other.y;
+    z += other.z;
+    return *this;
+  }
+
+  Vector4& Vector4::sub(Vector3& other)
+  {
+    x -= other.x;
+    y -= other.y;
+    z -= other.z;
+    return *this;
+  }
+
+  Vector4& Vector4::mult(Vector3& other)
+  {
+    x *= other.x;
+    y *= other.y;
+    z *= other.z;
+    return *this;
+  }
+
+  Vector4& Vector4::div(Vector3& other)
+  {
+    x /= other.x;
+    y /= other.y;
+    z /= other.z;
     return *this;
   }
 

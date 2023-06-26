@@ -35,33 +35,14 @@ namespace smol
   // Texture Resources
   //
 
-  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh))
-  {
-    // Make the default Texture
-    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
-    Handle<Texture> defaultTextureHandle = createTexture(*img);
-    ResourceManager::unloadImage(img);
-
-    // Make the default ShaderProgram
-    ShaderProgram& program = Renderer::getDefaultShaderProgram();
-    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
-
-    // Make the default Material
-    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
-
-    defaultTexture = textures.lookup(defaultTextureHandle);
-    defaultShader = shaders.lookup(defaultShaderHandle);
-    defaultMaterial = materials.lookup(defaultMaterialHandle);
-  }
-
   Handle<Texture> ResourceManager::loadTexture(const char* path)
   {
-    debugLogInfo("Loading texture %s", path);
+    debugLogInfo("Loading texture '%s'", path);
     if (!path)
       return INVALID_HANDLE(Texture);
 
     Config config(path);
-    ConfigEntry* entry = config.findEntry((const char*) "texture");
+    const ConfigEntry* entry = config.findEntry((const char*) "texture");
 
     if (!entry)
     {
@@ -259,18 +240,15 @@ namespace smol
 
   Handle<Material> ResourceManager::loadMaterial(const char* path)
   {
-    debugLogInfo("Loading material %s", path);
+    debugLogInfo("Loading material '%s'", path);
     if (!path)
       return INVALID_HANDLE(Material);
 
     Config config(path);
-    ConfigEntry* materialEntry = config.findEntry((const char*)"material");
+    const ConfigEntry* materialEntry = config.findEntry((const char*)"material");
 
     if (!materialEntry)
       return INVALID_HANDLE(Material);
-
-    int numDiffuseTextures = 0;
-    Handle<Texture> diffuseTextures[SMOL_MATERIAL_MAX_TEXTURES];
 
     const char* shaderPath = materialEntry->getVariableString((const char*) "shader", nullptr);
     if (!shaderPath)
@@ -280,36 +258,26 @@ namespace smol
     }
 
     //TODO(marcio): We must be able to know if the required shader is already loaded. If it is we should use it instead of loading it again!
-
     Handle<ShaderProgram> shader = loadShader(shaderPath);
-    int renderQueue = (int) materialEntry->getVariableNumber((const char*)"queue", (float) RenderQueue::QUEUE_OPAQUE);
+    int renderQueue =
+      (int) materialEntry->getVariableNumber((const char*)"queue",
+        (float) RenderQueue::QUEUE_OPAQUE);
 
-    const char* STR_TEXTURE = (const char*) "texture";
-    ConfigEntry *textureEntry = config.findEntry(STR_TEXTURE);
-    while(textureEntry)
-    {
-      // Diffuse texture
-      const char* diffuseTexture = textureEntry->getVariableString((const char*) "diffuse");
-      if (diffuseTexture)
-      {
-        if (numDiffuseTextures >= SMOL_MATERIAL_MAX_TEXTURES)
-        {
-          Log::error("Material file '%s' exceeded the maximum of %d diffuse textures. The texture '%s' will be ignored.",
-              path, SMOL_MATERIAL_MAX_TEXTURES, diffuseTexture);
-        }
-        else
-        {
-          diffuseTextures[numDiffuseTextures++] = loadTexture(diffuseTexture);
-        }
-      }
-      textureEntry = config.findEntry(STR_TEXTURE, textureEntry);
-    }
+    Material::DepthTest depthTest =
+      (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest",
+          (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
 
-    Material::DepthTest depthTest = (Material::DepthTest) materialEntry->getVariableNumber((const char*)"depthTest", (Material::DepthTest) Material::DepthTest::LESS_EQUAL);
-    Material::CullFace cullFace = (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace", (Material::CullFace) Material::CullFace::BACK);
+    Material::CullFace cullFace =
+      (Material::CullFace) materialEntry->getVariableNumber((const char*)"cullFace",
+          (Material::CullFace) Material::CullFace::BACK);
 
-    Handle<Material> handle = createMaterial(shader, diffuseTextures, numDiffuseTextures, renderQueue, depthTest, cullFace);
+    Handle<Material> handle = createMaterial(shader, nullptr, 0, renderQueue, depthTest, cullFace);
     Material* material = materials.lookup(handle);
+    int32 defaultTextureIndex = -1;
+
+    size_t nameLen = strlen(path);
+    SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
+    strncpy(material->name, path, nameLen + 1);
 
     //set values for material parameters
     for(int i = 0; i < material->parameterCount; i++)
@@ -320,14 +288,32 @@ namespace smol
         case ShaderParameter::SAMPLER_2D:
           {
             // The sampler_2d is an index for the material's texture list
-            uint32 textureIndex = (uint32) materialEntry->getVariableNumber(param.name);
-            if (textureIndex >= (uint32) numDiffuseTextures)
+            uint32 textureIndex;
+            const char* textureName = materialEntry->getVariableString(param.name);
+            if (strlen(textureName) > 0)
             {
-              Log::error("Material parameter '%s' references an out of bounds texture index %d",
-                  param.name, textureIndex);
-              textureIndex = 0;
+              textureIndex = material->diffuseTextureCount++;
+              material->textureDiffuse[textureIndex] = loadTexture(textureName);
+              param.uintValue = textureIndex;
             }
-            param.uintValue = textureIndex;
+            else
+            {
+              debugLogWarning("Material '%s': No texture assigned to material parameter %s", path, param.name);
+              if (defaultTextureIndex >= 0)
+              {
+                param.uintValue = defaultTextureIndex;
+              }
+              else if ((material->diffuseTextureCount + 1) < Material::MAX_TEXTURES)
+              {
+                defaultTextureIndex = material->diffuseTextureCount++;
+                material->textureDiffuse[defaultTextureIndex] = defaultTextureHandle;
+                param.uintValue = defaultTextureIndex;
+              }
+              else
+              {
+                debugLogError("Material '%s': Exceeded the amount of textures (%d).", path, Material::MAX_TEXTURES);
+              }
+            }
           }
           break;
         case ShaderParameter::VECTOR2:
@@ -364,7 +350,7 @@ namespace smol
       Material::DepthTest depthTest,
       Material::CullFace cullFace)
   {
-    SMOL_ASSERT(diffuseTextureCount <= SMOL_MATERIAL_MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
+    SMOL_ASSERT(diffuseTextureCount <= Material::MAX_TEXTURES, "Exceeded Maximum diffuse textures per material");
 
     Handle<Material> handle = materials.reserve();
     Material& material = *materials.lookup(handle);
@@ -372,6 +358,13 @@ namespace smol
     material.depthTest = depthTest;
     material.renderQueue = renderQueue;
     material.cullFace = cullFace;
+    material.shader = shaderHandle;
+  
+    // Set material name
+    const char* materialName = "custom_material";
+    size_t nameLen = strlen(materialName);
+    SMOL_ASSERT(nameLen < Material::MAX_NAME_LEN, "Material name exceeded %d charecter", Material::MAX_NAME_LEN);
+    strncpy(material.name, materialName, nameLen + 1);
 
     if (diffuseTextureCount)
     {
@@ -573,20 +566,36 @@ namespace smol
     image->bitsPerPixel = bitmap->bitCount;
     image->data = bitmap->offBits + (char*) bitmap;
 
-    if (bitmap->bitCount == 24 || bitmap->bitCount == 32)
-    {
-      // get color masks 
-      unsigned int* maskPtr = (unsigned int*) (sizeof(BitmapHeader) + (char*)bitmap);
-      unsigned int rMask = *maskPtr++;
-      unsigned int gMask = *maskPtr++;
-      unsigned int bMask = *maskPtr++;
-      unsigned int aMask = ~(rMask | gMask | bMask);
+    // get color masks 
+    unsigned int* maskPtr = (unsigned int*) (sizeof(BitmapHeader) + (char*)bitmap);
+    unsigned int rMask = *maskPtr++;
+    unsigned int gMask = *maskPtr++;
+    unsigned int bMask = *maskPtr++;
+    unsigned int aMask = ~(rMask | gMask | bMask);
+    unsigned int mask = rMask | gMask | bMask;
 
+    if (bitmap->bitCount == 16)
+    {
+      if (mask == 0x7FFF) // 1-5-5-5
+      {
+        image->format16 = Image::RGB_1_5_5_5;
+      }
+      else if (mask == 0xFFFF) // 5-6-5
+      {
+        image->format16 = Image::RGB_5_6_5;
+      }
+      else
+      {
+        debugLogWarning("Unsuported 16bit format %x. Assuming RGB_5_6_5", *maskPtr);
+        image->format16 = Image::RGB_5_6_5;
+      }
+    }
+    else if (bitmap->bitCount == 24 || bitmap->bitCount == 32)
+    {
       unsigned int rMaskShift = (rMask == 0xFF000000) ? 24 : (rMask == 0xFF0000) ? 16 : (rMask == 0xFF00) ? 8 : 0;
       unsigned int gMaskShift = (gMask == 0xFF000000) ? 24 : (gMask == 0xFF0000) ? 16 : (gMask == 0xFF00) ? 8 : 0;
       unsigned int bMaskShift = (bMask == 0xFF000000) ? 24 : (bMask == 0xFF0000) ? 16 : (bMask == 0xFF00) ? 8 : 0;
       unsigned int aMaskShift = (aMask == 0xFF000000) ? 24 : (aMask == 0xFF0000) ? 16 : (aMask == 0xFF00) ? 8 : 0;
-
       const int numPixels = image->width * image->height;
       const int bytesPerPixel = image->bitsPerPixel / 8;
 
@@ -602,7 +611,7 @@ namespace smol
         *pixelPtr = color;
       }
     }
-    else if (bitmap->bitCount != 16)
+    else
     {
       debugLogError("Failed to load image '%s': Unsuported bitmap bit count", fileName);
       unloadImage(image);
@@ -617,6 +626,142 @@ namespace smol
     Platform::unloadFileBuffer((const char*)image);
   }
 
+  Handle<Font> ResourceManager::loadFont(const char* fileName)
+  {
+    Config config(fileName);
+    const ConfigEntry* entry = config.findEntry("font");
+    const uint16 size         = (uint16) entry->getVariableNumber("size", true);
+    const uint16 kerningCount = (uint16) entry->getVariableNumber("kerning_count", true);
+    const uint16 glyphCount   = (uint16) entry->getVariableNumber("glyph_count", true);
+    const uint16 lineHeight   = (uint16) entry->getVariableNumber("line_height", true);
+    const uint16 base         = (uint16) entry->getVariableNumber("base", true);
+    const char* bmpFileName   = entry->getVariableString("image", "", true);
+    const char* fontName      = entry->getVariableString("name", "", true);
+
+    // reserve space for the font and the font name
+    size_t fontNameLen = strlen(fontName);
+    size_t totalMemory = sizeof(FontInfo)
+      + glyphCount * sizeof(Glyph) 
+      + kerningCount * sizeof(Kerning)
+      + fontNameLen + 1; // +1 for fontName null termiator
+
+    char* memory = (char*) Platform::getMemory(totalMemory);
+    if (!memory)
+      return INVALID_HANDLE(Font);
+
+    FontInfo* info = (FontInfo*) memory;
+    info->size          = size;
+    info->kerningCount  = kerningCount;
+    info->glyphCount    = glyphCount;
+    info->lineHeight    = lineHeight;
+    info->base          = base;
+    // Memory layout
+    // ---------------------------------------------
+    //| FONT  | KERNINGS | GLYPHS | "Font Name"| 0 |
+    // ---------------------------------------------
+    info->kerning       = (Kerning*) (memory + sizeof(FontInfo));
+    info->glyph         = (Glyph*) (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount);
+    info->name          = (memory + sizeof(FontInfo) + sizeof(Kerning) * kerningCount + sizeof(Glyph) * glyphCount);
+
+    // copy the font name after the Font structure and null terminate it
+    strncpy((char*)info->name, fontName, fontNameLen + 1);
+
+    // parse kerning pairs
+    ConfigEntry *last = nullptr;
+    Kerning* kerningList = info->kerning;
+    for (int i = 0; i < kerningCount; i++)
+    {
+      Kerning* kerning = kerningList++;
+      entry = config.findEntry("first", last);
+
+      kerning->first          = (uint16) entry->getVariableNumber("first");
+      kerning->second         = (int16) entry->getVariableNumber("second");
+      kerning->amount         = (int16) entry->getVariableNumber("amount");
+      last = (ConfigEntry*) entry;
+    }
+
+    // parse glyphs
+    last = nullptr;
+    for (int i = 0; i < glyphCount; i++)
+    {
+      entry = config.findEntry("id", last);
+      Glyph& glyph = info->glyph[i];
+      glyph.id            = (uint16) entry->getVariableNumber("id");
+      glyph.rect.x        = (float) entry->getVariableNumber("x");
+      glyph.rect.y        = (float) entry->getVariableNumber("y");
+      glyph.rect.w        = (float) entry->getVariableNumber("width");
+      glyph.rect.h        = (float) entry->getVariableNumber("height");
+      glyph.xOffset       = (int16) entry->getVariableNumber("xoffset");
+      glyph.yOffset       = (int16) entry->getVariableNumber("yoffset");
+      glyph.xAdvance      = (int16) entry->getVariableNumber("xadvance");
+
+      // find the amount of kerning pairs for this glyph and where to find the first one.
+      // IMPORTANT! We assume that the kerning pairs are sorted!
+      uint16 id = glyph.id;
+      uint16 startIndex = 0;
+      uint16 count = 0;
+      for (int k = 0; k < kerningCount; k++)
+      {
+        Kerning& kerning = info->kerning[k];
+        if (kerning.first == id)
+        {
+          if (count == 0)
+          {
+            startIndex = k;
+          }
+          count++;
+        }
+      }
+
+      glyph.kerningCount   = count;
+      glyph.kerningStart   = startIndex;
+      last = (ConfigEntry*) entry;
+    }
+
+    // Create texture from font Image
+    info->texture = createTexture(bmpFileName,
+        Texture::Wrap::CLAMP_TO_EDGE,
+        Texture::Filter::LINEAR,
+        Texture::Mipmap::NO_MIPMAP);
+
+    // Allocates a handle for the font and assigns its info
+    Handle<Font> handle = fonts.add(Font(info));
+    return handle;
+  }
+
+  void ResourceManager::unloadFont(Handle<Font> handle)
+  {
+    Font* font = fonts.lookup(handle);
+    if (font)
+    {
+      const FontInfo* info = font->getFontInfo();
+      destroyTexture(info->texture);
+      Platform::freeMemory((void*)info);
+      fonts.remove(handle);
+    }
+  }
+
+  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4) 
+  { }
+
+  void ResourceManager::initialize()
+  {
+    // Make the default Texture
+    Image* img = ResourceManager::createCheckersImage(800, 600, 32);
+    defaultTextureHandle = createTexture(*img);
+    ResourceManager::unloadImage(img);
+
+    // Make the default ShaderProgram
+    const ShaderProgram& program = Renderer::getDefaultShaderProgram();
+    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
+
+    // Make the default Material
+    Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);
+
+    defaultTexture = textures.lookup(defaultTextureHandle);
+    defaultShader = shaders.lookup(defaultShaderHandle);
+    defaultMaterial = materials.lookup(defaultMaterialHandle);
+  }
 
   ResourceManager::~ResourceManager()
   {

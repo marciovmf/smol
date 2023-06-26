@@ -59,14 +59,8 @@ namespace smol
       ORTHOGRAPHIC      = 1
     };
 
-    enum ClearOperation
-    {
-      DONT_CLEAR        = 0,
-      COLOR             = 1 << 0,
-      DEPTH             = 1 << 1
-    };
-
     private:
+
     float aspect;
     float fov;
     float zNear;
@@ -75,21 +69,21 @@ namespace smol
     float right;
     float left;
     float bottom;
-    Rectf rect;
     Type type;
+    float orthographicSize;
+    uint32 clearOperation;
+    uint32 priority;
     uint32 layers;
-    Mat4 viewMatrix;
-    unsigned int flags;
-    unsigned int clearOperation;
+    Rectf rect;
     Color clearColor;
+    Mat4 viewMatrix;
 
     public:
+    Camera();
+    //Camera(Type type, float sizeOrFov, float zNear, float zFar);
 
-    Camera(float left, float right, float top, float bottom, float zNear, float zFar);
-    Camera(float fov, float aspect, float zNear, float zFar);
-
-    Camera& setPerspective(float fov, float aspect, float zNear, float zFar);
-    Camera& setOrthographic(float left, float right, float top, float bottom, float zNear, float zFar);
+    Camera& setPerspective(float fov, float zNear, float zFar);
+    Camera& setOrthographic(float size, float zNear, float zFar);
     Camera& setLayerMask(uint32 layers);
     uint32 getLayerMask() const;
     const Mat4& getProjectionMatrix() const;
@@ -102,8 +96,6 @@ namespace smol
     float getNearClipDistance() const;
     float getFarClipDistance() const;
     Camera::Type getCameraType() const;
-    unsigned int getStatusFlags() const;
-    void resetStatusFlags();
 
     unsigned int getClearOperation() const;
     Camera& setClearOperation(unsigned int operation);
@@ -111,6 +103,13 @@ namespace smol
     const Color& getClearColor() const;
     Camera& setClearColor(const Color& color);
 
+    unsigned int getPriority() const;
+    Camera& setPriority(unsigned int priority);
+
+    float getOrthographicSize() const;
+    float getOrthographicLeft() const;
+    float getOrthographicRight() const;
+    void update();
   };
 }
 #endif  // SMOL_CAMERA_H

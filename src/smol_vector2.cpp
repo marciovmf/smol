@@ -3,6 +3,9 @@
 
 namespace smol
 {
+  inline Vector2::Vector2(float xy):
+    x(xy), y(xy) {}
+
   inline Vector2::Vector2(float x, float y):
     x(x), y(y) {}
 
@@ -42,32 +45,52 @@ namespace smol
     return *this;
   }
 
+  Vector2& Vector2::sum(float x, float y) 
+  {
+    this->x += x;
+    this->y += y;
+    return *this;
+  }
+
+  Vector2& Vector2::sub(float x, float y)
+  {
+    this->x -= x;
+    this->y -= y;
+    return *this;
+  }
+
+  Vector2& Vector2::mult(float x, float y)
+  {
+    this->x *= x;
+    this->y *= y;
+    return *this;
+  }
+
+  Vector2& Vector2::div(float x, float y)
+  {
+    this->x /= x;
+    this->y /= y;
+    return *this;
+  }
+
   Vector2& Vector2::sum(Vector2& other)
   {
-    x += other.x;
-    y += other.y;
-    return *this;
+    return sum(other.x, other.y);
   }
 
   Vector2& Vector2::sub(Vector2& other)
   {
-    x -= other.x;
-    y -= other.y;
-    return *this;
+    return sub(other.x, other.y);
   }
 
   Vector2& Vector2::mult(Vector2& other)
   {
-    x *= other.x;
-    y *= other.y;
-    return *this;
+    return mult(other.x, other.y);
   }
 
   Vector2& Vector2::div(Vector2& other)
   {
-    x /= other.x;
-    y /= other.y;
-    return *this;
+    return div(other.x, other.y);
   }
 
   float Vector2::length()

@@ -7,6 +7,8 @@ vertexShader:"
     mat4 view;
     mat4 model;
     float deltaTime;
+    float random01;
+    float elapsedSeconds;
   };
 
   layout (location = 0) in vec3 vertPos;
@@ -29,13 +31,12 @@ fragmentShader:"
   uniform sampler2D mainTex;
   in vec4 vertColor;
   in vec2 uv;
+
   void main()
   {
     vec4 texColor = vec4(texture(mainTex, uv));
-
-    if(texColor.a < 0.1)
+    if(texColor.a < 0.3)
         discard;
-
     fragColor = texColor * vertColor;
   }
 "

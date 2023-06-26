@@ -1,15 +1,21 @@
 # variables.txt
 
 @system:
-  showCursor: 1,
-  captureCursor: 0,
-  glVersion: {3, 0}
+  show_cursor: 1,
+  capture_cursor: 0,
+  gl_version: {3, 3}
 
-@window:
+@renderer:
+  enable_gamma_correction: 1,
+  enable_msaa: 1,
+  enable_msaa: 1
+
+@display:
   size:         {1080, 768},
-  caption:      "SMOL engine v0.1"
+  caption:      "SMOL engine v0.1",
+  fullscreen:   0
 
 @game:
   seed: 1655119152,
-  numHSprites: 50,
-  numVSprites: 50
+  numHSprites: 5,
+  numVSprites: 5

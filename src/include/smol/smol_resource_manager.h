@@ -4,21 +4,24 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_renderer_types.h>
+#include <smol/smol_font.h>
 
 namespace smol
 {
   struct Mesh;
 
-  template class SMOL_ENGINE_API smol::HandleList<smol::Mesh>;
-  template class SMOL_ENGINE_API smol::HandleList<smol::Texture>;
-  template class SMOL_ENGINE_API smol::HandleList<smol::Material>;
-  template class SMOL_ENGINE_API smol::HandleList<smol::ShaderProgram>;
-
   struct SMOL_ENGINE_API Image
   {
+    enum PixelFormat16
+    {
+      RGB_1_5_5_5     = 0,
+      RGB_5_6_5       = 1,
+    };
+
     int width;
     int height;
     int bitsPerPixel;
+    PixelFormat16 format16;  // Format of 16 bit pixels
     char* data;
   };
 
@@ -29,14 +32,16 @@ namespace smol
       HandleList<ShaderProgram> shaders;
       smol::HandleList<smol::Material> materials;
       HandleList<smol::Mesh> meshes;
+      HandleList<Font> fonts;
       ShaderProgram* defaultShader;
+      Handle<Texture> defaultTextureHandle; 
       Texture* defaultTexture;
       Material* defaultMaterial;
 
     public:
       ResourceManager();
-
       ~ResourceManager();
+      void initialize();
 
       //
       // Texture Resources
@@ -137,6 +142,12 @@ namespace smol
       static Image* loadImageBitmap(const char* fileName);
 
       static void unloadImage(Image* image);
+
+
+      // Font
+      Handle<Font> loadFont(const char* fileName);
+
+      void unloadFont(Handle<Font> handle);
   };
 }
 

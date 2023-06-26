@@ -572,7 +572,7 @@ namespace smol
     return typeName;
   }
 
-  ConfigVariable* findVariable(ConfigEntry* entry, const char* name, ConfigVariable::Type type)
+  ConfigVariable* findVariable(const ConfigEntry* entry, const char* name, ConfigVariable::Type type, bool warn)
   {
     const size_t varNameLen = strlen(name);
     ConfigVariable* result = nullptr;
@@ -587,7 +587,7 @@ namespace smol
       {
         if (variable->type != type)
         {
-          Log::error("Requested variabe '%s' of type %s but found %s", name, typeToString(variable->type), typeToString(type));
+          Log::error("Requested variabe '%s' of type %s but found %s", name, typeToString(type), typeToString(variable->type));
         }
 
         result = variable;
@@ -595,10 +595,13 @@ namespace smol
       }
     }
 
+    if (!result && warn)
+          Log::warning("Requested variabe '%s' of type %s was not found under the Config '%s'.",
+              name, typeToString(type), typeToString(type), entry->name);
     return result;
   }
 
-  ConfigEntry* Config::findEntry(const char *name, const ConfigEntry* start)
+  const ConfigEntry* Config::findEntry(const char *name, const ConfigEntry* start) const
   {
     const size_t varNameLen = strlen(name);
     int64 requiredHash = stringToHash(name);
@@ -616,33 +619,33 @@ namespace smol
     return nullptr;
   }
 
-  double ConfigEntry::getVariableNumber(const char* name, double defaultValue)
+  double ConfigEntry::getVariableNumber(const char* name, double defaultValue, bool warn) const
   {
-    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::NUMBER);
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::NUMBER, warn);
     return v ? v->numberValue : defaultValue;
   }
 
-  Vector4 ConfigEntry::getVariableVec4(const char* name, Vector4 defaultValue)
+  Vector4 ConfigEntry::getVariableVec4(const char* name, Vector4 defaultValue, bool warn) const
   {
-    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR4);
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR4, warn);
     return v ? Vector4{v->vec4Value[0], v->vec4Value[1], v->vec4Value[2], v->vec4Value[3]} : defaultValue;
   }
 
-  Vector3 ConfigEntry::getVariableVec3(const char* name, Vector3 defaultValue)
+  Vector3 ConfigEntry::getVariableVec3(const char* name, Vector3 defaultValue, bool warn) const
   {
-    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR3);
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR3, warn);
     return v ? Vector3{v->vec3Value[0], v->vec3Value[1], v->vec3Value[2]} : defaultValue;
   }
 
-  Vector2 ConfigEntry::getVariableVec2(const char* name, Vector2 defaultValue)
+  Vector2 ConfigEntry::getVariableVec2(const char* name, Vector2 defaultValue, bool warn) const
   {
-    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR2);
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::VECTOR2, warn);
     return v ? Vector2{v->vec3Value[0], v->vec3Value[1]} : defaultValue;
   }
 
-  const char* ConfigEntry::getVariableString(const char* name, const char* defaultValue)
+  const char* ConfigEntry::getVariableString(const char* name, const char* defaultValue, bool warn) const
   {
-    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::STRING);
+    ConfigVariable* v = findVariable(this, name, ConfigVariable::Type::STRING, warn);
     return v ? v->stringValue : defaultValue;
   }
 };

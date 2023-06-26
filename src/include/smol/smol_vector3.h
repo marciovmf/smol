@@ -5,14 +5,17 @@
 
 namespace smol
 {
+  struct Vector2;
+
   struct SMOL_ENGINE_API Vector3
   {
     float x;
     float y;
     float z;
 
-    Vector3(float x, float y, float z);
     Vector3();
+    Vector3(float xyz);
+    Vector3(float x, float y, float z);
 
     Vector3& sum(float f);
     Vector3& sub(float f);
@@ -23,6 +26,11 @@ namespace smol
     Vector3& sub(Vector3& other);
     Vector3& mult(Vector3& other);
     Vector3& div(Vector3& other);
+
+    Vector3& sum(Vector2& other);
+    Vector3& sub(Vector2& other);
+    Vector3& mult(Vector2& other);
+    Vector3& div(Vector2& other);
 
     float length();
     Vector3& normalized();

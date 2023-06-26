@@ -8,8 +8,13 @@ set(SMOL_VERSION ${SMOL_VERSION_MAJOR}.${SMOL_VERSION_MINOR}.${SMOL_VERSION_PATC
 project("smol" LANGUAGES CXX VERSION ${SMOL_VERSION})
 find_package(OpenGL REQUIRED)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(SMOL_EXPORT_SDK CACHE BOOL "Export header files when building" ON)
+option(BUILD_TESTS "Build and run unit tests" ON)
+
+
 # General compiler settings
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -35,15 +40,18 @@ if(PLATFORM STREQUAL "windows")
 endif()
 
 
-list(APPEND srcs
+list(APPEND SOURCES
   # Platform
   ${SOURCE_PATH}/${PLATFORM}/smol_platform_${PLATFORM}.cpp
   ${SOURCE_PATH}/include/smol/smol_platform.h
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_random.h
+  ${SOURCE_PATH}/smol_random.cpp
   ${SOURCE_PATH}/include/smol/smol_point.h
   ${SOURCE_PATH}/include/smol/smol_renderer_types.h
+  ${SOURCE_PATH}/include/smol/smol_stream_buffer.h
   ${SOURCE_PATH}/include/smol/smol_mesh.h
   ${SOURCE_PATH}/include/smol/smol_sprite_batcher.h
   ${SOURCE_PATH}/smol_sprite_batcher.cpp
@@ -51,13 +59,20 @@ list(APPEND srcs
   ${SOURCE_PATH}/smol_renderable.cpp
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
+  ${SOURCE_PATH}/include/smol/smol_event.h
+  ${SOURCE_PATH}/include/smol/smol_event_manager.h
+  ${SOURCE_PATH}/smol_event_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_shader.h
   ${SOURCE_PATH}/include/smol/smol_texture.h
   ${SOURCE_PATH}/include/smol/smol_material.h
+  ${SOURCE_PATH}/include/smol/smol_font.h
+  ${SOURCE_PATH}/smol_font.cpp
   ${SOURCE_PATH}/smol_material.cpp
   ${SOURCE_PATH}/include/smol/smol_handle_list.h
   ${SOURCE_PATH}/include/smol/smol_systems_root.h
   ${SOURCE_PATH}/smol_systems_root.cpp
+  ${SOURCE_PATH}/include/smol/smol_scene_manager.h
+  ${SOURCE_PATH}/smol_scene_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
   ${SOURCE_PATH}/smol_keyboard.cpp
   ${SOURCE_PATH}/include/smol/smol_mouse.h
@@ -88,17 +103,28 @@ list(APPEND srcs
   ${SOURCE_PATH}/include/smol/smol_camera.h
   ${SOURCE_PATH}/smol_camera.cpp
   ${SOURCE_PATH}/smol_renderer_gl.cpp
-  ${SOURCE_PATH}/include/smol/smol_scene_nodes.h
-  ${SOURCE_PATH}/smol_scene_nodes.cpp
+  ${SOURCE_PATH}/include/smol/smol_scene_node_common.h
+  ${SOURCE_PATH}/include/smol/smol_scene_node.h
+  ${SOURCE_PATH}/smol_scene_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_text_node.h
+  ${SOURCE_PATH}/smol_text_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_camera_node.h
+  ${SOURCE_PATH}/smol_camera_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_sprite_node.h
+  ${SOURCE_PATH}/smol_sprite_node.cpp
+  ${SOURCE_PATH}/include/smol/smol_mesh_node.h
+  ${SOURCE_PATH}/smol_mesh_node.cpp
   ${SOURCE_PATH}/include/smol/smol_scene.h
   ${SOURCE_PATH}/smol_scene.cpp
   ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
   ${SOURCE_PATH}/smol_cfg_parser.cpp
   ${SOURCE_PATH}/include/smol/smol_mesh_data.h
+  ${SOURCE_PATH}/include/smol/smol_gui.h
+  ${SOURCE_PATH}/smol_gui.cpp
   ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
-add_library(smol SHARED ${srcs})
+add_library(smol SHARED ${SOURCES})
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)
@@ -139,9 +165,21 @@ add_custom_command(TARGET assets POST_BUILD
 #
 add_subdirectory("Launcher")
 
-
-# Build tests
+#
+# Build and run tests
+#
 if(BUILD_TESTS)
+  set(TESTS_DIR "tests")
   enable_testing()
-  add_subdirectory("tests")
+  add_subdirectory(${TESTS_DIR})
+
+  get_property(all_tests DIRECTORY ${TESTS_DIR} PROPERTY TESTS)
+  add_custom_target(run_unit_tests ALL
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/RunUnitTests.touch ${all_tests})
+
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/RunUnitTests.touch
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -j4
+    WORKING_DIRECTORY ${TESTS_DIR})
 endif()
+
