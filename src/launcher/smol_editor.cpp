@@ -14,11 +14,12 @@
 namespace smol
 {
   Point2 windowPos = Point2{550, 150};
+  Point2 windowPos2 = Point2{100, 300};
   bool radioOption = false;
   bool breakText = true;
-  float sliderLineThickness = 0.3f;
-  float fontSizeAdjust = 0.0f;
-  float lineHeightAdjust = 0.5f;
+  int32 comboValue = 0;
+  bool showSecondWindow = false;
+  float skinValue[] = {0.1f, 0.5f, 1.0f, 0.2f};
 
   bool callbackForward(const Event& event, void* payload)
   {
@@ -40,6 +41,7 @@ namespace smol
     skin.spriteRadioButton = iconRADIO();
     skin.spriteRadioButtonChecked = iconRADIO_CHECKED();
     skin.spriteSliderHandle = iconSLIDER_HANDLE();
+    skin.spriteComboBoxChevron = iconCHEVRON_DOWN();
 
     EventManager::get().addHandler(callbackForward, Event::TEXT);
   }
@@ -52,13 +54,57 @@ namespace smol
     char text[128];
     const int buttonHeight = 30;
     const int vSpacing = 5;
-    int yPos = 5;
+    int yPos;
 
     gui.begin(windowWidth, windowHeight);
 
+    if (showSecondWindow) 
+    {
+
+      const char* menuOptions[] = {"Font Size", "Line Spacing", "Window Opacity", "Slider thickness"};
+      // Window 2
+      windowPos2 = gui.beginWindow(SMOL_CONTROL_ID, "Another Test window", windowPos2.x, windowPos2.y, 300, 400);
+      yPos = 5;
+
+      GUISkin& skin = gui.getSkin();
+      const int numOptions = sizeof(menuOptions)/sizeof(char*);
+      comboValue = gui.doComboBox(SMOL_CONTROL_ID, menuOptions, numOptions, comboValue, 5, yPos, 290);
+      yPos += vSpacing + buttonHeight;
+
+      float sliderValue = 0.5f;
+      if (comboValue >= 0)
+        sliderValue = skinValue[comboValue];
+
+      sliderValue = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderValue, 5, yPos, 290);
+      if (comboValue >=0)
+        skinValue[comboValue] = sliderValue;
+      yPos += vSpacing + buttonHeight;
+
+      if (comboValue >= 0)
+      {
+        // Font size
+        if (comboValue == 0)
+          skin.labelFontSize = 16 + (8 * sliderValue);
+        else if (comboValue == 1)
+          // between 0 and 1
+          skin.lineHeightAdjust = 2 * sliderValue - 1;
+        else if (comboValue == 2)
+          skin.windowOpacity = sliderValue;
+        else if (comboValue == 3)
+          skin.sliderThickness = sliderValue;
+      }
+
+      if (gui.doButton(SMOL_CONTROL_ID, "Close", 5, yPos, 290, buttonHeight))
+        showSecondWindow = false;
+      gui.endWindow();
+    }
+
+    // Window 1
     windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 800);
-      if (gui.doButton(SMOL_CONTROL_ID, "Button 1", 5, yPos, 290, buttonHeight))
-        debugLogInfo("Button 1 clicked!");
+    yPos = 5;
+
+      if (gui.doButton(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, buttonHeight))
+        showSecondWindow = !showSecondWindow;
       yPos += vSpacing + buttonHeight;
 
       snprintf(text, 128, "Text debug background : '%s'", gui.drawLabelDebugBackground ? "On":"Off");
@@ -68,37 +114,9 @@ namespace smol
       breakText = gui.doCheckBox(SMOL_CONTROL_ID, "Break Text", breakText, 5, yPos);
       yPos += vSpacing + buttonHeight;
 
-      radioOption = gui.doRadioButton(SMOL_CONTROL_ID, "Affect Sliders", radioOption, 6, yPos);
-      yPos += vSpacing + buttonHeight;
-
-      // Slider line thickness
-      sliderLineThickness = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderLineThickness, 5, yPos, 290);
-      yPos += vSpacing + buttonHeight;
-
-      if (radioOption)
-      {
-        gui.getSkin().sliderThickness = sliderLineThickness;
-      }
-
-      // Slider opacity
-      float opacity = gui.getSkin().windowOpacity;
-      opacity = gui.doHorizontalSlider(SMOL_CONTROL_ID, opacity, 5, yPos, 290);
-      gui.getSkin().windowOpacity = opacity;
-      yPos += vSpacing + buttonHeight;
-
-      // Slider text size
-      fontSizeAdjust = gui.doHorizontalSlider(SMOL_CONTROL_ID, fontSizeAdjust, 5, yPos, 290);
-      gui.getSkin().labelFontSize = 16 + ( 8 * fontSizeAdjust);
-      yPos += vSpacing + buttonHeight;
-
-      lineHeightAdjust = gui.doHorizontalSlider(SMOL_CONTROL_ID, lineHeightAdjust, 5, yPos, 290);
-      gui.getSkin().lineHeightAdjust = 2 * lineHeightAdjust - 1;
-      yPos += vSpacing + buttonHeight;
-
-
       gui.label(SMOL_CONTROL_ID, "Officially recognised by the Duden - Germany's pre-eminent dictionary - as the longest word in German, Kraftfahrzeug-Haftpflichtversicherung is a 36-letter, tongue-tying way of describing a rather, mundane everyday concept: motor vehicle liability insurance", 5, yPos, breakText ? 290 : 0);
-
       gui.endWindow();
+
       gui.end();
 
   }
