@@ -12,11 +12,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SMOL_EXPORT_SDK CACHE BOOL "Export header files when building" ON)
 option(BUILD_TESTS "Build and run unit tests" ON)
 
-
 # General compiler settings
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# This is simpler for nested projects to set and find engine dependencies
+set(SMOL_PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/smolSDK")
@@ -141,6 +143,11 @@ if(SMOL_EXPORT_SDK)
 endif()
 
 #
+# Build tools
+#
+add_subdirectory("tools/objimport")
+
+#
 # build demo game
 #
 add_library(game SHARED "${SOURCE_PATH}/demo/game.cpp")
@@ -163,7 +170,7 @@ add_custom_command(TARGET assets POST_BUILD
 #
 # slauncher.exe: Editor / Game launcher
 #
-add_subdirectory("Launcher")
+add_subdirectory("launcher")
 
 #
 # Build and run tests

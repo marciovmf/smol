@@ -55,6 +55,9 @@ namespace smol
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
 
+      // Change working directory to the binary location
+      Platform::setWorkingDirectory(Platform::getBinaryPath());
+
       // parse variables file
       Config config(SMOL_VARIABLES_FILE);
       GlobalSystemConfig systemConfig(config);

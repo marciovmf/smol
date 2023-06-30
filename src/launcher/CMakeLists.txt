@@ -17,8 +17,12 @@ endif()
 
 add_executable(slauncher ${SRC})
 
-target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include")
-target_include_directories(slauncher INTERFACE "${SOURCE_PATH}/include/smol")
+if (NOT SMOL_PROJECT_ROOT)
+  message(FATAL_ERROR "SMOL_PROJECT_ROOT is not set.")
+endif()
+
+target_include_directories(slauncher INTERFACE "${SMOL_PROJECT_ROOT}/src/include")
+target_include_directories(slauncher INTERFACE "${SMOL_PROJECT_ROOT}/src/include/smol")
 target_link_libraries(slauncher PRIVATE smol ${OPENGL_LIBRARY})
 target_compile_definitions(slauncher PRIVATE SMOL_MODULE_LAUNCHER)
 

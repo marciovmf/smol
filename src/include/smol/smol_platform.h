@@ -93,6 +93,11 @@ namespace smol
     static uint64 getTicks();   // return number of ticks since platform startup
     static float getMillisecondsBetweenTicks(uint64 start, uint64 end);
     static float getSecondsSinceStartup();
+
+    // get/set working directory
+    static bool getWorkingDirectory(char* buffer, size_t buffSize);
+    static bool setWorkingDirectory(const char* buffer);
+
   };
 } 
 

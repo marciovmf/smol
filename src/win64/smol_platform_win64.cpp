@@ -32,10 +32,6 @@ namespace smol
         char* truncatePos = strrchr(binaryPath, '\\');
         if(truncatePos) *truncatePos = 0;
 
-        //Change the working directory to the binary location
-        smol::Log::info("Running from %s", binaryPath);
-        SetCurrentDirectory(binaryPath);
-
         QueryPerformanceFrequency(&ticksPerSecond);
         QueryPerformanceCounter(&ticksSinceEngineStartup);
       }
@@ -747,5 +743,20 @@ namespace smol
     uint64 now = Platform::getTicks();
     uint64 ticksSinceStartup = now - internal.ticksSinceEngineStartup.QuadPart;
     return (float)ticksSinceStartup /  internal.ticksPerSecond.QuadPart;
+  }
+
+  bool Platform::getWorkingDirectory(char* buffer, size_t buffSize)
+  {
+    return (GetCurrentDirectory((DWORD) buffSize, buffer) != 0);
+  }
+
+  bool Platform::setWorkingDirectory(const char* buffer)
+  {
+    bool success = SetCurrentDirectory(buffer) != 0;
+    if (success)
+    {
+      debugLogInfo("Running from %s", buffer);
+    }
+    return success;
   }
 } 
