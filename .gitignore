@@ -1,11 +1,16 @@
-# Prerequisites
-*.d
-
 # Compiled Object files
+*.d
 *.slo
 *.lo
 *.o
 *.obj
+tags
+*.rdbg
+# Vim/project files
+.exrc
+.cache
+Session.vim
+project.vim
 
 # Precompiled Headers
 *.gch
@@ -39,10 +44,6 @@ CMakeFiles/
 
 # build folder
 build/
-tags
-.exrc
 src/include/smol/smol_version.h
-project.vim
-*.rdbg
-.cache
-Session.vim
+!src/tools/objimport/samples/
+!src/tools/objimport/samples/*.obj
