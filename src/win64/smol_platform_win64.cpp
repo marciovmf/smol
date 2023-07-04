@@ -23,6 +23,8 @@ namespace smol
     // timer data
     LARGE_INTEGER ticksPerSecond;
     LARGE_INTEGER ticksSinceEngineStartup;
+    HCURSOR defaultCursor;
+    bool cursorChanged;
 
     PlatformInternal():
       keyboardState({}), mouseState({})
@@ -31,6 +33,8 @@ namespace smol
         GetModuleFileName(NULL, binaryPath, MAX_PATH);
         char* truncatePos = strrchr(binaryPath, '\\');
         if(truncatePos) *truncatePos = 0;
+        defaultCursor = LoadCursor(NULL, IDC_ARROW);
+        cursorChanged = true;
 
         //Change the working directory to the binary location
         smol::Log::info("Running from %s", binaryPath);
@@ -93,17 +97,31 @@ namespace smol
   {
     bool isMouseButtonDownEvent = false;
     int32 mouseButtonId = -1;
-    bool returnValue = false;
+    LRESULT returnValue = FALSE;
     Event& evt = internal.evt;
     EventManager& eventManager = EventManager::get();
 
     switch(uMsg) 
     {
+      case WM_NCHITTEST:
+        {
+          // Get the default behaviour but set the arrow cursor if it's in the client area
+          LRESULT result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+          if(result == HTCLIENT && internal.cursorChanged)
+          {
+            internal.cursorChanged = false;
+            SetCursor(internal.defaultCursor);
+          }
+          else
+           internal.cursorChanged = true;
+          return result;
+        }
+        break;
       case WM_ACTIVATE:
-          // Application event
-          evt.type = Event::APPLICATION;
-          evt.applicationEvent.type = LOWORD(wParam) == 0 ? ApplicationEvent::DEACTIVATED : ApplicationEvent::ACTIVATED;
-          EventManager::get().pushEvent(evt);
+        // Application event
+        evt.type = Event::APPLICATION;
+        evt.applicationEvent.type = LOWORD(wParam) == 0 ? ApplicationEvent::DEACTIVATED : ApplicationEvent::ACTIVATED;
+        EventManager::get().pushEvent(evt);
         break;
 
       case WM_CHAR:
@@ -111,7 +129,6 @@ namespace smol
         evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
         evt.textEvent.character = (uint32) wParam;
         eventManager.pushEvent(evt);
-        
         break;
 
       case WM_SIZE:
@@ -151,7 +168,7 @@ namespace smol
         {
           int32 delta = GET_WHEEL_DELTA_WPARAM(wParam);
           internal.mouseState.wheelDelta = delta;
-          
+
           // update cursor position
           internal.mouseState.cursor.x = GET_X_LPARAM(lParam);
           internal.mouseState.cursor.y = GET_Y_LPARAM(lParam); 
@@ -184,7 +201,7 @@ namespace smol
       case WM_XBUTTONDOWN:
       case WM_XBUTTONUP:
         mouseButtonId = GET_XBUTTON_WPARAM (wParam) == XBUTTON1 ? MOUSE_BUTTON_EXTRA_0 : MOUSE_BUTTON_EXTRA_1;
-        returnValue = true;
+        returnValue = TRUE;
       case WM_LBUTTONDOWN:
       case WM_LBUTTONUP:
         mouseButtonId = MOUSE_BUTTON_LEFT;
