@@ -3,6 +3,8 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
+#include <smol/smol_font.h>
+#include <smol/smol_image.h>
 #include <smol/smol_renderer.h>
 
 namespace smol
