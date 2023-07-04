@@ -783,6 +783,7 @@ namespace smol
     this->material = material;
     skin.font = font;
     skin.labelFontSize = 16;
+    skin.lineHeightAdjust = 1.0f;
     areaCount = 0;
     areaOffset = Rect(0, 0, 0, 0);
     z = 0.0f;
@@ -790,7 +791,7 @@ namespace smol
     drawLabelDebugBackground = false;
 
     skin.sliderThickness = 0.1f;
-    skin.windowOpacity = .9f;
+    skin.windowOpacity = .98f;
 
     const Color windowBackground        = Color(29, 29, 29);
     const Color panelBackground         = Color(77, 77, 77);

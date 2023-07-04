@@ -19,7 +19,7 @@ namespace smol
   bool breakText = true;
   int32 comboValue = 0;
   bool showSecondWindow = false;
-  float skinValue[] = {0.1f, 0.5f, 1.0f, 0.2f};
+  float skinValue[] = {0.0f, 1.0f, 1.0f, 0.2f};
 
   bool callbackForward(const Event& event, void* payload)
   {
@@ -60,7 +60,6 @@ namespace smol
 
     if (showSecondWindow) 
     {
-
       const char* menuOptions[] = {"Font Size", "Line Spacing", "Window Opacity", "Slider thickness"};
       // Window 2
       windowPos2 = gui.beginWindow(SMOL_CONTROL_ID, "Another Test window", windowPos2.x, windowPos2.y, 300, 400);
@@ -71,28 +70,22 @@ namespace smol
       comboValue = gui.doComboBox(SMOL_CONTROL_ID, menuOptions, numOptions, comboValue, 5, yPos, 290);
       yPos += vSpacing + buttonHeight;
 
-      float sliderValue = 0.5f;
-      if (comboValue >= 0)
-        sliderValue = skinValue[comboValue];
+      float sliderValue = skinValue[comboValue];
 
       sliderValue = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderValue, 5, yPos, 290);
-      if (comboValue >=0)
-        skinValue[comboValue] = sliderValue;
+      skinValue[comboValue] = sliderValue;
       yPos += vSpacing + buttonHeight;
 
-      if (comboValue >= 0)
-      {
-        // Font size
-        if (comboValue == 0)
-          skin.labelFontSize = 16 + (8 * sliderValue);
-        else if (comboValue == 1)
-          // between 0 and 1
-          skin.lineHeightAdjust = 2 * sliderValue - 1;
-        else if (comboValue == 2)
-          skin.windowOpacity = sliderValue;
-        else if (comboValue == 3)
-          skin.sliderThickness = sliderValue;
-      }
+      // Font size
+      if (comboValue == 0)
+        skin.labelFontSize = 16 + (8 * sliderValue);
+      else if (comboValue == 1)
+        // between 0 and 1
+        skin.lineHeightAdjust = 2 * sliderValue - 1;
+      else if (comboValue == 2)
+        skin.windowOpacity = sliderValue;
+      else if (comboValue == 3)
+        skin.sliderThickness = sliderValue;
 
       if (gui.doButton(SMOL_CONTROL_ID, "Close", 5, yPos, 290, buttonHeight))
         showSecondWindow = false;
@@ -103,27 +96,27 @@ namespace smol
     windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 800);
     yPos = 5;
 
-      if (gui.doButton(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, buttonHeight))
-        showSecondWindow = !showSecondWindow;
-      yPos += vSpacing + buttonHeight;
+    if (gui.doButton(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, buttonHeight))
+      showSecondWindow = !showSecondWindow;
+    yPos += vSpacing + buttonHeight;
 
-      snprintf(text, 128, "Text debug background : '%s'", gui.drawLabelDebugBackground ? "On":"Off");
-      gui.drawLabelDebugBackground = gui.doCheckBox(SMOL_CONTROL_ID, text, gui.drawLabelDebugBackground, 5, yPos);
-      yPos += vSpacing + buttonHeight;
+    snprintf(text, 128, "Text debug background : '%s'", gui.drawLabelDebugBackground ? "On":"Off");
+    gui.drawLabelDebugBackground = gui.doCheckBox(SMOL_CONTROL_ID, text, gui.drawLabelDebugBackground, 5, yPos);
+    yPos += vSpacing + buttonHeight;
 
-      breakText = gui.doCheckBox(SMOL_CONTROL_ID, "Break Text", breakText, 5, yPos);
-      yPos += vSpacing + buttonHeight;
+    breakText = gui.doCheckBox(SMOL_CONTROL_ID, "Break Text", breakText, 5, yPos);
+    yPos += vSpacing + buttonHeight;
 
-      gui.label(SMOL_CONTROL_ID, "Officially recognised by the Duden - Germany's pre-eminent dictionary - as the longest word in German, Kraftfahrzeug-Haftpflichtversicherung is a 36-letter, tongue-tying way of describing a rather, mundane everyday concept: motor vehicle liability insurance", 5, yPos, breakText ? 290 : 0);
-      gui.endWindow();
+    gui.label(SMOL_CONTROL_ID, "Officially recognised by the Duden - Germany's pre-eminent dictionary - as the longest word in German, Kraftfahrzeug-Haftpflichtversicherung is a 36-letter, tongue-tying way of describing a rather, mundane everyday concept: motor vehicle liability insurance", 5, yPos, breakText ? 290 : 0);
+    gui.endWindow();
 
-      gui.end();
+    gui.end();
 
   }
 
   bool Editor::onEvent(const Event& event)
   {
-    debugLogInfo("TextEvent %c", (char)event.textEvent.character);
+    //debugLogInfo("TextEvent %c", (char)event.textEvent.character);
     return true;
   }
 
