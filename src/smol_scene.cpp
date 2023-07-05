@@ -224,7 +224,7 @@ namespace smol
   void Scene::render(float deltaTime)
   {
     ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().glProgramId;
+    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader()->glProgramId;
     const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
     const SceneNode* allNodes = nodes.getArray();
@@ -336,7 +336,7 @@ namespace smol
       // ----------------------------------------------------------------------
       // CLEAR
       const Color& clearColor = cameraNode->camera.getClearColor();
-      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+      Renderer::setClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 
       unsigned int clearOperation = cameraNode->camera.getClearOperation();
       if (clearOperation != Renderer::ClearBufferFlag::CLEAR_NONE)

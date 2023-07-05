@@ -67,6 +67,7 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/include/smol/smol_material.h
   ${SOURCE_PATH}/include/smol/smol_font.h
   ${SOURCE_PATH}/include/smol/smol_image.h
+  ${SOURCE_PATH}/include/smol/smol_render_target.h
   ${SOURCE_PATH}/smol_font.cpp
   ${SOURCE_PATH}/smol_material.cpp
   ${SOURCE_PATH}/include/smol/smol_handle_list.h

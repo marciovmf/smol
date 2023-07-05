@@ -13,6 +13,7 @@ namespace smol
   struct Image;
   struct MeshData;
   struct GlobalRendererConfig;
+  struct RenderTarget;
 
   //
   // A stream buffer is an interleaved buffer meant to be overwritten frequently
@@ -82,6 +83,14 @@ namespace smol
     static void updateGlobalShaderParams(const Mat4& proj, const Mat4& view, const Mat4& model, float deltaTime);
 
     //
+    // Render Target
+    //
+    static bool createTextureRenderTarget(RenderTarget* out, int32 width, int32 height);
+    static void resizeTextureRenderTarget(const RenderTarget& target, int32 width, int32 height);
+    static void useRenderTarget(const RenderTarget& target);
+    static void useDefaultRenderTarget();
+
+    //
     // StreamBuffers
     //
 
@@ -104,6 +113,7 @@ namespace smol
     static void setViewport(uint32 x, uint32 y, uint32 w, uint32 h);
     static Rect getViewport();
     static void clearBuffers(ClearBufferFlag flag);
+    static void setClearColor(float r, float g, float b, float a = 1.0f);
     static void setRenderMode(RenderMode mode);
     static void beginScissor( uint32 x, uint32 y, uint32 w, uint32 h);
     static void endScissor();

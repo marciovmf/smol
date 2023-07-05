@@ -100,6 +100,15 @@ namespace smol
       showSecondWindow = !showSecondWindow;
     yPos += vSpacing + buttonHeight;
 
+    if (gui.doButton(SMOL_CONTROL_ID, "Quit", 5, yPos, 290, buttonHeight))
+    {
+      Event evt;
+      evt.type = Event::GAME;
+      evt.gameEvent.id = 0xFFFFFFFF;
+      EventManager::get().pushEvent(evt);
+    }
+    yPos += vSpacing + buttonHeight;
+
     snprintf(text, 128, "Text debug background : '%s'", gui.drawLabelDebugBackground ? "On":"Off");
     gui.drawLabelDebugBackground = gui.doCheckBox(SMOL_CONTROL_ID, text, gui.drawLabelDebugBackground, 5, yPos);
     yPos += vSpacing + buttonHeight;

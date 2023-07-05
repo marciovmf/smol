@@ -43,7 +43,7 @@ namespace smol
     if (glyphDrawDataArena.getCapacity() == 0)
     {
       glyphDrawDataArena.initialize(256 * sizeof(GlyphDrawData));
-      Renderer::createStreamBuffer(&streamBuffer);
+      Renderer::createStreamBuffer(&streamBuffer, 1024);
     }
     glyphDrawDataArena.reset();
     Renderer::begin(streamBuffer);

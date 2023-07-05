@@ -10,6 +10,7 @@ namespace smol
   struct Mesh;
   struct Image;
   struct Font;
+  struct RenderTarget;
 
   struct SMOL_ENGINE_API ResourceManager
   {
@@ -21,6 +22,7 @@ namespace smol
       HandleList<Font> fonts;
       ShaderProgram* defaultShader;
       Handle<Texture> defaultTextureHandle; 
+      Handle<ShaderProgram> defaultShaderHandle;
       Texture* defaultTexture;
       Material* defaultMaterial;
 
@@ -45,6 +47,8 @@ namespace smol
           Texture::Filter filter = Texture::Filter::LINEAR,
           Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
 
+      Handle<Texture> getTextureFromRenderTarget(const RenderTarget& target);
+
       Texture& getDefaultTexture() const;
 
       Texture& getTexture(Handle<Texture> handle) const;
@@ -61,8 +65,10 @@ namespace smol
       Handle<ShaderProgram> loadShader(const char* filePath);
 
       Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
+      
+      Handle<ShaderProgram> getDefaultShader() const;
 
-      ShaderProgram& getDefaultShader() const;
+      //Handle<ShaderProgram> getDefaultShader() const;
 
       ShaderProgram& getShader(Handle<ShaderProgram> handle) const;
 

@@ -5,6 +5,7 @@
 #include <smol/smol_keyboard.h>
 #include <smol/smol_log.h>
 #include <smol/smol_resource_manager.h>
+#include <smol/smol_render_target.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
@@ -34,15 +35,23 @@
 
 namespace smol
 {
+  bool forceQuit = false;
+  bool resized = false;
+
   namespace launcher
   {
     bool onEvent(const Event& event, void* payload)
     {
-      if (event.type == Event::DISPLAY)
+      if (event.type == Event::GAME && event.gameEvent.id == 0xFFFFFFFF)
+      {
+        forceQuit = true;
+      }
+      else if (event.type == Event::DISPLAY)
       {
         GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
         cfg->width = event.displayEvent.width;
         cfg->height = event.displayEvent.height;
+        resized = true;
         Renderer::setViewport(0, 0, cfg->width, cfg->height);
       }
 
@@ -102,29 +111,64 @@ namespace smol
       Keyboard& keyboard  = SystemsRoot::get()->keyboard;
       SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
       EventManager& eventManager = EventManager::get();
+      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
 
       Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
-      eventManager.addHandler(onEvent, Event::DISPLAY, &displayConfig);
+      eventManager.addHandler(onEvent, Event::DISPLAY | Event::GAME, &displayConfig);
 
       Editor editor;
       editor.initialize();
+
+      // Create the game backbuffer
+      RenderTarget backBuffer;
+      Renderer::createTextureRenderTarget(&backBuffer, displayConfig.width, displayConfig.height);
+      Handle<Texture> backBufferTexure = resourceManager.getTextureFromRenderTarget(backBuffer);
+
+      Handle<Material> backbufferMaterial = resourceManager.createMaterial(resourceManager.loadShader("assets/texture_color_topleft_origin.shader"),
+          &backBufferTexure, 1);
+      backbufferMaterial->setSampler2D("mainTex", backBufferTexure);
+      StreamBuffer streamBuffer;
+      Renderer::createStreamBuffer(&streamBuffer);
 
       uint64 startTime = 0;
       uint64 endTime = 0;
       onGameStartCallback();
 
-      while(! Platform::getWindowCloseFlag(window))
+      while(! (Platform::getWindowCloseFlag(window) || forceQuit))
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
+
         startTime = Platform::getTicks();
         Platform::updateWindowEvents(window);
         mouse.update();
         keyboard.update();
         eventManager.dispatchEvents();
         onGameUpdateCallback(deltaTime);
+
+        // Render the game to the back buffer
+        if (resized)
+        {
+          resized = false;
+          debugLogInfo("Resizing back buffer to display size = %d, %d", displayConfig.width, displayConfig.height);
+          Renderer::resizeTextureRenderTarget(backBuffer, displayConfig.width, displayConfig.height);
+        }
+
+        Renderer::useRenderTarget(backBuffer);
         sceneManager.render(deltaTime);
+
+        // Draw a quad with the game backBuffer
+        Renderer::useDefaultRenderTarget();
+        Renderer::clearBuffers((Renderer::ClearBufferFlag)(Renderer::CLEAR_COLOR_BUFFER | Renderer::CLEAR_DEPTH_BUFFER));
+        Renderer::setMaterial(backbufferMaterial);
+        Renderer::begin(streamBuffer);
+        Renderer::pushSprite(streamBuffer, Vector3(0.0f), Vector2(1.0f), Rectf(0.0f, 0.0f, 1.0f, 1.0f), Color::WHITE);
+        Renderer::end(streamBuffer);
+
         editor.render(displayConfig.width, displayConfig.height);
+
+        // Draw to the window
         Platform::swapBuffers(window);
+        
         endTime = Platform::getTicks();
       }
 
