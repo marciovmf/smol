@@ -14,6 +14,46 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_config_manager.h>
 
+#ifndef SMOL_RELEASE
+#define checkGlError() _checkNoGlError(__FILE__, __LINE__)
+static void _clearGlError()
+{
+  GLenum err;
+  do
+  {
+    err = glGetError();
+  }while (err != GL_NO_ERROR);
+}
+
+static int32 _checkNoGlError(const char* file, uint32 line)
+{
+  _clearGlError();
+  const char* error = "UNKNOWN ERROR CODE";
+  GLenum err = glGetError();
+  int32 success = 1;
+  uchar noerror = 1;
+  while(err!=GL_NO_ERROR)
+  {
+    switch(err)
+    {
+      case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
+      case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
+      case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
+      case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
+      case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
+    }
+    success=0;
+    debugLogError("GL ERROR %s at %s:%d",error, file, line);
+    noerror=0;
+    err=glGetError();
+  }
+  return success;
+}
+
+#else
+#define checkGlError() 
+#endif
+
 namespace smol
 {
   ShaderProgram Renderer::defaultShader = {};
