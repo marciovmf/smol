@@ -431,6 +431,13 @@ namespace smol
     }
   }
 
+  bool Platform::isFullScreen(Window* window)
+  {
+    if (!window)
+      return false;
+    return window->isFullScreen;
+  }
+
   Window* Platform::createWindow(int width, int height, const char* title)
   {
     const char* smolWindowClass = "SMOL_WINDOW_CLASS";

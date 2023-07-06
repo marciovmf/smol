@@ -16,6 +16,7 @@
 #define SMOL_PLATFORM_API
 #endif // SMOL_PLATFORM_WINDOWS
 
+#include <smol/smol.h>
 #include <smol/smol_point.h>
 
 namespace smol
@@ -63,6 +64,7 @@ namespace smol
     static bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
     static void getWindowSize(Window* window, int* width, int* height);
     static void setFullScreen(Window* window, bool fullScreen);
+    static bool isFullScreen(Window* window);
  
     // Dynamic module handling
     static Module* loadModule(const char* path);
