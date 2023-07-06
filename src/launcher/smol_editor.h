@@ -4,6 +4,7 @@
 namespace smol
 {
   struct Event;
+  struct Window;
 
   class Editor
   {
@@ -12,7 +13,7 @@ namespace smol
 
     public:
     bool onEvent(const Event& event);
-    void initialize();
+    void initialize(Window* window);
     void render(int windowWidth, int windowHeight);
     void terminate();
 

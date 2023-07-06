@@ -2,16 +2,19 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
 #include <smol/smol_resource_manager.h>
+#include <smol/smol_scene_manager.h>
+#include <smol/smol_input_manager.h>
+#include <smol/smol_config_manager.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_font.h>
 #include <smol/smol_sprite_node.h>
 #include <smol/smol_camera_node.h>
 #include <smol/smol_gui.h>
+#include <smol/smol_renderer.h>
 #include <utility>
 #include <time.h>
 #include <string.h>
 
-smol::SystemsRoot* root;
 smol::Handle<smol::Font> font;
 smol::Handle<smol::SceneNode> cameraNode;
 smol::Handle<smol::SceneNode> textNode;
@@ -29,19 +32,20 @@ smol::Handle<smol::Mesh> mesh;
 smol::Handle<smol::SpriteBatcher> batcher;
 smol::Handle<smol::SpriteBatcher> textBatcher;
 bool sideCameraActive = false;
-float vpsize = 0.2f;
+float vpsize = 1.0f;
 
+smol::ResourceManager& resourceManager = smol::ResourceManager::get();
+
+const smol::ConfigEntry* gameConfig = nullptr;
 int shape = 0;
 
 void onStart()
 {
   smol::Log::info("Game started!");
-  root = smol::SystemsRoot::get();
-  smol::ResourceManager& resourceManager = root->resourceManager;
-  smol::Scene& scene = root->sceneManager.getCurrentScene();
+  smol::Scene& scene = smol::SceneManager::get().getCurrentScene();
 
   // Read game specifig settings from variables.txt
-  const smol::ConfigEntry* gameConfig = root->config.findEntry("game");
+  gameConfig = smol::ConfigManager::get().rawConfig().findEntry("game");
   uint32 seed = (uint32) gameConfig->getVariableNumber("seed", 0);
   smol::Log::info("seed = %d", seed);
   srand(seed);
@@ -49,7 +53,7 @@ void onStart()
   shader = resourceManager.loadShader("assets/default.shader");
 
   mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
-  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100), 
+  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(100, 100, 32), 
       smol::Texture::Wrap::REPEAT, smol::Texture::Filter::NEAREST);
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
       smol::Texture::Filter::NEAREST,
@@ -239,7 +243,7 @@ char* buff[255];
 
 void onUpdate(float deltaTime)
 {
-  smol::Keyboard& keyboard = root->keyboard;
+  smol::Keyboard& keyboard = smol::InputManager::get().keyboard;
   float scaleAmount = 0.0f;
 
   smol::Vector3 cameraPos = cameraNode->transform.getPosition();
@@ -282,7 +286,7 @@ void onUpdate(float deltaTime)
         break;
     }
 
-    smol::SystemsRoot::get()->resourceManager.updateMesh(mesh, &m);
+    smol::ResourceManager::get().updateMesh(mesh, &m);
   }
 
 
@@ -305,15 +309,13 @@ void onUpdate(float deltaTime)
     once = false;
     int numHSprites = 5;
     int numVSprites = 5;
-    const smol::ConfigEntry* entry = root->config.findEntry("game");
-    if (entry)
+    if (gameConfig)
     {
-      numHSprites = (int) entry->getVariableNumber("numHSprites", (float) numHSprites);
-      numVSprites = (int) entry->getVariableNumber("numVSprites", (float) numVSprites);
+      numHSprites = (int) gameConfig->getVariableNumber("numHSprites", (float) numHSprites);
+      numVSprites = (int) gameConfig->getVariableNumber("numVSprites", (float) numVSprites);
     }
 
-    smol::Rect viewport = root->renderer.getViewport();
-
+    //smol::Rect viewport = smol::Renderer::getViewport();
     // we assume the screen camera size is 5.0
     float screenSize = 5.0f * 0.7f; // we use a smaller portion to keep things centered
     float spriteWidth = (2 * screenSize) / numHSprites;
@@ -359,9 +361,9 @@ void onUpdate(float deltaTime)
       .setClearOperation((unsigned int)smol::Renderer::CLEAR_DEPTH_BUFFER);
   }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { root->resourceManager.destroyShader(shader); }
+  if (keyboard.getKeyDown(smol::KEYCODE_F5)) { resourceManager.destroyShader(shader); }
 
-  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { root->resourceManager.destroyMaterial(checkersMaterial); }
+  if (keyboard.getKeyDown(smol::KEYCODE_F7)) { resourceManager.destroyMaterial(checkersMaterial); }
 
   if (keyboard.getKeyDown(smol::KEYCODE_SPACE)) 
   { 

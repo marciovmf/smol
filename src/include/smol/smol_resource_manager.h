@@ -4,30 +4,18 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_renderer_types.h>
-#include <smol/smol_font.h>
 
 namespace smol
 {
   struct Mesh;
+  struct Image;
+  struct Font;
+  struct RenderTarget;
 
-  struct SMOL_ENGINE_API Image
-  {
-    enum PixelFormat16
-    {
-      RGB_1_5_5_5     = 0,
-      RGB_5_6_5       = 1,
-    };
-
-    int width;
-    int height;
-    int bitsPerPixel;
-    PixelFormat16 format16;  // Format of 16 bit pixels
-    char* data;
-  };
-
-  struct SMOL_ENGINE_API ResourceManager
+  struct SMOL_ENGINE_API ResourceManager final
   {
     private:
+      bool initialized;
       HandleList<Texture> textures;
       HandleList<ShaderProgram> shaders;
       smol::HandleList<smol::Material> materials;
@@ -35,13 +23,21 @@ namespace smol
       HandleList<Font> fonts;
       ShaderProgram* defaultShader;
       Handle<Texture> defaultTextureHandle; 
+      Handle<ShaderProgram> defaultShaderHandle;
       Texture* defaultTexture;
       Material* defaultMaterial;
+      ResourceManager();
 
     public:
-      ResourceManager();
+      static ResourceManager& get();
       ~ResourceManager();
       void initialize();
+
+      // Disallow copies
+      ResourceManager(const ResourceManager& other) = delete;
+      ResourceManager(const ResourceManager&& other) = delete;
+      void operator=(const ResourceManager& other) = delete;
+      void operator=(const ResourceManager&& other) = delete;
 
       //
       // Texture Resources
@@ -58,6 +54,8 @@ namespace smol
           Texture::Wrap wrap = Texture::Wrap::REPEAT,
           Texture::Filter filter = Texture::Filter::LINEAR,
           Texture::Mipmap mipmap = Texture::Mipmap::NO_MIPMAP);
+
+      Handle<Texture> getTextureFromRenderTarget(const RenderTarget& target);
 
       Texture& getDefaultTexture() const;
 
@@ -76,7 +74,9 @@ namespace smol
 
       Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
 
-      ShaderProgram& getDefaultShader() const;
+      Handle<ShaderProgram> getDefaultShader() const;
+
+      //Handle<ShaderProgram> getDefaultShader() const;
 
       ShaderProgram& getShader(Handle<ShaderProgram> handle) const;
 

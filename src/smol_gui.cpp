@@ -1,6 +1,6 @@
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_input_manager.h>
 #include <system_error>
 
 namespace smol
@@ -18,7 +18,7 @@ namespace smol
     changed = false;
     if (enabled)
     {
-      Mouse& mouse = SystemsRoot::get()->mouse;
+      Mouse& mouse = InputManager::get().mouse;
       mouseLButtonDownThisFrame = mouse.getButtonDown(MOUSE_BUTTON_LEFT);
       mouseLButtonUpThisFrame = mouse.getButtonUp(MOUSE_BUTTON_LEFT);
       mouseLButtonIsDown = mouse.getButton(MOUSE_BUTTON_LEFT);
@@ -43,7 +43,7 @@ namespace smol
     if (glyphDrawDataArena.getCapacity() == 0)
     {
       glyphDrawDataArena.initialize(256 * sizeof(GlyphDrawData));
-      Renderer::createStreamBuffer(&streamBuffer);
+      Renderer::createStreamBuffer(&streamBuffer, 1024);
     }
     glyphDrawDataArena.reset();
     Renderer::begin(streamBuffer);
