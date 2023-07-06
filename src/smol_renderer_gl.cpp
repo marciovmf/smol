@@ -14,6 +14,7 @@
 #include <smol/smol_systems_root.h>
 #include <smol/smol_render_target.h>
 #include <smol/smol_platform.h>
+#include <smol/smol_config_manager.h>
 
 namespace smol
 {
@@ -31,7 +32,7 @@ namespace smol
   void Renderer::setMaterial(const Material* material)
   {
     GLuint shaderProgramId = 0; 
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    ResourceManager& resourceManager = ResourceManager::get();
     ShaderProgram& shader = resourceManager.getShader(material->shader);
 
     switch(material->depthTest)
@@ -186,7 +187,7 @@ namespace smol
 
   }
 
-  void Renderer::clearBuffers(ClearBufferFlag flag)
+  void Renderer::clearBuffers(uint32 flag)
   {
     glClear(flag);
   }
@@ -194,6 +195,11 @@ namespace smol
   void Renderer::setClearColor(float r, float g, float b, float a)
   {
     glClearColor(r, g, b, a);
+  }
+
+  void Renderer::setClearColor(const Color& color)
+  {
+    glClearColor(color.r, color.g, color.b, color.a);
   }
 
   void Renderer::beginScissor(uint32 x, uint32 y, uint32 w, uint32 h)
@@ -281,7 +287,7 @@ namespace smol
   {
 
     glBindTexture(GL_TEXTURE_2D, target.colorTexture.glTextureObject);
-    bool useSRGB = SystemsRoot::get()->rendererConfig.enableGammaCorrection;
+    bool useSRGB = ConfigManager::get().rendererConfig().enableGammaCorrection;
     glTexImage2D(GL_TEXTURE_2D, 0, useSRGB ? GL_SRGB_ALPHA : GL_RGBA, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -374,7 +380,7 @@ namespace smol
     glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
 
     // if the engine is set to use SRGB ?
-    bool useSRGB = SystemsRoot::get()->rendererConfig.enableGammaCorrection;
+    bool useSRGB = ConfigManager::get().rendererConfig().enableGammaCorrection;
 
     glTexImage2D(GL_TEXTURE_2D, 0, useSRGB ? GL_SRGB_ALPHA : GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
 

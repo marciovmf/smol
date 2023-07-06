@@ -29,7 +29,7 @@ namespace smol
 
   void Editor::initialize()
   {
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    ResourceManager& resourceManager = ResourceManager::get();
     Handle<Font> uiFont = resourceManager.loadFont("assets/font/segoeui.font");
     Handle<Material> uiMaterial = resourceManager.loadMaterial("assets/ui.material");
     uiMaterial->setSampler2D("mainTex", uiFont->getTexture());

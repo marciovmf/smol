@@ -12,9 +12,10 @@ namespace smol
   struct Font;
   struct RenderTarget;
 
-  struct SMOL_ENGINE_API ResourceManager
+  struct SMOL_ENGINE_API ResourceManager final
   {
     private:
+      bool initialized;
       HandleList<Texture> textures;
       HandleList<ShaderProgram> shaders;
       smol::HandleList<smol::Material> materials;
@@ -25,11 +26,18 @@ namespace smol
       Handle<ShaderProgram> defaultShaderHandle;
       Texture* defaultTexture;
       Material* defaultMaterial;
+      ResourceManager();
 
     public:
-      ResourceManager();
+      static ResourceManager& get();
       ~ResourceManager();
       void initialize();
+
+      // Disallow copies
+      ResourceManager(const ResourceManager& other) = delete;
+      ResourceManager(const ResourceManager&& other) = delete;
+      void operator=(const ResourceManager& other) = delete;
+      void operator=(const ResourceManager&& other) = delete;
 
       //
       // Texture Resources
@@ -65,7 +73,7 @@ namespace smol
       Handle<ShaderProgram> loadShader(const char* filePath);
 
       Handle<ShaderProgram> createShaderFromSource(const char* vsSource, const char* fsSource, const char* gsSource = nullptr);
-      
+
       Handle<ShaderProgram> getDefaultShader() const;
 
       //Handle<ShaderProgram> getDefaultShader() const;

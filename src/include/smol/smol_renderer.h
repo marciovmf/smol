@@ -112,8 +112,9 @@ namespace smol
     static void setMaterial(Handle<Material> handle);
     static void setViewport(uint32 x, uint32 y, uint32 w, uint32 h);
     static Rect getViewport();
-    static void clearBuffers(ClearBufferFlag flag);
+    static void clearBuffers(uint32 flag);
     static void setClearColor(float r, float g, float b, float a = 1.0f);
+    static void setClearColor(const Color& color);
     static void setRenderMode(RenderMode mode);
     static void beginScissor( uint32 x, uint32 y, uint32 w, uint32 h);
     static void endScissor();

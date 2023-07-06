@@ -21,8 +21,14 @@ namespace smol
     return *scene;
   };
 
-  void SceneManager::render(float deltaTime)
+  void SceneManager::renderScene(float deltaTime)
   {
     scene->render(deltaTime);
+  }
+
+  SceneManager& SceneManager::get()
+  {
+    static SceneManager instance;
+    return instance;
   }
 }

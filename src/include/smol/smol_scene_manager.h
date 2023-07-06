@@ -11,12 +11,19 @@ namespace smol
   {
     private:
     Scene* scene;
+    SceneManager();
 
     public:
-    SceneManager();
     ~SceneManager();
-    void render(float deltaTime);
+    static SceneManager& get();
+    void renderScene(float deltaTime);
     Scene& getCurrentScene();
+
+    // Disallow copies
+    SceneManager(const SceneManager& other) = delete;
+    SceneManager(const SceneManager&& other) = delete;
+    void operator=(const SceneManager& other) = delete;
+    void operator=(const SceneManager&& other) = delete;
   };
 
 }

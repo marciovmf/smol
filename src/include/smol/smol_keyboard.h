@@ -138,11 +138,11 @@ namespace smol
     bool getKeyDown(unsigned char keyCode) const;
     void update();
 
-    // Disallow coppies
+    // Disallow copies
     Keyboard(const Keyboard& other) = delete;
+    Keyboard(const Keyboard&& other) = delete;
     void operator=(const Keyboard& other) = delete;
     void operator=(const Keyboard&& other) = delete;
   };
-
 }
 #endif  // SMOL_KEYBOARD 

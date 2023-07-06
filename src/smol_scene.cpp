@@ -223,7 +223,7 @@ namespace smol
 
   void Scene::render(float deltaTime)
   {
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    ResourceManager& resourceManager = ResourceManager::get();
     const GLuint defaultShaderProgramId = resourceManager.getDefaultShader()->glProgramId;
     const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
@@ -341,10 +341,7 @@ namespace smol
       unsigned int clearOperation = cameraNode->camera.getClearOperation();
       if (clearOperation != Renderer::ClearBufferFlag::CLEAR_NONE)
       {
-        //TODO(marcio): This hack will allow us to clear only the camera's viewport. Remove it when we have per camera Framebuffers working.
-        Renderer::beginScissor((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
-        Renderer::clearBuffers((Renderer::ClearBufferFlag)clearOperation);
-        Renderer::endScissor();
+        Renderer::clearBuffers(clearOperation);
       }
 
       // ----------------------------------------------------------------------

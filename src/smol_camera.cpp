@@ -1,5 +1,5 @@
 #include <smol/smol_camera.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_config_manager.h>
 #include <smol/smol_renderer.h>
 
 namespace smol
@@ -15,12 +15,16 @@ namespace smol
   Camera& Camera::setPerspective(float fov, float zNear, float zFar)
   {
     Rect viewport = Renderer::getViewport();
+
+    // Should we use a fixed aspectRatio ?
+    float fixedAspect = ConfigManager::get().displayConfig().aspectRatio;
+
     // Display might be minimized or reduced to size 0
     if (viewport.h > 0)
     {
       this->type = Camera::PERSPECTIVE;
       this->fov = fov;
-      this->aspect = ((float)viewport.w /viewport.h);
+      this->aspect = fixedAspect > 0.0f ? fixedAspect: ((float)viewport.w /viewport.h);
       this->zNear = zNear;
       this->zFar = zFar;
       this->viewMatrix = Mat4::perspective(fov, aspect, zNear, zFar);

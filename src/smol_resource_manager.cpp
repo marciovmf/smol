@@ -753,11 +753,21 @@ namespace smol
     }
   }
 
-  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4) 
+  ResourceManager::ResourceManager():
+    initialized(false), textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4)
   { }
+
+  ResourceManager& ResourceManager::get()
+  {
+    static ResourceManager instance;
+    return instance;
+  }
 
   void ResourceManager::initialize()
   {
+    SMOL_ASSERT(initialized == false, "Atempt reinitialize ResourceManager");
+    initialized = true;
+
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
     defaultTextureHandle = createTexture(*img);

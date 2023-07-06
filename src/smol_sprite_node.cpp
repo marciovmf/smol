@@ -2,6 +2,7 @@
 
 #include <smol/smol_sprite_node.h>
 #include <smol/smol_transform.h>
+#include <smol/smol_scene_manager.h>
 #include <smol/smol_scene.h>
 
 namespace smol
@@ -15,7 +16,7 @@ namespace smol
       float height,
       const Color& color)
   {
-    Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
+    Scene& scene = SceneManager::get().getCurrentScene();
     Handle<SceneNode> handle = scene.createNode(SceneNode::Type::SPRITE, transform);
 
     handle->sprite.rect = rect;
@@ -34,7 +35,7 @@ namespace smol
   void SpriteNode::destroy(Handle<SceneNode> handle)
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::SPRITE), "Handle passed to SpriteNode::destroy() is not of type SPRITE");
-    SystemsRoot::get()->sceneManager.getCurrentScene().destroyNode(handle);
+    SceneManager::get().getCurrentScene().destroyNode(handle);
     handle->sprite.batcher->spriteNodeCount--;
   }
 }

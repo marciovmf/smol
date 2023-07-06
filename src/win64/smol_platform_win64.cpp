@@ -7,8 +7,10 @@
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
 #include <smol/smol_mouse.h>
+#include <smol/smol_random.h>
 #include <cstdio>
 #include <stdlib.h>
+#include <time.h>
 
 namespace smol
 {
@@ -29,6 +31,9 @@ namespace smol
     PlatformInternal():
       keyboardState({}), mouseState({})
       {
+        // Initialize random seed
+        seed((int32)time(0));
+
         // Get binary location
         GetModuleFileName(NULL, binaryPath, MAX_PATH);
         char* truncatePos = strrchr(binaryPath, '\\');

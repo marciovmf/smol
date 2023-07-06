@@ -5,9 +5,10 @@
 #include <smol/smol_keyboard.h>
 #include <smol/smol_log.h>
 #include <smol/smol_resource_manager.h>
+#include <smol/smol_config_manager.h>
+#include <smol/smol_input_manager.h>
 #include <smol/smol_render_target.h>
 #include <smol/smol_renderer.h>
-#include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_color.h>
 #include <smol/smol_vector2.h>
@@ -52,10 +53,45 @@ namespace smol
         cfg->width = event.displayEvent.width;
         cfg->height = event.displayEvent.height;
         resized = true;
-        Renderer::setViewport(0, 0, cfg->width, cfg->height);
       }
 
       return false; // let other handlers know about this
+    }
+
+    /**
+     * Calculates the maximum size of a centered quad within an area specified by maxWidth and maxHeight in pixels.
+     * The function assumes the origin is at the top-left corner and returns a Rect object with values ranging from 0.0f to 1.0f,
+     * representing the percentage of the containing area.
+     */
+    Rectf calculateAspectAwarePosition(int maxWidth, int maxHeight, float aspectRatio)
+    {
+      Rectf rect;
+      int availableWidth = maxWidth;
+      int availableHeight = maxHeight;
+
+      if (maxWidth == 0.0f || maxHeight == 0.0f)
+        return Rectf(0.0f, 0.0f, 0.0f, 0.0f);
+
+      if (aspectRatio <= 0.0f)
+        return Rectf(0.0f, 0.0f, 1.0f, 1.0f);
+
+
+      if ((float)maxWidth / maxHeight > aspectRatio) {
+        availableWidth = (int)(maxHeight * aspectRatio);
+      } else {
+        availableHeight = (int)(maxWidth / aspectRatio);
+      }
+
+      rect.w = (float)availableWidth / maxWidth;
+      rect.h = (float)availableHeight / maxHeight;
+
+      rect.x = ((float)maxWidth - availableWidth) / (2.0f * maxWidth);
+      rect.y = ((float)maxHeight - availableHeight) / (2.0f * maxHeight);
+
+      // Account for top left origin by adjusting the y-coordinate
+      rect.y = 1.0f - rect.y - rect.h;
+
+      return rect;
     }
 
     int smolMain(int argc, char** argv)
@@ -65,9 +101,9 @@ namespace smol
         smol::Log::toFile(SMOL_LOGFILE);
 
       // parse variables file
-      Config config(SMOL_VARIABLES_FILE);
-      GlobalSystemConfig systemConfig(config);
-      GlobalDisplayConfig displayConfig(config);
+      ConfigManager::get().initialize(SMOL_VARIABLES_FILE);
+      const GlobalSystemConfig& systemConfig = ConfigManager::get().systemConfig();
+      GlobalDisplayConfig displayConfig = ConfigManager::get().displayConfig(); // we are intentinally making a copy here
 
       if (!Platform::initOpenGL(systemConfig.glVersionMajor, systemConfig.glVersionMinor))
         return 1;
@@ -105,16 +141,11 @@ namespace smol
 
       Platform::getWindowSize(window, &displayConfig.width, &displayConfig.height);
 
-      // Initialize systems root
-      SystemsRoot::initialize(config);
-      Mouse& mouse        = SystemsRoot::get()->mouse;
-      Keyboard& keyboard  = SystemsRoot::get()->keyboard;
-      SceneManager& sceneManager = SystemsRoot::get()->sceneManager;
-      EventManager& eventManager = EventManager::get();
-      ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-
-      Renderer::setViewport(0, 0,  displayConfig.width, displayConfig.height);
-      eventManager.addHandler(onEvent, Event::DISPLAY | Event::GAME, &displayConfig);
+      // Initialize systems
+      ResourceManager::get().initialize();
+      Renderer::initialize(ConfigManager::get().rendererConfig());
+      ResourceManager& resourceManager = ResourceManager::get();
+      EventManager::get().addHandler(onEvent, Event::DISPLAY | Event::GAME, &displayConfig);
 
       Editor editor;
       editor.initialize();
@@ -133,6 +164,7 @@ namespace smol
       uint64 startTime = 0;
       uint64 endTime = 0;
       onGameStartCallback();
+      Rectf gameQuadPosition = Rectf(0.0f, 0.0f, 1.0f, 1.0f);
 
       while(! (Platform::getWindowCloseFlag(window) || forceQuit))
       {
@@ -140,35 +172,38 @@ namespace smol
 
         startTime = Platform::getTicks();
         Platform::updateWindowEvents(window);
-        mouse.update();
-        keyboard.update();
-        eventManager.dispatchEvents();
+        InputManager::get().update();
+        EventManager::get().dispatchEvents();
         onGameUpdateCallback(deltaTime);
 
-        // Render the game to the back buffer
+        // Resize the back buffer if window dimentions changed
         if (resized)
         {
+          debugLogInfo("Once!");
           resized = false;
-          debugLogInfo("Resizing back buffer to display size = %d, %d", displayConfig.width, displayConfig.height);
           Renderer::resizeTextureRenderTarget(backBuffer, displayConfig.width, displayConfig.height);
+          gameQuadPosition = calculateAspectAwarePosition(displayConfig.width, displayConfig.height, displayConfig.aspectRatio);
         }
-
+        // Render the game to the back buffer
         Renderer::useRenderTarget(backBuffer);
-        sceneManager.render(deltaTime);
+        SceneManager::get().renderScene(deltaTime);
 
-        // Draw a quad with the game backBuffer
+        // Draw the game backbuffer and the editor the the screen
+        Renderer::setViewport(0, 0, displayConfig.width, displayConfig.height);
         Renderer::useDefaultRenderTarget();
-        Renderer::clearBuffers((Renderer::ClearBufferFlag)(Renderer::CLEAR_COLOR_BUFFER | Renderer::CLEAR_DEPTH_BUFFER));
+        Renderer::setClearColor(displayConfig.cropAreaColor);
+        Renderer::clearBuffers((Renderer::CLEAR_COLOR_BUFFER | Renderer::CLEAR_DEPTH_BUFFER));
         Renderer::setMaterial(backbufferMaterial);
         Renderer::begin(streamBuffer);
-        Renderer::pushSprite(streamBuffer, Vector3(0.0f), Vector2(1.0f), Rectf(0.0f, 0.0f, 1.0f, 1.0f), Color::WHITE);
+        Renderer::pushSprite(streamBuffer, Vector3(gameQuadPosition.x, gameQuadPosition.y, 0.0f),
+            Vector2(gameQuadPosition.w, gameQuadPosition.h), Rectf(0.0f, 0.0f, 1.0f, 1.0f), Color::WHITE);
         Renderer::end(streamBuffer);
 
         editor.render(displayConfig.width, displayConfig.height);
 
         // Draw to the window
         Platform::swapBuffers(window);
-        
+
         endTime = Platform::getTicks();
       }
 
@@ -176,7 +211,6 @@ namespace smol
       editor.terminate();
       Platform::unloadModule(game);
       Platform::destroyWindow(window);
-      SystemsRoot::terminate();
       return 0;
     }
   }

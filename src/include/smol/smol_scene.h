@@ -60,6 +60,13 @@ namespace smol
       // Render
       //
       void render(float deltaTime);
+
+
+      // Disallow copies
+      Scene(const Scene& other) = delete;
+      Scene(const Scene&& other) = delete;
+      void operator=(const Scene& other) = delete;
+      void operator=(const Scene&& other) = delete;
   };
 }
 

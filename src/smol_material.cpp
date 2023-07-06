@@ -28,7 +28,7 @@ namespace smol
     if (param)
     {
       textureDiffuse[param->uintValue] = handle;
-      Texture& texture = SystemsRoot::get()->resourceManager.getTexture(handle);
+      Texture& texture = ResourceManager::get().getTexture(handle);
     }
     return *this;
   }

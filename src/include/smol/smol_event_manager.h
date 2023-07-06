@@ -34,8 +34,12 @@ namespace smol
     void removeHandler(EventHandlerId handler);
     void pushEvent(const Event& event);
     void dispatchEvents();
-    EventManager(const EventManager&) = delete;
-    EventManager& operator=(const EventManager&) = delete;
+
+    // Disallow copies
+    EventManager(const EventManager& other) = delete;
+    EventManager(const EventManager&& other) = delete;
+    void operator=(const EventManager& other) = delete;
+    void operator=(const EventManager&& other) = delete;
   };
 }
 

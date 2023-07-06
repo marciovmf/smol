@@ -27,7 +27,7 @@ namespace smol
     }
     else
     {
-      textureDimention = SystemsRoot::get()->resourceManager.getDefaultTexture().getDimention();
+      textureDimention = ResourceManager::get().getDefaultTexture().getDimention();
     }
 
     Renderer::begin(buffer);
