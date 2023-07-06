@@ -180,7 +180,6 @@ namespace smol
         // Resize the back buffer if window dimentions changed
         if (resized)
         {
-          debugLogInfo("Once!");
           resized = false;
           Renderer::resizeTextureRenderTarget(backBuffer, displayConfig.width, displayConfig.height);
           gameQuadPosition = calculateAspectAwarePosition(displayConfig.width, displayConfig.height, displayConfig.aspectRatio);
