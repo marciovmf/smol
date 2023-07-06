@@ -264,7 +264,7 @@ namespace smol
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, out->colorTexture.glTextureObject, 0);
 
     // create a buffer attachment for depth and stencil
-    glGenBuffers(1, &out->glRbo);
+    glGenRenderbuffers(1, &out->glRbo);
     glBindRenderbuffer(GL_RENDERBUFFER, out->glRbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -274,6 +274,8 @@ namespace smol
     if (!success)
     {
       glDeleteFramebuffers(1, &out->glFbo);
+      glDeleteRenderbuffers(1, &out->glRbo);
+      glDeleteTextures(1, &out->colorTexture.glTextureObject);
       debugLogError("Failed to create a Texture Render Target");
     }
 
