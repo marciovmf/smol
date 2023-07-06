@@ -53,7 +53,7 @@ void onStart()
   shader = resourceManager.loadShader("assets/default.shader");
 
   mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
-  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(600, 600, 100), 
+  auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(100, 100, 32), 
       smol::Texture::Wrap::REPEAT, smol::Texture::Filter::NEAREST);
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
       smol::Texture::Filter::NEAREST,

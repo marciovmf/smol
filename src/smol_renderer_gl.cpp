@@ -286,7 +286,6 @@ namespace smol
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
-
   bool Renderer::createTextureRenderTarget(RenderTarget* out, int32 width, int32 height)
   {
     out->type = RenderTarget::TEXTURE;
@@ -325,7 +324,6 @@ namespace smol
 
   void Renderer::resizeTextureRenderTarget(const RenderTarget& target, int32 width, int32 height)
   {
-
     glBindTexture(GL_TEXTURE_2D, target.colorTexture.glTextureObject);
     bool useSRGB = ConfigManager::get().rendererConfig().enableGammaCorrection;
     glTexImage2D(GL_TEXTURE_2D, 0, useSRGB ? GL_SRGB_ALPHA : GL_RGBA, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);

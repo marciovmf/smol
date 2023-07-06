@@ -104,7 +104,7 @@ namespace smol
       // parse variables file
       ConfigManager::get().initialize(SMOL_VARIABLES_FILE);
       const GlobalSystemConfig& systemConfig = ConfigManager::get().systemConfig();
-      GlobalDisplayConfig displayConfig = ConfigManager::get().displayConfig(); // we are intentinally making a copy here
+      GlobalDisplayConfig& displayConfig = (GlobalDisplayConfig&) ConfigManager::get().displayConfig(); // temporary hack; Casting const away.
 
       if (!Platform::initOpenGL(systemConfig.glVersionMajor, systemConfig.glVersionMinor))
         return 1;
@@ -149,7 +149,7 @@ namespace smol
       EventManager::get().addHandler(onEvent, Event::DISPLAY | Event::GAME, &displayConfig);
 
       Editor editor;
-      editor.initialize();
+      editor.initialize(window);
 
       // Create the game backbuffer
       RenderTarget backBuffer;
