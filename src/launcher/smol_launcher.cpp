@@ -5,6 +5,7 @@
 #include <smol/smol_keyboard.h>
 #include <smol/smol_log.h>
 #include <smol/smol_resource_manager.h>
+#include <smol/smol_scene_manager.h>
 #include <smol/smol_config_manager.h>
 #include <smol/smol_input_manager.h>
 #include <smol/smol_render_target.h>

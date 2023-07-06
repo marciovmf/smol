@@ -10,7 +10,6 @@
 #include <smol/smol_transform.h>
 #include <smol/smol_color.h>
 #include <smol/smol_scene_node.h>
-#include <smol/smol_systems_root.h>
 #include <smol/smol_sprite_batcher.h>
 
 namespace smol

@@ -1,7 +1,7 @@
 #include "smol_editor.h"
 #include "smol_editor_icons.h"
 #include <smol/smol_log.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_resource_manager.h>
 #include <smol/smol_font.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_renderer.h>

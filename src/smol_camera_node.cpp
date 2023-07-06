@@ -1,5 +1,5 @@
 #include <smol/smol_camera_node.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_scene_manager.h>
 #include <smol/smol_scene.h>
 
 namespace smol

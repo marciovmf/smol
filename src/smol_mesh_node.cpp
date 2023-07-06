@@ -1,8 +1,7 @@
 
 #include <smol/smol_mesh_node.h>
-#include <smol/smol_systems_root.h>
 #include <smol/smol_transform.h>
-#include <smol/smol_scene.h>
+#include <smol/smol_scene_manager.h>
 
 namespace smol
 {

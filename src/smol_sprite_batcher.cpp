@@ -1,6 +1,6 @@
 
 #include <smol/smol_sprite_batcher.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_renderer.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>

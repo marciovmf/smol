@@ -2,6 +2,7 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
 #include <smol/smol_resource_manager.h>
+#include <smol/smol_scene_manager.h>
 #include <smol/smol_input_manager.h>
 #include <smol/smol_config_manager.h>
 #include <smol/smol_cfg_parser.h>

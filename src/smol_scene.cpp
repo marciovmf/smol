@@ -8,7 +8,6 @@
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_cfg_parser.h>
-#include <smol/smol_systems_root.h>
 #include <string.h>
 #include <utility>
 

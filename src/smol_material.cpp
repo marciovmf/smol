@@ -1,5 +1,5 @@
 #include <smol/smol_material.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_resource_manager.h>
 
 namespace smol
 {

@@ -9,9 +9,7 @@
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
-#include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
-#include <smol/smol_systems_root.h>
 #include <smol/smol_render_target.h>
 #include <smol/smol_platform.h>
 #include <smol/smol_config_manager.h>
