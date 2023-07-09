@@ -59,6 +59,8 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/smol_renderable.cpp
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
+  ${SOURCE_PATH}/include/smol/smol_project_manager.h
+  ${SOURCE_PATH}/smol_project_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_event.h
   ${SOURCE_PATH}/include/smol/smol_event_manager.h
   ${SOURCE_PATH}/smol_event_manager.cpp
@@ -128,7 +130,7 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
-add_library(smol SHARED ${SOURCES})
+add_library(smol SHARED ${SOURCES} )
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)
@@ -136,22 +138,24 @@ target_include_directories(smol PUBLIC
   "${SOURCE_PATH}/include" 
   "${SOURCE_PATH}/include/smol")
 
-target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY})
+target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY} 	Shlwapi.lib)
 
 if(SMOL_EXPORT_SDK)
   add_custom_command(TARGET smol POST_BUILD 
     COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}/include
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${OUTPUT_DIR}/include)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${OUTPUT_DIR}/include/smol)
 endif()
 
 #
 # build demo game
 #
-add_library(game SHARED "${SOURCE_PATH}/demo/game.cpp")
-target_include_directories(game PUBLIC 
-  "${SOURCE_PATH}/include" 
-  "${SOURCE_PATH}/include/smol")
-target_link_libraries(game PRIVATE smol)
+#add_library(game SHARED "${SOURCE_PATH}/demo/game.cpp")
+#target_include_directories(game PUBLIC 
+#  "${SOURCE_PATH}/include" 
+#  "${SOURCE_PATH}/include/smol")
+#target_link_libraries(game PRIVATE smol)
+#set(ENGINE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+#add_subdirectory("${SOURCE_PATH}/demo")
 
 #
 # Copy assets
