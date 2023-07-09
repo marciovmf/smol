@@ -31,7 +31,7 @@
 #endif
 #endif
 
-#define SMOL_VARIABLES_FILE ((const char*) "assets/variables.txt")
+#define SMOL_VARIABLES_FILE ((const char*) "assets/smol_settings.txt")
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
 
@@ -97,6 +97,20 @@ namespace smol
 
     int smolMain(int argc, char** argv)
     {
+      // did we get a project path ?
+      const char* projectPath;
+      if (argc == 2)
+      {
+        projectPath = argv[1];
+        debugLogInfo("Running project '%s'\n", projectPath);
+        Platform::setWorkingDirectory(projectPath);
+      }
+      else
+      {
+        // Change working directory to the binary location
+        Platform::setWorkingDirectory(Platform::getBinaryPath());
+      }
+
       Log::verbosity(SMOL_LOGLEVEL);
       if (SMOL_LOGFILE != nullptr)
         smol::Log::toFile(SMOL_LOGFILE);
