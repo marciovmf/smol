@@ -53,6 +53,11 @@ namespace smol
 
   struct SMOL_PLATFORM_API Platform final
   {
+    enum
+    {
+      MAX_PATH_LEN = 1024
+    };
+
 #ifndef SMOL_MODULE_GAME
     // Basic windowing functions
     static Window* createWindow(int width, int height, const char* title);
@@ -95,6 +100,27 @@ namespace smol
     static uint64 getTicks();   // return number of ticks since platform startup
     static float getMillisecondsBetweenTicks(uint64 start, uint64 end);
     static float getSecondsSinceStartup();
+
+    // get/set working directory
+    static bool getWorkingDirectory(char* buffer, size_t buffSize);
+    static bool setWorkingDirectory(const char* buffer);
+
+    // File and directory manipulation
+    static inline char pathSeparator();
+    static bool copyFile(const char* source, const char* dest, bool failIfExists);
+    static bool createDirectoryRecursive(const char* path);
+    static bool copyDirectory(const char* sourceDir, const char* destDir);
+    static bool pathIsDirectory(const char* path);
+    static bool pathIsFile(const char* path);
+    static bool pathExists(const char* path);
+    static bool fileExists(const char* path);
+    static bool directoryExists(const char* path);
+
+#if SMOL_ENGINE_IMPLEMENTATION
+    static bool showOpenDirectoryDialog(const char* filterNames[]);
+#endif
+    // System dialog
+
   };
 } 
 

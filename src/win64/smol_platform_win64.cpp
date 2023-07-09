@@ -11,9 +11,12 @@
 #include <cstdio>
 #include <stdlib.h>
 #include <time.h>
+#include <shlwapi.h>
+#include <commdlg.h>
 
 namespace smol
 {
+
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
   constexpr INT SMOL_DEFAULT_ICON_ID = 101;
   struct PlatformInternal
@@ -40,10 +43,6 @@ namespace smol
         if(truncatePos) *truncatePos = 0;
         defaultCursor = LoadCursor(NULL, IDC_ARROW);
         cursorChanged = true;
-
-        //Change the working directory to the binary location
-        smol::Log::info("Running from %s", binaryPath);
-        SetCurrentDirectory(binaryPath);
 
         QueryPerformanceFrequency(&ticksPerSecond);
         QueryPerformanceCounter(&ticksSinceEngineStartup);
@@ -777,4 +776,168 @@ namespace smol
     uint64 ticksSinceStartup = now - internal.ticksSinceEngineStartup.QuadPart;
     return (float)ticksSinceStartup /  internal.ticksPerSecond.QuadPart;
   }
+
+  bool Platform::getWorkingDirectory(char* buffer, size_t buffSize)
+  {
+    return (GetCurrentDirectory((DWORD) buffSize, buffer) != 0);
+  }
+
+  bool Platform::setWorkingDirectory(const char* buffer)
+  {
+    bool success = SetCurrentDirectory(buffer) != 0;
+    if (success)
+    {
+      debugLogInfo("Running from %s", buffer);
+    }
+    return success;
+  }
+
+  inline char Platform::pathSeparator()
+  {
+    return '\\';
+  }
+
+  bool Platform::copyFile(const char* source, const char* dest, bool failIfExists)
+  {
+    return CopyFile(source, dest, failIfExists);
+  }
+
+  bool Platform::createDirectoryRecursive(const char* path)
+  {
+    DWORD fileAttributes = GetFileAttributes(path);
+    if (fileAttributes != INVALID_FILE_ATTRIBUTES)
+    {
+      if (fileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        return true;
+      else
+      {
+        return false;
+      }
+    }
+
+    char parentPath[MAX_PATH];
+    strcpy_s(parentPath, MAX_PATH, path);
+    PathRemoveFileSpec(parentPath);
+
+    if (!Platform::createDirectoryRecursive(parentPath))
+    {
+      debugLogError("Failed to create parent directory: %s\n", parentPath);
+      return FALSE;
+    }
+
+    if (CreateDirectory(path, NULL))
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  bool Platform::copyDirectory(const char* sourceDir, const char* destDir)
+  {
+    char srcPath[MAX_PATH];
+    char destPath[MAX_PATH];
+
+    if (!Platform::directoryExists(destDir))
+    {
+      if (!CreateDirectory(destDir, NULL))
+      {
+        debugLogError("Failed to create directory '%s'", destDir);
+        return false;
+      }
+    }
+
+    WIN32_FIND_DATA findData;
+    HANDLE hFind;
+
+    // Copy files in the source directory
+    sprintf(srcPath, "%s\\*", sourceDir);
+    hFind = FindFirstFile(srcPath, &findData);
+    if (hFind != INVALID_HANDLE_VALUE) {
+      do {
+        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        {
+          sprintf(srcPath, "%s\\%s", sourceDir, findData.cFileName);
+          sprintf(destPath, "%s\\%s", destDir, findData.cFileName);
+
+          if (!CopyFile(srcPath, destPath, FALSE))
+            debugLogError("Failed to copy file '%s' to '%s'", srcPath, destPath);
+        }
+      } while (FindNextFile(hFind, &findData));
+      FindClose(hFind);
+    }
+
+    // Copy subdirectories
+    sprintf(srcPath, "%s\\*", sourceDir);
+    hFind = FindFirstFile(srcPath, &findData);
+    if (hFind != INVALID_HANDLE_VALUE) {
+      do {
+        if ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+            strcmp(findData.cFileName, ".") != 0 &&
+            strcmp(findData.cFileName, "..") != 0)
+        {
+          sprintf(srcPath, "%s\\%s", sourceDir, findData.cFileName);
+          sprintf(destPath, "%s\\%s", destDir, findData.cFileName);
+          if (!Platform::copyDirectory(srcPath, destPath))
+            debugLogError("Failed to copy directory '%s' to '%s'", srcPath, destPath);
+        }
+      } while (FindNextFile(hFind, &findData));
+      FindClose(hFind);
+    }
+    return true;
+  }
+
+  bool Platform::pathIsDirectory(const char* path)
+  {
+    return PathIsDirectory(path);
+  }
+
+  bool Platform::pathIsFile(const char* path)
+  {
+    return !pathIsDirectory(path);
+  }
+
+  bool Platform::pathExists(const char* path)
+  {
+    return Platform::fileExists(path) || Platform::directoryExists(path);
+  }
+
+  bool Platform::fileExists(const char* path)
+  {
+    DWORD fileAttributes = GetFileAttributes(path);
+    return (fileAttributes != INVALID_FILE_ATTRIBUTES) && !(fileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+  }
+
+  bool Platform::directoryExists(const char* path)
+  {
+    DWORD fileAttributes = GetFileAttributes(path);
+    return (fileAttributes != INVALID_FILE_ATTRIBUTES) && (fileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+  }
+
+  bool Platform::showOpenDirectoryDialog(const char* filterNames[])
+  {
+    OPENFILENAME ofn;
+    char* selectedPath = NULL;
+    char filePath[MAX_PATH] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;  // Set the owner window handle if needed
+    ofn.lpstrFilter = filterNames[0];
+    ofn.lpstrFile = filePath;
+    ofn.nMaxFile = sizeof(filePath);
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+
+    if (GetSaveFileName(&ofn))
+    {
+      int length = strlen(filePath);
+      selectedPath = (char*)malloc((length + 1) * sizeof(char));
+      strcpy(selectedPath, filePath);
+    }
+
+    return selectedPath;
+  }
+
 } 
