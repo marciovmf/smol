@@ -77,9 +77,8 @@ namespace smol
     static void* getFunctionFromModule(Module* module,  const char* function);
 #endif
 
-    // Keyboard handling
+    // Keyboard and mouse handling
     static const unsigned char* getKeyboardState();
-    // Mouse handling
     static const MouseState* getMouseState();
     static const Point2& getCursorPosition();
     static void captureCursor(Window* window);
@@ -106,7 +105,7 @@ namespace smol
     static bool setWorkingDirectory(const char* buffer);
 
     // File and directory manipulation
-    static inline char pathSeparator();
+    static char pathSeparator();
     static bool copyFile(const char* source, const char* dest, bool failIfExists);
     static bool createDirectoryRecursive(const char* path);
     static bool copyDirectory(const char* sourceDir, const char* destDir);
@@ -115,11 +114,7 @@ namespace smol
     static bool pathExists(const char* path);
     static bool fileExists(const char* path);
     static bool directoryExists(const char* path);
-
-#if SMOL_ENGINE_IMPLEMENTATION
-    static bool showOpenDirectoryDialog(const char* filterNames[]);
-#endif
-    // System dialog
+    static size_t getFileSize(const char* path);
 
   };
 } 

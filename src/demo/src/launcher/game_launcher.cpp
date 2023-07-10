@@ -23,7 +23,7 @@
 #endif
 
 
-#define SMOL_VARIABLES_FILE ((const char*) "assets/smol_settings.txt")
+#define SMOL_VARIABLES_FILE ((const char*) "smol_settings.txt")
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
 

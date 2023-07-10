@@ -1,3 +1,4 @@
+#define _CR_NO_SECURE_WARNINGS
 #include <smol/smol.h>
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h>
@@ -12,13 +13,12 @@
 #include <stdlib.h>
 #include <time.h>
 #include <shlwapi.h>
-#include <commdlg.h>
+#include "../editor/resource.h" //TODO(marcio): This is messy.
 
 namespace smol
 {
 
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
-  constexpr INT SMOL_DEFAULT_ICON_ID = 101;
   struct PlatformInternal
   {
     char binaryPath[MAX_PATH];
@@ -449,7 +449,7 @@ namespace smol
       wc.style = CS_OWNDC;
       wc.lpfnWndProc = smolWindowProc;
       wc.hInstance = hInstance;
-      wc.hIcon = LoadIconA(hInstance, MAKEINTRESOURCE(SMOL_DEFAULT_ICON_ID));
+      wc.hIcon = LoadIconA(hInstance, MAKEINTRESOURCE(SMOL_ICON_ID));
       wc.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
       wc.lpszClassName = smolWindowClass;
 
@@ -792,7 +792,7 @@ namespace smol
     return success;
   }
 
-  inline char Platform::pathSeparator()
+  char Platform::pathSeparator()
   {
     return '\\';
   }
@@ -916,28 +916,12 @@ namespace smol
     return (fileAttributes != INVALID_FILE_ATTRIBUTES) && (fileAttributes & FILE_ATTRIBUTE_DIRECTORY);
   }
 
-  bool Platform::showOpenDirectoryDialog(const char* filterNames[])
+  size_t Platform::getFileSize(const char* path)
   {
-    OPENFILENAME ofn;
-    char* selectedPath = NULL;
-    char filePath[MAX_PATH] = { 0 };
-
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;  // Set the owner window handle if needed
-    ofn.lpstrFilter = filterNames[0];
-    ofn.lpstrFile = filePath;
-    ofn.nMaxFile = sizeof(filePath);
-    ofn.Flags = OFN_OVERWRITEPROMPT;
-
-    if (GetSaveFileName(&ofn))
-    {
-      int length = strlen(filePath);
-      selectedPath = (char*)malloc((length + 1) * sizeof(char));
-      strcpy(selectedPath, filePath);
-    }
-
-    return selectedPath;
+    HANDLE fileHandle = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) { return 0; }
+    size_t fileSize = (size_t) GetFileSize(fileHandle, NULL);
+    CloseHandle(fileHandle);
+    return fileSize;
   }
-
 } 

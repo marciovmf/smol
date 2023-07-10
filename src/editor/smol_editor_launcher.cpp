@@ -31,7 +31,7 @@
 #endif
 #endif
 
-#define SMOL_VARIABLES_FILE ((const char*) "assets/smol_settings.txt")
+#define SMOL_VARIABLES_FILE ((const char*) "smol_settings.txt")
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
 
@@ -40,7 +40,7 @@ namespace smol
   bool forceQuit = false;
   bool resized = false;
 
-  namespace launcher
+  namespace editor
   {
     bool onEvent(const Event& event, void* payload)
     {
@@ -235,12 +235,12 @@ namespace smol
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   //TODO(marcio): handle command line here when we support any
-  return smol::launcher::smolMain(0, (char**) lpCmdLine);
+  return smol::editor::smolMain(0, (char**) lpCmdLine);
 }
 #endif  // SMOL_PLATFORM_WINDOWS
 
 int main(int argc, char** argv)
 {
-  return smol::launcher::smolMain(argc, argv);
+  return smol::editor::smolMain(argc, argv);
 }
 
