@@ -924,4 +924,27 @@ namespace smol
     CloseHandle(fileHandle);
     return fileSize;
   }
+
+  void Platform::messageBox(const char* title, const char* message)
+  {
+    MessageBox(0, message, title, MB_OK);
+  }
+
+  void Platform::messageBoxError(const char* title, const char* message)
+  {
+    Log::error(message, 0);
+    MessageBox(0, message, title, MB_OK | MB_ICONERROR);
+  }
+
+  void Platform::messageBoxWarning(const char* title, const char* message)
+  {
+    Log::warning(message, 0);
+    MessageBox(0, message, title, MB_OK | MB_ICONWARNING);
+  }
+
+  bool Platform::messageBoxYesNo(const char* title, const char* message)
+  {
+    return MessageBox(0, message, title, MB_YESNO) == IDYES;
+  }
+
 } 

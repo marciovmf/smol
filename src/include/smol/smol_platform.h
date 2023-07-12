@@ -116,6 +116,11 @@ namespace smol
     static bool directoryExists(const char* path);
     static size_t getFileSize(const char* path);
 
+    // dialog boxes
+    static void messageBox(const char* title, const char* message);
+    static void messageBoxError(const char* title, const char* message);
+    static void messageBoxWarning(const char* title, const char* message);
+    static bool messageBoxYesNo(const char* title, const char* message);
   };
 } 
 

@@ -4,6 +4,7 @@
 #include <smol/smol_engine.h>
 #include <smol/smol_keyboard.h>
 #include <smol/smol_log.h>
+#include <smol/smol_project_manager.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_scene_manager.h>
 #include <smol/smol_config_manager.h>
@@ -23,13 +24,6 @@
 #define SMOL_LOGLEVEL smol::Log::LogType::LOG_FATAL |  smol::Log::LOG_ERROR
 #endif
 
-#ifndef SMOL_GAME_MODULE_NAME
-#ifdef SMOL_PLATFORM_WINDOWS
-#define SMOL_GAME_MODULE_NAME "game.dll"
-#else
-#define SMOL_GAME_MODULE_NAME "game.so"
-#endif
-#endif
 
 #define SMOL_VARIABLES_FILE ((const char*) "smol_settings.txt")
 #include <smol/smol_event_manager.h>
@@ -95,15 +89,15 @@ namespace smol
       return rect;
     }
 
-    int smolMain(int argc, char** argv)
+    int smolMain(int argc, const char** argv)
     {
-      // did we get a project path ?
-      const char* projectPath;
+      Project project;
       if (argc == 2)
       {
-        projectPath = argv[1];
-        debugLogInfo("Running project '%s'\n", projectPath);
-        Platform::setWorkingDirectory(projectPath);
+        if (!ProjectManager::loadFromProjectFile(argv[1], project))
+          return 1;
+
+        Platform::setWorkingDirectory(project.path);
       }
       else
       {
@@ -124,7 +118,8 @@ namespace smol
         return 1;
 
       // Load game module
-      Module* game = Platform::loadModule(SMOL_GAME_MODULE_NAME);
+      const char *defaultModuleName = "game.dll";
+      Module* game = Platform::loadModule(defaultModuleName);
       SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
         Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
 
@@ -141,7 +136,18 @@ namespace smol
       }
 
       // initialie display and system stuff
-      Window* window = Platform::createWindow(displayConfig.width, displayConfig.height, displayConfig.caption);
+      const char* windowTitleFormat = "SMOL v%s %s- %s";
+      const size_t maxFmtSize = 64;
+      SMOL_ASSERT(strlen(windowTitleFormat) < maxFmtSize, "Window title format exceeds %d bytes", maxFmtSize);
+      const size_t windowTitleBufferSize = (int32) Project::PROJECT_MAX_NAME_LEN + maxFmtSize;
+      char windowTitle[windowTitleBufferSize];
+#ifdef SMOL_RELEASE
+      const char *smolBuildType = (const char*) "";
+#else
+      const char *smolBuildType = (const char*) "(Debug)";
+#endif
+      snprintf(windowTitle, windowTitleBufferSize, windowTitleFormat, SMOL_VERSION, smolBuildType, project.name);
+      Window* window = Platform::createWindow(displayConfig.width, displayConfig.height, windowTitle);
 
       if(displayConfig.fullScreen)
       {
@@ -235,11 +241,11 @@ namespace smol
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   //TODO(marcio): handle command line here when we support any
-  return smol::editor::smolMain(0, (char**) lpCmdLine);
+  return smol::editor::smolMain(0, (const char**) lpCmdLine);
 }
 #endif  // SMOL_PLATFORM_WINDOWS
 
-int main(int argc, char** argv)
+int main(int argc, const char** argv)
 {
   return smol::editor::smolMain(argc, argv);
 }
