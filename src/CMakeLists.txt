@@ -157,17 +157,23 @@ add_custom_command(TARGET assets POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo "Coppying assets..."
   COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:smol>/assets
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/../data $<TARGET_FILE_DIR:smol>/assets)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data $<TARGET_FILE_DIR:smol>)
 
-#
-# Build additional targets
-#
-add_subdirectory("editor")
-add_subdirectory("tools/packer")
+# Builds the editor
+add_subdirectory(editor)
+
+# Builds the packer tool and generate a package with the template project source code
+add_subdirectory(tools/packer)
+add_subdirectory(template)
+add_dependencies(template packer)
+
+# Make sure to only copy assets to the output folder after we generate packages
+add_dependencies(assets template editor)
+
+# Bilds the demo game
 set(ENGINE_PATH ${OUTPUT_DIR})
-add_subdirectory("demo")
-
-
+add_subdirectory(demo)
+add_dependencies(game assets smol editor)
 
 #
 # Build and run tests

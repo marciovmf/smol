@@ -1,6 +1,0 @@
-@project:
-  name: "",
-  engine_version_major: 0,
-  engine_version_minor: 0,
-  generator: Ninja,
-

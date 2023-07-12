@@ -9,7 +9,9 @@ int main(int argc, const char** argv)
 
   if (argc == 2)
   {
-    return smol::Packer::extractPackage(package, (const char*) ".");
+    bool success = smol::Packer::extractPackage(package, (const char*) ".");
+    return success ? 0 : 1;
+
   }
 
   if (argc >= 3)
@@ -17,7 +19,9 @@ int main(int argc, const char** argv)
     const char* package = argv[1];
     const char** inputFiles = (argv+2);
     int inputFilesCount = (argc - 2);
-    return smol::Packer::createPackage(package, inputFiles, inputFilesCount);
+    bool success = smol::Packer::createPackage(package, inputFiles, inputFilesCount);
+    return success ? 0 : 1;
   }
-  return 0;
+
+  return 1;
 }
