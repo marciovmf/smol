@@ -1,0 +1,24 @@
+# variables.txt
+
+@system:
+  show_cursor: 1,
+  capture_cursor: 0,
+  gl_version: {3, 3}
+
+@renderer:
+  enable_gamma_correction: 1,
+  enable_msaa: 1,
+  enable_msaa: 1
+
+@display:
+  size:         {1920, 1080},
+  caption:      "SMOL engine v0.1",
+ # 16:9 = 1.777777777777777; 21:9 = 2.33333333; 0:0 = free aspect ratio
+  aspect_ratio:  1.777777,
+  crop_area_color: {0.01, 0.01, 0.01},
+  fullscreen:   0
+
+@game:
+  seed: 1655119152,
+  numHSprites: 5,
+  numVSprites: 5

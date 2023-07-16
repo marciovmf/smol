@@ -40,8 +40,6 @@ namespace smol
     return fontInfo->glyph;
   }
 
-
-
   Vector2 Font::computeString(const char* str,
       Color color,
       GlyphDrawData* drawData,

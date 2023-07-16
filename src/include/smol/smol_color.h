@@ -21,11 +21,7 @@ namespace smol
     static const Color RED;
     static const Color SILVER;
     static const Color TEAL;
-#if defined(SMOL_PLATFORM_WINDOWS)
-#undef TRANSPARENT
-    //Thanks windows.h for definig this without any kind of prefix our namespace.
-    static const Color TRANSPARENT;
-#endif
+    static const Color NO_COLOR;
     static const Color WHITE;
     static const Color YELLOW;
 

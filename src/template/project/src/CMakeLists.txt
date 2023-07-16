@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-set(PROJECT_NAME "game")
+project("game")
 
 # Your game sources goes here...
 set(SOURCES game.cpp) 

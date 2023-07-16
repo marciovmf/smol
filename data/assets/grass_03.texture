@@ -1,6 +1,0 @@
-#Wrap:    REPEAT = 0, REPEAT_MIRRORED = 1, CLAMP_TO_EDGE = 2
-#Filter:  LINEAR = 0, NEAREST = 1
-#Mipmap:  LINEAR_MIPMAP_LINEAR = 0, LINEAR_MIPMAP_NEAREST = 1, NEAREST_MIPMAP_LINEAR = 2, NEAREST_MIPMAP_NEAREST = 3, NO_MIPMAP = 4
-
-@texture: image: "assets/grass_03.bmp", wrap: 2, filter: 1, mipmap: 2
-

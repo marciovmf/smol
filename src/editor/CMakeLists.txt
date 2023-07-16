@@ -6,6 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 list(APPEND SRC
     smol_editor_launcher.cpp 
+    smol_editor_common.h
     smol_editor.h
     smol_editor.cpp
   )

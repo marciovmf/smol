@@ -81,10 +81,20 @@ namespace smol
     Renderer::pushLines(streamBuffer, point, 2, skin.color[GUISkin::SEPARATOR], 2 / screenW);
   }
 
-  Point2 GUI::beginWindow(GUIControlID id, const char* title, int32 x, int32 y, int32 w, int32 h)
+  Point2 GUI::beginWindow(GUIControlID id, const char* title, int32 x, int32 y, int32 w, int32 h, bool topmost)
   {
     lastRect = Rect(x, y, w, h);
     windowCount++;
+
+    // Bring the topmost window way above other windows
+
+    if (topmost)
+      topmostWindowId = id;
+
+    if (topmostWindowId == id)
+      z = -0.5f + windowCount * 0.01f;
+    else
+      z = -0.1f + windowCount * 0.01f;
 
     bool isBeingDragged = draggedControlId == id;
     const int titleBarHeight = 30;
@@ -94,16 +104,20 @@ namespace smol
     // Draw title bar
     GUISkin::ID styleId = (mouseOverTitleBar || isBeingDragged) ? GUISkin::WINDOW_TITLE_BAR_HOVER : GUISkin::WINDOW_TITLE_BAR; 
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, y / screenH, 0.0f), 
+        Vector3(x / screenW, y / screenH, z), 
         Vector2(w / screenW, titleBarHeight / screenH),
         Rectf(), skin.color[styleId]);
-    label(id, title, x + DEFAULT_H_SPACING, y + (titleBarHeight/2), 0, LEFT);
+
+    label(id, title, x + DEFAULT_H_SPACING,
+        (int32)(y + (titleBarHeight/2.0f)),
+        0,
+        LEFT);
 
     // draw the window panel
     Color windowColor = skin.color[GUISkin::WINDOW];
     windowColor.a = skin.windowOpacity;
     Renderer::pushSprite(streamBuffer,
-        Vector3(x / screenW, (y + titleBarHeight) / screenH, 0.0f), 
+        Vector3(x / screenW, (y + titleBarHeight) / screenH, z), 
         Vector2(w / screenW, (h  - titleBarHeight) / screenH),
         Rectf(), windowColor);
 
@@ -118,6 +132,8 @@ namespace smol
     {
       if (mouseLButtonIsDown)
       {
+        topmostWindowId = id;
+        currentCursorZ = z;
         newPos.x = cursorDragOffset.x + cursorPos.x;
         newPos.y = cursorDragOffset.y + cursorPos.y;
       }
@@ -179,7 +195,7 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align)
+  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align, Color bg)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -217,8 +233,8 @@ namespace smol
     lastRect = Rect((int32)(posX * screenW), (int32)(posY * screenW), (int32) (bounds.x * screenW), (int32) (bounds.y * screenH));
 
     // Draws a solid background behind the text. Keep this here for debugging
-    if (drawLabelDebugBackground)
-      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]);
+    if (bg.a > 0.00f)
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bg);
 
     for (int i = 0; i < textLen; i++)
     {
@@ -229,6 +245,51 @@ namespace smol
       Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
     }
 
+  }
+
+  bool GUI::doLabelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align, Color bg)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    lastRect = Rect(x , y, w, h);
+
+    bool returnValue = false;
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
+    bool isActiveControl = activeControlId == id;
+
+    if (mouseOver)
+    {
+      hoverControlId = id;
+      Renderer::pushSprite(streamBuffer,
+          Vector3(x / screenW, y / screenH, z), 
+          Vector2(w / screenW, h / screenH),
+          Rectf(), skin.color[GUISkin::BUTTON_HOVER]);
+
+      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      {
+        activeControlId = id;
+
+      }
+      else if(mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+        returnValue = true;
+        changed = true;
+      }
+    }
+    else
+    {
+      if (mouseLButtonUpThisFrame && isActiveControl)
+      {
+        activeControlId = 0;
+      }
+    }
+
+    // We don't want to offset the label twice, so we remove the areaOffset
+    const int centerX = x - areaOffset.x + w/2;
+    const int centerY = y - areaOffset.y + h/2;
+    label(id, text, centerX, centerY, 0, align, bg);
+    return returnValue;
   }
 
   bool GUI::doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h)
@@ -644,42 +705,64 @@ namespace smol
     return returnValue;
   }
 
-  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth)
+  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     popupCount++;
 
     // We should draw on top of all previous controls...
-    z-= 0.01f * popupCount; 
+    float oldZ = z;
+    // Popups are the frontmost possible controls. So we always draw them way above everything else.
+    z= -0.95f + popupCount * 0.001f;
 
     int32 selectedOption = -1;
     const Point2 mousePos = mouseCursorPosition;
     const int vSpacing = 1;
-
     const float totalMenuHeight = ((optionCount * skin.labelFontSize) + (optionCount * vSpacing));
-    Rect lastRect = Rect(x, y, maxWidth, (int32) totalMenuHeight);
-    Renderer::pushSprite(streamBuffer,
-        Vector3(lastRect.x / screenW, lastRect.y / screenH, z),
-        Vector2(lastRect.w / screenW, lastRect.h / screenH),
-        Rectf(), skin.color[GUISkin::MENU]);
 
+    // First we draw all the labels to figure out how large this popup should be.
     bool isActiveControl = activeControlId == id;
-    Rectf selectionRect((float)x,(float) y,(float) maxWidth, skin.labelFontSize);
+    Rectf selectionRect((float)x,(float) y,(float) minWidth, skin.labelFontSize);
     bool mouseOver = false;
-
     for (uint32 i = 0; i < optionCount; i++)
     { 
-      // Selection Highlight
+      // label
+      label(id, options[i],
+          (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+          (int32) selectionRect.y - areaOffset.y, 0, NONE, skin.color[GUISkin::MENU]);
+
+      if (lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f > selectionRect.w)
+        selectionRect.w = lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f;
+
+      selectionRect.y += skin.labelFontSize + vSpacing;
+    }
+
+    // Reset y so we start drawing the selection from the top again
+    selectionRect.y = (float) y;
+    // Draw the background
+    Renderer::pushSprite(streamBuffer,
+        Vector3(selectionRect.x / screenW, selectionRect.y / screenH, z + 0.01f),
+        Vector2(selectionRect.w / screenW, totalMenuHeight / screenH),
+        Rectf(), skin.color[GUISkin::MENU]);
+
+    // Test for mouse interaction on each label
+    for (uint32 i = 0; i < optionCount; i++)
+    { 
       if (selectionRect.containsPoint(mousePos) && z < currentCursorZ)
       {
         currentCursorZ = z;
         hoverControlId = id;
         mouseOver = true;
         Renderer::pushSprite(streamBuffer,
-            Vector3(selectionRect.x / screenW, selectionRect.y / screenH, z),
+            Vector3(selectionRect.x / screenW , selectionRect.y / screenH, z),
             Vector2(selectionRect.w / screenW, selectionRect.h / screenH),
             Rectf(), skin.color[GUISkin::MENU_SELECTION]);
+
+        // redraw the label over the selection
+        label(id, options[i],
+            (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+            (int32) selectionRect.y - areaOffset.y, 0, NONE, skin.color[GUISkin::MENU_SELECTION]);
 
         if (mouseLButtonDownThisFrame || (isActiveControl && mouseLButtonIsDown))
           activeControlId = id;
@@ -691,10 +774,6 @@ namespace smol
         }
       }
 
-      // label
-      label(id, options[i],
-          (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
-          (int32) selectionRect.y - areaOffset.y, 0, NONE);
       selectionRect.y += skin.labelFontSize + vSpacing;
     }
 
@@ -705,9 +784,14 @@ namespace smol
     }
 
     // We resotre the previous global Z
-    z += 0.01f * popupCount; 
-
+    z = oldZ;
     return selectedOption;
+  }
+
+
+  int32 GUI::doPopupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth)
+  {
+    return false;
   }
 
   int32 GUI::doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
@@ -719,7 +803,7 @@ namespace smol
 
     bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
     bool isActiveControl = activeControlId == id;
-    
+
 
     // BOX
     GUISkin::ID styleId = mouseOver ? GUISkin::COMBO_BOX : GUISkin::COMBO_BOX_HOVER;

@@ -46,3 +46,4 @@ project.vim
 *.rdbg
 .cache
 Session.vim
+data/template_project.package

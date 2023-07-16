@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(template)
 set(CMAKE_CXX_STANDARD 14)
 
-# Generates a package with the template proejct source code and place it in the
-# data folder
+# Generates a package with the template project source code and place it in the data folder
 
 set(PACKAGE_NAME "../../../data/template_project.package")
 add_custom_target(template 

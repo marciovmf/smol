@@ -27,7 +27,7 @@ function(post_build_copy_engine_assets target)
   set(destination_dir "${RUN_TREE}/assets")
   add_custom_command(
     TARGET ${target} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
     ${source_dir}
     ${destination_dir}
     COMMENT "Copying engine standard assets..."

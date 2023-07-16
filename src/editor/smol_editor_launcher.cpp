@@ -15,6 +15,7 @@
 #include <smol/smol_color.h>
 #include <smol/smol_vector2.h>
 #include "smol_editor.h"
+#include "smol_editor_common.h"
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -24,8 +25,6 @@
 #define SMOL_LOGLEVEL smol::Log::LogType::LOG_FATAL |  smol::Log::LOG_ERROR
 #endif
 
-
-#define SMOL_VARIABLES_FILE ((const char*) "smol_settings.txt")
 #include <smol/smol_event_manager.h>
 #include <smol/smol_event.h>
 
@@ -34,8 +33,69 @@ namespace smol
   bool forceQuit = false;
   bool resized = false;
 
+  void dummyOnGameStartCallback() {}
+  void dummyOnGameStopCallback() {}
+  void dummyOnGameUpdateCallback(float) {}
+  void dummyOnGameGUICallback(GUI&) {}
+
   namespace editor
   {
+    bool loadGameModule(const char* modulePath, GameModule& outModule)
+    {
+      Module* module = Platform::loadModule(modulePath);
+      if (module)
+      {
+        SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
+          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONSTART);
+
+        SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
+          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONSTOP);
+
+        SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
+          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONUPDATE);
+
+        // This is an optional callback
+        SMOL_GAME_CALLBACK_ONGUI onGameGUICallback = (SMOL_GAME_CALLBACK_ONGUI)
+          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONGUI);
+
+        bool success = true;
+        if (!onGameStartCallback)
+        {
+          success = false;
+          smol::Log::error("Game module doesn't have a '%s' callback", SMOL_CALLBACK_NAME_ONSTART);
+        }
+
+        if (!onGameUpdateCallback)
+        {
+          success = false;
+          smol::Log::error("Game module doesn't have a '%s' callback", SMOL_CALLBACK_NAME_ONUPDATE);
+        }
+
+        if (!onGameStopCallback)
+        {
+          success = false;
+          smol::Log::error("Game module doesn't have a '%s' callback", SMOL_CALLBACK_NAME_ONSTOP);
+        }
+
+        if (success)
+        {
+          outModule.module    = module;
+          outModule.onStart   = onGameStartCallback;
+          outModule.onStop    = onGameStopCallback;
+          outModule.onUpdate  = onGameUpdateCallback;
+          outModule.onGUI     = onGameGUICallback ? onGameGUICallback : dummyOnGameGUICallback;
+          return true;
+        }
+      }
+
+      outModule.module    = nullptr;
+      outModule.onStart   = dummyOnGameStartCallback;
+      outModule.onStop    = dummyOnGameStopCallback;
+      outModule.onUpdate  = dummyOnGameUpdateCallback;
+      outModule.onGUI     = dummyOnGameGUICallback;
+      return false;
+    }
+
     bool onEvent(const Event& event, void* payload)
     {
       if (event.type == Event::GAME && event.gameEvent.id == 0xFFFFFFFF)
@@ -91,10 +151,11 @@ namespace smol
 
     int smolMain(int argc, const char** argv)
     {
-      Project project;
+      Project project = {};
+      GameModule game = {};
       if (argc == 2)
       {
-        if (!ProjectManager::loadFromProjectFile(argv[1], project))
+        if (!ProjectManager::loadProject(argv[1], project))
           return 1;
 
         Platform::setWorkingDirectory(project.path);
@@ -117,26 +178,8 @@ namespace smol
       if (!Platform::initOpenGL(systemConfig.glVersionMajor, systemConfig.glVersionMinor))
         return 1;
 
-      // Load game module
-      const char *defaultModuleName = "game.dll";
-      Module* game = Platform::loadModule(defaultModuleName);
-      SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
-        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTART);
-
-      SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
-        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONSTOP);
-
-      SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
-        Platform::getFunctionFromModule(game, SMOL_CALLBACK_NAME_ONUPDATE);
-
-      if (! (game && onGameStartCallback && onGameStopCallback && onGameUpdateCallback))
-      {
-        Log::error("Failed to load a valid game module.");
-        return 1;
-      }
-
       // initialie display and system stuff
-      const char* windowTitleFormat = "SMOL v%s %s- %s";
+      const char* windowTitleFormat = "SMOL v%s %s - %s";
       const size_t maxFmtSize = 64;
       SMOL_ASSERT(strlen(windowTitleFormat) < maxFmtSize, "Window title format exceeds %d bytes", maxFmtSize);
       const size_t windowTitleBufferSize = (int32) Project::PROJECT_MAX_NAME_LEN + maxFmtSize;
@@ -146,12 +189,11 @@ namespace smol
 #else
       const char *smolBuildType = (const char*) "(Debug)";
 #endif
-      snprintf(windowTitle, windowTitleBufferSize, windowTitleFormat, SMOL_VERSION, smolBuildType, project.name);
+      snprintf(windowTitle, windowTitleBufferSize, windowTitleFormat, SMOL_VERSION, smolBuildType, project.valid ? project.name : (const char*)"<NO PROJECT>");
       Window* window = Platform::createWindow(displayConfig.width, displayConfig.height, windowTitle);
 
       if(displayConfig.fullScreen)
       {
-        debugLogInfo("Going fullscreen");
         Platform::setFullScreen(window, true);
       }
 
@@ -169,7 +211,7 @@ namespace smol
       EventManager::get().addHandler(onEvent, Event::DISPLAY | Event::GAME, &displayConfig);
 
       Editor editor;
-      editor.initialize(window);
+      editor.initialize(window, project);
 
       // Create the game backbuffer
       RenderTarget backBuffer;
@@ -182,9 +224,15 @@ namespace smol
       StreamBuffer streamBuffer;
       Renderer::createStreamBuffer(&streamBuffer);
 
+
+      // Load game module
+      loadGameModule((const char*) "game.dll", game);
+
+      // Editor / Game loop ...
       uint64 startTime = 0;
       uint64 endTime = 0;
-      onGameStartCallback();
+
+      game.onStart();
       Rectf gameQuadPosition = Rectf(0.0f, 0.0f, 1.0f, 1.0f);
 
       while(! (Platform::getWindowCloseFlag(window) || forceQuit))
@@ -195,7 +243,7 @@ namespace smol
         Platform::updateWindowEvents(window);
         InputManager::get().update();
         EventManager::get().dispatchEvents();
-        onGameUpdateCallback(deltaTime);
+        game.onUpdate(deltaTime);
 
         // Resize the back buffer if window dimentions changed
         if (resized)
@@ -223,19 +271,17 @@ namespace smol
 
         // Draw to the window
         Platform::swapBuffers(window);
-
         endTime = Platform::getTicks();
       }
 
-      onGameStopCallback();
+      game.onStop();
       editor.terminate();
-      Platform::unloadModule(game);
+      Platform::unloadModule(game.module);
       Platform::destroyWindow(window);
       return 0;
     }
   }
 }
-
 // Windows program entrypoint
 #ifdef SMOL_PLATFORM_WINDOWS
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)

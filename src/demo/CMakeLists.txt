@@ -36,7 +36,6 @@ function(post_build_copy_engine_assets target)
 endfunction()
 
 # Add targets
-
 add_subdirectory(src)
 add_subdirectory(src/editor)
 add_subdirectory(src/launcher)

@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="W:\smol\src\demo\src\editor\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="W:\smol\src\demo\workspace\src\game.dir\$(Configuration)\game.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Object Libraries">
+      <UniqueIdentifier>{8D465F6F-3737-3D74-A9DA-0422FF22E484}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <shlwapi.h>
+#include <Commdlg.h>
 #include "../editor/resource.h" //TODO(marcio): This is messy.
 
 namespace smol
@@ -620,12 +621,14 @@ namespace smol
       return module;
     }
 
-    smol::Log::error("Failed loading module '%s'", path);
     return nullptr;
   }
 
   bool Platform::unloadModule(Module* module)
   {
+    if (!module)
+      return false;
+
     if (! FreeLibrary(module->handle)) 
     {
       smol::Log::error("Error unloading module");
@@ -640,7 +643,6 @@ namespace smol
     void* addr = (void*) GetProcAddress(module->handle, function);
     if (! addr)
     {
-      smol::Log::error("Faild to fetch '%s' function pointer from module", function);
       return nullptr;
     }
     return addr;
@@ -947,4 +949,24 @@ namespace smol
     return MessageBox(0, message, title, MB_YESNO) == IDYES;
   }
 
+
+  bool Platform::showSaveFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedSaveFileName )
+  {
+    OPENFILENAMEA ofn;
+    strncpy(buffer, "project.smol", MAX_PATH_LEN);
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = (char*) filterList;
+    ofn.lpstrFile = buffer;
+    ofn.nMaxFile = MAX_PATH_LEN;
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+
+    if (GetSaveFileNameA(&ofn))
+    {
+      return true;
+    }
+    return false;
+  }
 } 

@@ -121,6 +121,7 @@ namespace smol
     static void messageBoxError(const char* title, const char* message);
     static void messageBoxWarning(const char* title, const char* message);
     static bool messageBoxYesNo(const char* title, const char* message);
+    static bool showSaveFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedSaveFileName = nullptr);
   };
 } 
 

@@ -41,23 +41,30 @@
 namespace smol
 {
   struct SystemsRoot;
+  struct Module;
   class GUI;
 
   typedef void (*SMOL_GAME_CALLBACK_ONSTART)();
   typedef void (*SMOL_GAME_CALLBACK_ONSTOP)();
   typedef void (*SMOL_GAME_CALLBACK_ONUPDATE)(float);
-  typedef void (*SMOL_GAME_CALLBACK_ONGUI)(smol::GUI&);
+  typedef void (*SMOL_GAME_CALLBACK_ONGUI)(GUI&);
+
+  struct GameModule
+  {
+    Module* module;
+    SMOL_GAME_CALLBACK_ONSTART  onStart;
+    SMOL_GAME_CALLBACK_ONSTOP   onStop;
+    SMOL_GAME_CALLBACK_ONUPDATE onUpdate;
+    SMOL_GAME_CALLBACK_ONGUI    onGUI;
+  };
 }
 
 extern "C"
 {
   SMOL_GAME_API void onStart();
-  SMOL_GAME_API void onUpdate(float deltaTime);
   SMOL_GAME_API void onStop();
   SMOL_GAME_API void onGUI(smol::GUI&);
+  SMOL_GAME_API void onUpdate(float deltaTime);
 }
 
 #endif// SMOL_GAME_H
-
-
-

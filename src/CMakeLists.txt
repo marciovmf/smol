@@ -153,11 +153,11 @@ endif()
 # Copy runtime data
 #
 add_custom_target(assets ALL)
-add_custom_command(TARGET assets POST_BUILD
+add_custom_command(TARGET assets PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo "Coppying assets..."
-  COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:smol>/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/../data $<TARGET_FILE_DIR:smol>)
+  #COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:smol>/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${CMAKE_CURRENT_SOURCE_DIR}/../data $<TARGET_FILE_DIR:smol>
+  )
 
 # Builds the editor
 add_subdirectory(editor)
