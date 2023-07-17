@@ -130,7 +130,10 @@ namespace smol
   bool ProjectManager::loadProject(const char* projectFilePath, Project& project)
   {
     const char* errorMsgTitle = "Error loading project.";
+    project.cmdOutputBuffer[0] = 0;
     project.valid = false;
+    project.state = Project::INVALID;
+
     const size_t pathLen = strlen(projectFilePath);
     SMOL_ASSERT(pathLen < Platform::MAX_PATH_LEN, "Path to project exceeds maximum project path. Maximum path is %d",
         Platform::MAX_PATH_LEN);
@@ -195,17 +198,10 @@ namespace smol
     if (! Platform::fileExists("../workspace/CMakeCache.txt"))
     {
       project.state = Project::CREATED;
-      project.cmdOutputBuffer[0] = 0;
-      return ProjectManager::generateProject(project);
+      return true;
     }
-        //return false;
 
-    //TODO(marcio): We should NOT do it here. We should instead do from a "Run"
-    //option in the editor. There must be a way for the editor to run without a
-    //valid project built so it remains open skipping the game callbacks or
-    //calling dummy callbacks untill we RUN the game. At that point we try to
-    //build it and if successfull, we reload the callback pointers
-    //return ProjectManager::buildProjectModule(project);
+    project.state = Project::GENERATED;
     return true;
   }
 

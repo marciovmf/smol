@@ -47,3 +47,6 @@ project.vim
 .cache
 Session.vim
 data/template_project.package
+src/demo/workspace
+*.ilk
+*.pdb

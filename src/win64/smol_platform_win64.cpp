@@ -953,7 +953,8 @@ namespace smol
   bool Platform::showSaveFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedSaveFileName )
   {
     OPENFILENAMEA ofn;
-    strncpy(buffer, "project.smol", MAX_PATH_LEN);
+    if (suggestedSaveFileName)
+      strncpy(buffer, suggestedSaveFileName, MAX_PATH_LEN);
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
@@ -967,6 +968,31 @@ namespace smol
     {
       return true;
     }
+
+    buffer[0] = 0;
+    return false;
+  }
+
+  bool Platform::showOpenFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedOpenFileName)
+  {
+    OPENFILENAMEA ofn;
+    if (suggestedOpenFileName)
+      strncpy(buffer, suggestedOpenFileName, MAX_PATH_LEN);
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = (char*) filterList;
+    ofn.lpstrFile = buffer;
+    ofn.nMaxFile = MAX_PATH_LEN;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameA(&ofn))
+    {
+      return true;
+    }
+
+    buffer[0] = 0;
     return false;
   }
 } 

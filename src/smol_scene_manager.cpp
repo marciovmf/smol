@@ -1,4 +1,5 @@
 
+#include "include/smol/smol_scene_manager.h"
 #include <smol/smol_scene_manager.h>
 #include <smol/smol_scene.h>
 
@@ -30,5 +31,11 @@ namespace smol
   {
     static SceneManager instance;
     return instance;
+  }
+
+  void SceneManager::cleanupScene()
+  {
+    scene->~Scene();
+    scene = new Scene();
   }
 }

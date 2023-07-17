@@ -27,6 +27,7 @@ namespace smol
 
     enum State
     {
+      INVALID,
       CREATED,
       GENERATING,
       GENERATED,

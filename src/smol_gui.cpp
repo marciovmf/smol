@@ -298,6 +298,11 @@ namespace smol
     y = areaOffset.y + y;
     lastRect = Rect(x , y, w, h);
 
+    mouseLButtonIsDown &= enabled;
+    mouseLButtonDownThisFrame &= enabled;
+    mouseLButtonIsDown &= enabled;
+    mouseLButtonIsDown &= enabled;
+
     GUISkin::ID styleId;
     bool returnValue = false;
     bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);

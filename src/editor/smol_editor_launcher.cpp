@@ -16,6 +16,13 @@
 #include <smol/smol_vector2.h>
 #include "smol_editor.h"
 #include "smol_editor_common.h"
+#include <stdlib.h>
+#include <stdio.h>
+
+#ifdef SMOL_PLATFORM_WINDOWS
+#define popen _popen
+#endif
+
 
 #if defined(SMOL_DEBUG)
 #define SMOL_LOGFILE nullptr
@@ -30,79 +37,13 @@
 
 namespace smol
 {
-  bool forceQuit = false;
   bool resized = false;
-
-  void dummyOnGameStartCallback() {}
-  void dummyOnGameStopCallback() {}
-  void dummyOnGameUpdateCallback(float) {}
-  void dummyOnGameGUICallback(GUI&) {}
 
   namespace editor
   {
-    bool loadGameModule(const char* modulePath, GameModule& outModule)
-    {
-      Module* module = Platform::loadModule(modulePath);
-      if (module)
-      {
-        SMOL_GAME_CALLBACK_ONSTART onGameStartCallback = (SMOL_GAME_CALLBACK_ONSTART)
-          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONSTART);
-
-        SMOL_GAME_CALLBACK_ONSTOP onGameStopCallback = (SMOL_GAME_CALLBACK_ONSTOP)
-          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONSTOP);
-
-        SMOL_GAME_CALLBACK_ONUPDATE onGameUpdateCallback = (SMOL_GAME_CALLBACK_ONUPDATE)
-          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONUPDATE);
-
-        // This is an optional callback
-        SMOL_GAME_CALLBACK_ONGUI onGameGUICallback = (SMOL_GAME_CALLBACK_ONGUI)
-          Platform::getFunctionFromModule(module, SMOL_CALLBACK_NAME_ONGUI);
-
-        bool success = true;
-        if (!onGameStartCallback)
-        {
-          success = false;
-          smol::Log::error("Game module doesn't have a '%s' callback", SMOL_CALLBACK_NAME_ONSTART);
-        }
-
-        if (!onGameUpdateCallback)
-        {
-          success = false;
-          smol::Log::error("Game module doesn't have a '%s' callback", SMOL_CALLBACK_NAME_ONUPDATE);
-        }
-
-        if (!onGameStopCallback)
-        {
-          success = false;
-          smol::Log::error("Game module doesn't have a '%s' callback", SMOL_CALLBACK_NAME_ONSTOP);
-        }
-
-        if (success)
-        {
-          outModule.module    = module;
-          outModule.onStart   = onGameStartCallback;
-          outModule.onStop    = onGameStopCallback;
-          outModule.onUpdate  = onGameUpdateCallback;
-          outModule.onGUI     = onGameGUICallback ? onGameGUICallback : dummyOnGameGUICallback;
-          return true;
-        }
-      }
-
-      outModule.module    = nullptr;
-      outModule.onStart   = dummyOnGameStartCallback;
-      outModule.onStop    = dummyOnGameStopCallback;
-      outModule.onUpdate  = dummyOnGameUpdateCallback;
-      outModule.onGUI     = dummyOnGameGUICallback;
-      return false;
-    }
-
     bool onEvent(const Event& event, void* payload)
     {
-      if (event.type == Event::GAME && event.gameEvent.id == 0xFFFFFFFF)
-      {
-        forceQuit = true;
-      }
-      else if (event.type == Event::DISPLAY)
+      if (event.type == Event::DISPLAY)
       {
         GlobalDisplayConfig* cfg = (GlobalDisplayConfig*) payload;
         cfg->width = event.displayEvent.width;
@@ -153,6 +94,7 @@ namespace smol
     {
       Project project = {};
       GameModule game = {};
+
       if (argc == 2)
       {
         if (!ProjectManager::loadProject(argv[1], project))
@@ -224,18 +166,14 @@ namespace smol
       StreamBuffer streamBuffer;
       Renderer::createStreamBuffer(&streamBuffer);
 
-
-      // Load game module
-      loadGameModule((const char*) "game.dll", game);
-
       // Editor / Game loop ...
       uint64 startTime = 0;
       uint64 endTime = 0;
 
-      game.onStart();
+      //game.onStart();
       Rectf gameQuadPosition = Rectf(0.0f, 0.0f, 1.0f, 1.0f);
 
-      while(! (Platform::getWindowCloseFlag(window) || forceQuit))
+      while(! (Platform::getWindowCloseFlag(window) || editor.getCloseFlag()))
       {
         float deltaTime = Platform::getMillisecondsBetweenTicks(startTime, endTime);
 
@@ -243,7 +181,7 @@ namespace smol
         Platform::updateWindowEvents(window);
         InputManager::get().update();
         EventManager::get().dispatchEvents();
-        game.onUpdate(deltaTime);
+
 
         // Resize the back buffer if window dimentions changed
         if (resized)
@@ -254,6 +192,7 @@ namespace smol
         }
         // Render the game to the back buffer
         Renderer::useRenderTarget(backBuffer);
+        editor.updateGame(deltaTime);
         SceneManager::get().renderScene(deltaTime);
 
         // Draw the game backbuffer and the editor the the screen
@@ -267,26 +206,46 @@ namespace smol
             Vector2(gameQuadPosition.w, gameQuadPosition.h), Rectf(0.0f, 0.0f, 1.0f, 1.0f), Color::WHITE);
         Renderer::end(streamBuffer);
 
-        editor.render(displayConfig.width, displayConfig.height);
+        editor.update(displayConfig.width, displayConfig.height);
 
         // Draw to the window
         Platform::swapBuffers(window);
         endTime = Platform::getTicks();
       }
 
-      game.onStop();
-      editor.terminate();
+      //game.onStop();
       Platform::unloadModule(game.module);
       Platform::destroyWindow(window);
+
+      // Are we supposed to reopen with another project ?
+      const char* reopenWithProjectPath = editor.shouldReopenWithProject();
+      if (reopenWithProjectPath)
+      {
+        char cmdLine[Platform::MAX_PATH_LEN];
+        const char* editorName = argv[0] + strlen(argv[0]);
+        while (editorName > argv[0] && *editorName != '\\' && *editorName != '/') 
+          editorName--;
+        if (*editorName == '\\' || *editorName == '/') 
+          editorName++;
+
+        Platform::setWorkingDirectory(Platform::getBinaryPath());
+        snprintf(cmdLine, Platform::MAX_PATH_LEN, "%s %s", editorName, reopenWithProjectPath);
+        debugLogInfo("running '%s'", cmdLine);
+        popen(cmdLine, "r");
+      }
+
+      editor.terminate();
+      //ResourceManager::get().~ResourceManager();
+      //SceneManager::get().~SceneManager();
       return 0;
     }
   }
 }
+
 // Windows program entrypoint
 #ifdef SMOL_PLATFORM_WINDOWS
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-  //TODO(marcio): handle command line here when we support any
   return smol::editor::smolMain(0, (const char**) lpCmdLine);
 }
 #endif  // SMOL_PLATFORM_WINDOWS
