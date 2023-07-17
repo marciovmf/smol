@@ -74,6 +74,8 @@ namespace smol
 
   ConfigManager::~ConfigManager()
   {
+    initialized = false;
+    debugLogInfo("Deinitialized ConfigManager");
     delete config;
   }
 
