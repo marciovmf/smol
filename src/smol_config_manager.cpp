@@ -20,7 +20,7 @@ namespace smol
       return;
     }
 
-    alwaysRebuildBeforeRun  = entry->getVariableNumber("always_build_on_run", true) >= 1.0;
+    alwaysRebuildBeforeRun  = entry->getVariableNumber("always_build_on_run", alwaysRebuildBeforeRun) >= 1.0;
     const char* keyName     = entry->getVariableString("key_play_stop", "F5");
     keyStartStop = InputManager::get().keyboard.getKeycodeByName(keyName);
   }
@@ -38,8 +38,8 @@ namespace smol
       return;
     }
 
-    enableMSAA            = entry->getVariableNumber("enable_msaa", true) >= 1.0;
-    enableGammaCorrection = entry->getVariableNumber("enable_gamma_correction", true) >= 1.0;
+    enableMSAA            = entry->getVariableNumber("enable_msaa", enableMSAA) >= 1.0;
+    enableGammaCorrection = entry->getVariableNumber("enable_gamma_correction", enableGammaCorrection) >= 1.0;
   }
 
   GlobalSystemConfig::GlobalSystemConfig() {}
@@ -58,9 +58,9 @@ namespace smol
       return;
     }
 
-    showCursor = entry->getVariableNumber("show_cursor", 1.0) >= 1.0; 
-    captureCursor = entry->getVariableNumber("capture_cursor", 0.0) >= 1.0;
-    const Vector2 defaultGlVersion = Vector2{3.0f, 3.0f};
+    showCursor = entry->getVariableNumber("show_cursor", showCursor) >= 1.0; 
+    captureCursor = entry->getVariableNumber("capture_cursor", captureCursor) >= 1.0;
+    const Vector2 defaultGlVersion = Vector2{(float) glVersionMajor, (float) glVersionMinor};
     Vector2 glVersion = entry->getVariableVec2("gl_version", defaultGlVersion);
     glVersionMajor = (int) glVersion.x;
     glVersionMinor = (int) glVersion.y;
@@ -80,12 +80,12 @@ namespace smol
     }
 
     Vector2 size;
-    fullScreen    = entry->getVariableNumber("fullscreen", 0.0) >= 1.0;
-    caption       = entry->getVariableString("caption", "Smol engine");
-    aspectRatio   = (float) entry->getVariableNumber("aspect_ratio", 0.0);
-    Vector3 color = entry->getVariableVec3("crop_area_color", Vector3(0.0f, 0.0f, 0.0f));
+    fullScreen    = entry->getVariableNumber("fullscreen", fullScreen) >= 1.0;
+    caption       = entry->getVariableString("caption", caption);
+    aspectRatio   = (float) entry->getVariableNumber("aspect_ratio", aspectRatio);
+    Vector3 color = entry->getVariableVec3("crop_area_color", Vector3(cropAreaColor.r, cropAreaColor.g, cropAreaColor.b));
     cropAreaColor = Color(color.x, color.y, color.z);
-    size          = entry->getVariableVec2("size", Vector2(1024.0f, 768.0f));
+    size          = entry->getVariableVec2("size", Vector2((float) width, (float) height));
     width         = (int) size.x;
     height        = (int) size.y;
   }

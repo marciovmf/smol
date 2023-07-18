@@ -16,8 +16,8 @@ namespace smol
 
   struct SMOL_ENGINE_API GlobalEditorConfig : public GlobalConfiguration
   {
-    bool alwaysRebuildBeforeRun;
-    Keycode keyStartStop;
+    bool alwaysRebuildBeforeRun = false;
+    Keycode keyStartStop = Keycode::KEYCODE_F5;
 
     GlobalEditorConfig();
     GlobalEditorConfig(const Config& config);
@@ -26,8 +26,8 @@ namespace smol
 
   struct SMOL_ENGINE_API GlobalRendererConfig : public GlobalConfiguration
   {
-    bool enableMSAA;
-    bool enableGammaCorrection;
+    bool enableMSAA = true;
+    bool enableGammaCorrection = true;
 
     GlobalRendererConfig();
     GlobalRendererConfig(const Config& config);
@@ -36,12 +36,12 @@ namespace smol
 
   struct SMOL_ENGINE_API GlobalDisplayConfig : public GlobalConfiguration
   {
-    const char* caption;
-    int width;
-    int height;
-    float aspectRatio;
-    Color cropAreaColor;
-    bool fullScreen;
+    const char* caption = (const char*) "Smol Engine";
+    int width = 1024;
+    int height = 7688;
+    float aspectRatio = 0.0f;
+    Color cropAreaColor = Color::BLACK;
+    bool fullScreen = false;
 
     GlobalDisplayConfig();
     GlobalDisplayConfig(const Config& config);
@@ -50,10 +50,10 @@ namespace smol
 
   struct SMOL_ENGINE_API GlobalSystemConfig : public GlobalConfiguration
   {
-    bool showCursor;
-    bool captureCursor;
-    int glVersionMajor;
-    int glVersionMinor;
+    bool showCursor = true;
+    bool captureCursor = false;
+    int glVersionMajor = 3;
+    int glVersionMinor = 0;
 
     GlobalSystemConfig();
     GlobalSystemConfig(const Config& config);
