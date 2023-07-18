@@ -19,9 +19,9 @@ namespace smol
     if (enabled)
     {
       Mouse& mouse = InputManager::get().mouse;
-      mouseLButtonDownThisFrame = mouse.getButtonDown(MOUSE_BUTTON_LEFT);
-      mouseLButtonUpThisFrame = mouse.getButtonUp(MOUSE_BUTTON_LEFT);
-      mouseLButtonIsDown = mouse.getButton(MOUSE_BUTTON_LEFT);
+      LMBDownThisFrame = mouse.getButtonDown(MOUSE_BUTTON_LEFT);
+      LMBUpThisFrame = mouse.getButtonUp(MOUSE_BUTTON_LEFT);
+      LMBIsDown = mouse.getButton(MOUSE_BUTTON_LEFT);
       mouseCursorPosition = mouse.getCursorPosition();
     }
     else
@@ -30,9 +30,9 @@ namespace smol
       activeControlId = 0;
       draggedControlId = 0;
       mouseCursorPosition = Point2{-1, -1};
-      mouseLButtonDownThisFrame = false;
-      mouseLButtonUpThisFrame = false;
-      mouseLButtonIsDown = false;
+      LMBDownThisFrame = false;
+      LMBUpThisFrame = false;
+      LMBIsDown = false;
     }
 
     z = 0.0f;
@@ -130,7 +130,7 @@ namespace smol
 
     if(isBeingDragged)
     {
-      if (mouseLButtonIsDown)
+      if (mouseLButtonIsDown())
       {
         topmostWindowId = id;
         currentCursorZ = z;
@@ -144,7 +144,7 @@ namespace smol
     }
     else if (mouseOverTitleBar)
     {
-      if (mouseLButtonDownThisFrame)
+      if (mouseLButtonDownThisFrame())
       {
         draggedControlId = id;
         cursorDragOffset = Point2{x - cursorPos.x, y - cursorPos.y};
@@ -265,12 +265,12 @@ namespace smol
           Vector2(w / screenW, h / screenH),
           Rectf(), skin.color[GUISkin::BUTTON_HOVER]);
 
-      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      if (mouseLButtonDownThisFrame() || (mouseLButtonIsDown() && isActiveControl))
       {
         activeControlId = id;
 
       }
-      else if(mouseLButtonUpThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
         returnValue = true;
@@ -279,7 +279,7 @@ namespace smol
     }
     else
     {
-      if (mouseLButtonUpThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -298,11 +298,6 @@ namespace smol
     y = areaOffset.y + y;
     lastRect = Rect(x , y, w, h);
 
-    mouseLButtonIsDown &= enabled;
-    mouseLButtonDownThisFrame &= enabled;
-    mouseLButtonIsDown &= enabled;
-    mouseLButtonIsDown &= enabled;
-
     GUISkin::ID styleId;
     bool returnValue = false;
     bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
@@ -313,12 +308,12 @@ namespace smol
       hoverControlId = id;
       styleId = GUISkin::BUTTON_HOVER;
 
-      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      if (mouseLButtonDownThisFrame() || (mouseLButtonIsDown() && isActiveControl))
       {
         activeControlId = id;
         styleId = GUISkin::BUTTON_ACTIVE;
       }
-      else if(mouseLButtonUpThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
         returnValue = true;
@@ -329,7 +324,7 @@ namespace smol
     {
       //hoverControlId = 0;
       styleId = GUISkin::BUTTON;
-      if (mouseLButtonUpThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -369,12 +364,12 @@ namespace smol
       hoverControlId = id;
       styleId = toggled ? GUISkin::TOGGLE_BUTTON_HOVER_ACTIVE : GUISkin::TOGGLE_BUTTON_HOVER;
 
-      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      if (mouseLButtonDownThisFrame() || (mouseLButtonIsDown() && isActiveControl))
       {
         activeControlId = id;
         styleId = GUISkin::TOGGLE_BUTTON_ACTIVE;
       }
-      else if(mouseLButtonUpThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
         returnValue = !toggled;
@@ -384,7 +379,7 @@ namespace smol
     else
     {
       hoverControlId = 0;
-      if (mouseLButtonUpThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -424,13 +419,13 @@ namespace smol
 
       bgStyle = GUISkin::CHECKBOX_HOVER;
 
-      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      if (mouseLButtonDownThisFrame() || (mouseLButtonIsDown() && isActiveControl))
       {
 
         bgStyle = GUISkin::CHECKBOX_ACTIVE;
         activeControlId = id;
       }
-      else if(mouseLButtonUpThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
         returnValue = !toggled;
@@ -440,7 +435,7 @@ namespace smol
     else
     {
       hoverControlId = 0;
-      if (mouseLButtonUpThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -488,12 +483,12 @@ namespace smol
     {
       hoverControlId = id;
       bgStyle = GUISkin::CHECKBOX_HOVER;
-      if (mouseLButtonDownThisFrame || (mouseLButtonIsDown && isActiveControl))
+      if (mouseLButtonDownThisFrame() || (mouseLButtonIsDown() && isActiveControl))
       {
         bgStyle = GUISkin::CHECKBOX_ACTIVE;
         activeControlId = id;
       }
-      else if(mouseLButtonUpThisFrame && isActiveControl)
+      else if(mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
         returnValue = !toggled;
@@ -503,7 +498,7 @@ namespace smol
     else
     {
       hoverControlId = 0;
-      if (mouseLButtonUpThisFrame && isActiveControl)
+      if (mouseLButtonUpThisFrame() && isActiveControl)
       {
         activeControlId = 0;
       }
@@ -559,7 +554,7 @@ namespace smol
 
     if(isBeingDragged && isActiveControl)
     {
-      if (mouseLButtonIsDown)
+      if (mouseLButtonIsDown())
       {
         innerHandleScale = handleScaleDrag;
         handlePos = (float)(cursorDragOffset.x + cursorPos.x);
@@ -573,7 +568,7 @@ namespace smol
     else if (mouseOverHandle)
     {
       innerHandleScale = handleScaleHover;
-      if (mouseLButtonDownThisFrame)
+      if (mouseLButtonDownThisFrame())
       {
         draggedControlId = id;
         activeControlId = id;
@@ -648,7 +643,7 @@ namespace smol
 
     if(isBeingDragged)
     {
-      if (mouseLButtonIsDown)
+      if (mouseLButtonIsDown())
       {
         innerHandleScale = handleScaleDrag;
         handlePos = (float)(cursorDragOffset.y + cursorPos.y);
@@ -661,7 +656,7 @@ namespace smol
     else if (mouseOverHandle)
     {
       innerHandleScale = handleScaleHover;
-      if (mouseLButtonDownThisFrame)
+      if (mouseLButtonDownThisFrame())
       {
         draggedControlId = id;
         cursorDragOffset = Point2{0, (int)handlePos - cursorPos.y};
@@ -769,9 +764,9 @@ namespace smol
             (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
             (int32) selectionRect.y - areaOffset.y, 0, NONE, skin.color[GUISkin::MENU_SELECTION]);
 
-        if (mouseLButtonDownThisFrame || (isActiveControl && mouseLButtonIsDown))
+        if (mouseLButtonDownThisFrame() || (isActiveControl && mouseLButtonIsDown()))
           activeControlId = id;
-        else if(mouseLButtonUpThisFrame && isActiveControl)
+        else if(mouseLButtonUpThisFrame() && isActiveControl)
         {
           activeControlId = 0;
           selectedOption = i;
@@ -782,7 +777,7 @@ namespace smol
       selectionRect.y += skin.labelFontSize + vSpacing;
     }
 
-    if (mouseLButtonDownThisFrame && !mouseOver)
+    if (mouseLButtonDownThisFrame() && !mouseOver)
     {
       activeControlId = 0;
       hoverControlId = 0;
@@ -843,7 +838,7 @@ namespace smol
     else if (mouseOver)
     {
       hoverControlId = id;
-      if (mouseLButtonDownThisFrame && !isActiveControl)
+      if (mouseLButtonDownThisFrame() && !isActiveControl)
       {
         activeControlId = id;
       }
@@ -864,6 +859,21 @@ namespace smol
   Handle<Material> GUI::getMaterial() const
   {
     return material;
+  }
+
+  inline bool GUI::mouseLButtonDownThisFrame()
+  {
+    return LMBDownThisFrame && enabled;
+  }
+
+  bool GUI::mouseLButtonUpThisFrame()
+  {
+    return LMBUpThisFrame && enabled;
+  }
+
+  bool GUI::mouseLButtonIsDown()
+  {
+    return LMBIsDown && enabled;
   }
 
   void GUI::initialize(Handle<Material> material, Handle<Font> font)

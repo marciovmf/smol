@@ -104,10 +104,15 @@ namespace smol
     Rect areaOffset;
     float z;
     //Point2 mousePos;
+
     Point2 mouseCursorPosition;
-    bool mouseLButtonDownThisFrame;
-    bool mouseLButtonUpThisFrame;
-    bool mouseLButtonIsDown;
+    bool LMBDownThisFrame;
+    bool LMBUpThisFrame;
+    bool LMBIsDown;
+
+    inline bool mouseLButtonDownThisFrame();
+    inline bool mouseLButtonUpThisFrame();
+    inline bool mouseLButtonIsDown();
 
     public:
 
@@ -156,7 +161,6 @@ namespace smol
     //private:
     // returns the index of the selected option. Returns -1 if nothing was selected
     int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth);
-
   };
 }
 #endif //SMOL_GUI_H
