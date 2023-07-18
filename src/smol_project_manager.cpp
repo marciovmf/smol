@@ -30,9 +30,8 @@ namespace smol
   {
     const char* msgErrorTitle = "Error creating new project";
     char buffer[Platform::MAX_PATH_LEN];
-    char templatePackageFile[Platform::MAX_PATH_LEN];
-    char settingsFile[Platform::MAX_PATH_LEN];
-    char settingsFileNew[Platform::MAX_PATH_LEN];
+    char fromPath[Platform::MAX_PATH_LEN];
+    char toPath[Platform::MAX_PATH_LEN];
 
     // get the project base path
     char* projectFolder = buffer;
@@ -50,7 +49,7 @@ namespace smol
     //
 
     // Get the full path of the template package. it's relative to the editor binary path.
-    int32 result = snprintf(templatePackageFile, Platform::MAX_PATH_LEN, "%s%ctemplate_project.package", Platform::getBinaryPath(), Platform::pathSeparator());
+    int32 result = snprintf(fromPath, Platform::MAX_PATH_LEN, "%s%ctemplate_project.package", Platform::getBinaryPath(), Platform::pathSeparator());
     if (result < 0 || result > Platform::MAX_PATH_LEN)
     {
       Platform::messageBoxError(msgErrorTitle, (const char*) "Engine path is too long.");
@@ -58,21 +57,49 @@ namespace smol
     }
 
     // make sure the template package exists
-    if (!Platform::pathExists(templatePackageFile))
+    if (!Platform::pathExists(fromPath))
     {
       Platform::messageBoxError(msgErrorTitle, (const char*) "Missing template_project.package.");
       return false;
     }
 
     // extract template project package
-    Packer::extractPackage(templatePackageFile, projectFolder);
+    if (!Packer::extractPackage(fromPath, projectFolder))
+    {
+      Platform::messageBoxError(msgErrorTitle, (const char*) "Unable to extract proejct file package to project folder.");
+      return false;
+    }
+
+    //
+    // Assets folder
+    //
+    result = snprintf(fromPath, Platform::MAX_PATH_LEN, "%s%cassets", Platform::getBinaryPath(), Platform::pathSeparator());
+    if (result < 0 || result > Platform::MAX_PATH_LEN)
+    {
+      Platform::messageBoxError(msgErrorTitle, (const char*) "Engine path is too long.");
+      return false;
+    }
+
+    result = snprintf(toPath, Platform::MAX_PATH_LEN, "%sruntree%cassets", projectFolder, Platform::pathSeparator());
+    if (result < 0 || result > Platform::MAX_PATH_LEN)
+    {
+      Platform::messageBoxError(msgErrorTitle, (const char*) "Project path is too long.");
+      return false;
+    }
+    
+    if (! Platform::copyDirectory(fromPath, toPath) )
+    {
+      Platform::messageBoxError(msgErrorTitle, (const char*) "Failed to copy engine assets to project folder.");
+      return false;
+    }
+
 
     //
     // Settings file
     //
 
     //Get the full path of the settings file. it's relative to the editor binary path.
-    result = snprintf(settingsFile, Platform::MAX_PATH_LEN, "%s%c%s", Platform::getBinaryPath(), Platform::pathSeparator(), SMOL_VARIABLES_FILE);
+    result = snprintf(fromPath, Platform::MAX_PATH_LEN, "%s%c%s", Platform::getBinaryPath(), Platform::pathSeparator(), SMOL_VARIABLES_FILE);
     if (result < 0 || result > Platform::MAX_PATH_LEN)
     {
       Platform::messageBoxError(msgErrorTitle, (const char*) "Engine path is too long.");
@@ -80,25 +107,24 @@ namespace smol
     }
 
     // make sure the settings file exists
-    if (!Platform::pathExists(settingsFile))
+    if (!Platform::pathExists(fromPath))
     {
       Platform::messageBoxError(msgErrorTitle, (const char*) "Missing settings file!");
       return false;
     }
 
-    result = snprintf(settingsFileNew, Platform::MAX_PATH_LEN, "%s%cruntree%c%s", projectFolder, Platform::pathSeparator(), Platform::pathSeparator(), SMOL_VARIABLES_FILE);
+    result = snprintf(toPath, Platform::MAX_PATH_LEN, "%s%cruntree%c%s", projectFolder, Platform::pathSeparator(), Platform::pathSeparator(), SMOL_VARIABLES_FILE);
     if (result < 0 || result > Platform::MAX_PATH_LEN)
     {
       Platform::messageBoxError(msgErrorTitle, (const char*) "Project path is too long.");
       return false;
     }
 
-    if (!Platform::copyFile(settingsFile, settingsFileNew, false))
+    if (!Platform::copyFile(fromPath, toPath, false))
     {
       Platform::messageBoxError(msgErrorTitle, (const char*) "Unable to copy settings file to the project folder.");
       return false;
     }
-
 
     //
     // Proejct file
@@ -124,6 +150,7 @@ namespace smol
 
     fflush(fd);
     fclose(fd);
+
     return true;
   }
 
@@ -195,17 +222,17 @@ namespace smol
     // Change directory to the project path
     Platform::setWorkingDirectory(project.path);
     // Generates the project if it wasn't already
-    if (! Platform::fileExists("../workspace/CMakeCache.txt"))
+    project.state = Project::CREATED;
+
+    if (Platform::fileExists("../workspace/CMakeCache.txt"))
     {
-      project.state = Project::CREATED;
+      project.state = Project::GENERATED;
     }
 
-    if (! Platform::fileExists("game.dll"))
+    if (Platform::fileExists("game.dll"))
     {
       project.state = Project::READY;
     }
-
-    project.state = Project::GENERATED;
     return true;
   }
 

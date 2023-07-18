@@ -190,6 +190,7 @@ namespace smol
           Renderer::resizeTextureRenderTarget(backBuffer, displayConfig.width, displayConfig.height);
           gameQuadPosition = calculateAspectAwarePosition(displayConfig.width, displayConfig.height, displayConfig.aspectRatio);
         }
+
         // Render the game to the back buffer
         Renderer::useRenderTarget(backBuffer);
         editor.updateGame(deltaTime);

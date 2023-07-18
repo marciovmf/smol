@@ -90,7 +90,7 @@ namespace smol
         (const char*) "New Ninja project", 
         (const char*) "Open project" };
     const int numOptions = sizeof(projectMenuOptions) / sizeof(char*);
-    const int32 openPrpjectOption = 4;
+    const int32 openProjectOption = 4;
 
     // Project menu
     gui.panel(SMOL_CONTROL_ID, 0, 0, width, height);
@@ -109,7 +109,7 @@ namespace smol
       {
         activeMenu = -1;
 
-        if (option == openPrpjectOption)
+        if (option == openProjectOption)
         {
           bool success = Platform::showOpenFileDialog("Open project", reopenProjectFilePath,
               (const char*)"Smol project Files\0project.smol\0\0",
