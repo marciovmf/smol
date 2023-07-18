@@ -995,4 +995,26 @@ namespace smol
     buffer[0] = 0;
     return false;
   }
+
+  Color Platform::showColorPickerDialog()
+  {
+    Color selectedColor = Color::WHITE;
+    CHOOSECOLOR chooseColor;
+    static COLORREF customColors[16] = { 0 };
+    ZeroMemory(&chooseColor, sizeof(chooseColor));
+    chooseColor.lStructSize = sizeof(chooseColor);
+    chooseColor.hwndOwner = NULL;
+    chooseColor.rgbResult = RGB(0, 0, 0);
+    chooseColor.lpCustColors = customColors;
+    chooseColor.Flags = CC_FULLOPEN | CC_RGBINIT;
+
+    if (ChooseColor(&chooseColor))
+    {
+      selectedColor.r = GetRValue(chooseColor.rgbResult) / 255.0f;
+      selectedColor.g = GetGValue(chooseColor.rgbResult) / 255.0f;
+      selectedColor.b = GetBValue(chooseColor.rgbResult) / 255.0f;
+    }
+
+    return selectedColor;
+  }
 } 

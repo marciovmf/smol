@@ -174,7 +174,6 @@ namespace smol
         yPos = 5;
 
         GUISkin& skin = gui.getSkin();
-        debugLogWarning("LineHeight = %f", skin.lineHeightAdjust);
         const int numOptions = sizeof(menuOptions)/sizeof(char*);
         comboValue = gui.doComboBox(SMOL_CONTROL_ID, menuOptions, numOptions, comboValue, 5, yPos, 290);
         yPos += vSpacing + controlHeight;
@@ -221,6 +220,7 @@ namespace smol
       {
         toggleMode();
       }
+
       gui.enabled = true;
       yPos += vSpacing + controlHeight;
 
@@ -232,7 +232,6 @@ namespace smol
         closeFlag = true;
       }
       yPos += vSpacing + controlHeight;
-
 
       //
       // Fixed aspect ratio
@@ -280,6 +279,23 @@ namespace smol
       if(wasFullScreen != isFullScreen)
       {
         Platform::setFullScreen(window, isFullScreen);
+      }
+      yPos += vSpacing + controlHeight;
+
+      //
+      // Compile always 
+      //
+      GlobalEditorConfig& editorConfig = (GlobalEditorConfig&) ConfigManager::get().editorConfig();
+      editorConfig.alwaysRebuildBeforeRun = gui.doCheckBox(SMOL_CONTROL_ID, "Always compile on run", editorConfig.alwaysRebuildBeforeRun, 5, yPos);
+      yPos += vSpacing + controlHeight;
+
+
+      //
+      // Crop area Color
+      //
+      if (gui.doButton(SMOL_CONTROL_ID, "Bordee area color", 5, yPos, 290, controlHeight))
+      {
+        displayConfig .cropAreaColor = Platform::showColorPickerDialog();
       }
       yPos += vSpacing + controlHeight;
 

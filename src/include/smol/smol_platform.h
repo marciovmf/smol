@@ -18,6 +18,7 @@
 
 #include <smol/smol.h>
 #include <smol/smol_point.h>
+#include <smol/smol_color.h>
 
 namespace smol
 {
@@ -123,6 +124,7 @@ namespace smol
     static bool messageBoxYesNo(const char* title, const char* message);
     static bool showSaveFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedSaveFileName = nullptr);
     static bool showOpenFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedopenFileName = nullptr);
+    static Color showColorPickerDialog();
   };
 } 
 
