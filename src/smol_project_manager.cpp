@@ -198,7 +198,11 @@ namespace smol
     if (! Platform::fileExists("../workspace/CMakeCache.txt"))
     {
       project.state = Project::CREATED;
-      return true;
+    }
+
+    if (! Platform::fileExists("game.dll"))
+    {
+      project.state = Project::READY;
     }
 
     project.state = Project::GENERATED;

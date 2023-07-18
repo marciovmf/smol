@@ -1,9 +1,30 @@
 #include <smol/smol_config_manager.h>
 #include <smol/smol_cfg_parser.h>
+#include <smol/smol_input_manager.h>
 #include <smol/smol_log.h>
 
 namespace smol
 {
+
+
+  GlobalEditorConfig::GlobalEditorConfig(const Config& config)  { update(config); }
+
+  GlobalEditorConfig::GlobalEditorConfig() {}
+
+  void GlobalEditorConfig::update(const Config& config)
+  {
+    const ConfigEntry* entry = config.findEntry("editor");
+    if (!entry)
+    {
+      debugLogWarning("No 'editor' config found");
+      return;
+    }
+
+    alwaysRebuildBeforeRun  = entry->getVariableNumber("always_build_on_run", true) >= 1.0;
+    const char* keyName     = entry->getVariableString("key_play_stop", "F5");
+    keyStartStop = InputManager::get().keyboard.getKeycodeByName(keyName);
+  }
+
   GlobalRendererConfig::GlobalRendererConfig(const Config& config)  { update(config); }
 
   GlobalRendererConfig::GlobalRendererConfig() {}
@@ -13,7 +34,7 @@ namespace smol
     const ConfigEntry* entry = config.findEntry("renderer");
     if (!entry)
     {
-      debugLogError("No 'Renderer' config found");
+      debugLogWarning("No 'Renderer' config found");
       return;
     }
 
@@ -33,13 +54,13 @@ namespace smol
     const ConfigEntry* entry = config.findEntry("system");
     if (!entry)
     {
-      debugLogError("No 'system' config found");
+      debugLogWarning("No 'system' config found");
       return;
     }
 
-    showCursor = entry->getVariableNumber("show_cursor") >= 1.0; 
-    captureCursor = entry->getVariableNumber("capture_cursor") >= 1.0;
-    const Vector2 defaultGlVersion = Vector2{3.0f, 0.0f};
+    showCursor = entry->getVariableNumber("show_cursor", 1.0) >= 1.0; 
+    captureCursor = entry->getVariableNumber("capture_cursor", 0.0) >= 1.0;
+    const Vector2 defaultGlVersion = Vector2{3.0f, 3.0f};
     Vector2 glVersion = entry->getVariableVec2("gl_version", defaultGlVersion);
     glVersionMajor = (int) glVersion.x;
     glVersionMinor = (int) glVersion.y;
@@ -54,17 +75,17 @@ namespace smol
     const ConfigEntry* entry = config.findEntry("display");
     if (!entry)
     {
-      debugLogError("No 'display' config found");
+      debugLogWarning("No 'display' config found");
       return;
     }
 
     Vector2 size;
-    fullScreen    = entry->getVariableNumber("fullscreen") >= 1.0;
-    caption       = entry->getVariableString("caption");
+    fullScreen    = entry->getVariableNumber("fullscreen", 0.0) >= 1.0;
+    caption       = entry->getVariableString("caption", "Smol engine");
     aspectRatio   = (float) entry->getVariableNumber("aspect_ratio", 0.0);
     Vector3 color = entry->getVariableVec3("crop_area_color", Vector3(0.0f, 0.0f, 0.0f));
     cropAreaColor = Color(color.x, color.y, color.z);
-    size          = entry->getVariableVec2("size");
+    size          = entry->getVariableVec2("size", Vector2(1024.0f, 768.0f));
     width         = (int) size.x;
     height        = (int) size.y;
   }
@@ -88,11 +109,11 @@ namespace smol
   void ConfigManager::initialize(const char* path)
   {
     SMOL_ASSERT(initialized == false, "Atempt reinitialize ConfigManager");
-    //TODO(marcio): Can we still use our custom allocator here ?
     config = new Config(path);
     cfgDisplay.update(*config);
     cfgSystem.update(*config);
     cfgRenderer.update(*config);
+    cfgEditor.update(*config);
     initialized = true;
   }
 
@@ -117,5 +138,11 @@ namespace smol
   {
     SMOL_ASSERT(initialized == true, "Atempt to get Render configuration from an uninitialized ConfigManager");
     return cfgRenderer;
+  }
+
+  const GlobalEditorConfig& ConfigManager::editorConfig() const
+  {
+    SMOL_ASSERT(initialized == true, "Atempt to get Editor configuration from an uninitialized ConfigManager");
+    return cfgEditor;
   }
 }

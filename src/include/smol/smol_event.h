@@ -2,6 +2,7 @@
 #define SMOL_EVENT_H
 
 #include <smol/smol_engine.h>
+#include <smol/smol_keyboard.h>
 
 namespace smol
 {
@@ -58,7 +59,7 @@ namespace smol
     };
 
     Type type;
-    uint8 keyCode; 
+    Keycode keyCode; 
   };
 
   /**

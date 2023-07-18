@@ -3,6 +3,7 @@
 
 #include <smol/smol_engine.h>
 #include <smol/smol_color.h>
+#include <smol/smol_keyboard.h>
 
 namespace smol
 {
@@ -11,6 +12,16 @@ namespace smol
   struct GlobalConfiguration
   {
     virtual void update(const Config&) = 0;
+  };
+
+  struct SMOL_ENGINE_API GlobalEditorConfig : public GlobalConfiguration
+  {
+    bool alwaysRebuildBeforeRun;
+    Keycode keyStartStop;
+
+    GlobalEditorConfig();
+    GlobalEditorConfig(const Config& config);
+    void update(const Config& config) override;
   };
 
   struct SMOL_ENGINE_API GlobalRendererConfig : public GlobalConfiguration
@@ -56,6 +67,9 @@ namespace smol
     GlobalSystemConfig    cfgSystem;
     GlobalDisplayConfig   cfgDisplay;
     GlobalRendererConfig  cfgRenderer;
+#ifndef SMOL_MODULE_GAME
+    GlobalEditorConfig    cfgEditor;
+#endif
 
     ConfigManager();
 
@@ -66,6 +80,9 @@ namespace smol
     const GlobalSystemConfig& systemConfig() const;
     const GlobalDisplayConfig& displayConfig() const;
     const GlobalRendererConfig& rendererConfig() const;
+#ifndef SMOL_MODULE_GAME
+    const GlobalEditorConfig& editorConfig() const;
+#endif
     const Config& rawConfig() const;
 
     // Disallow coppies

@@ -141,12 +141,19 @@ namespace smol
 
   void Editor::update(int windowWidth, int windowHeight)
   {
-    if (project->state == Project::READY && mode == Mode::MODE_PRERUN)
+    //
+    // Should game.onStart be called ?
+    //
+    bool shouldAlwaysBuild = ConfigManager::get().editorConfig().alwaysRebuildBeforeRun;
+    if (mode == Mode::MODE_PRERUN)
     {
-      mode = Mode::MODE_RUNNING;
-      loadGameModule("game.dll");
-      gameModule.onStart();
-      return;
+      if((project->state == Project::READY || (project->state == Project::GENERATED && !shouldAlwaysBuild)))
+      {
+        mode = Mode::MODE_RUNNING;
+        loadGameModule("game.dll");
+        gameModule.onStart();
+        return;
+      }
     }
 
     Renderer::setMaterial(gui.getMaterial());
@@ -155,6 +162,7 @@ namespace smol
     int yPos;
 
     gui.begin(windowWidth, windowHeight);
+
     if (mode == MODE_EDIT)
     {
       drawMainMenu(windowWidth, controlHeight);
@@ -279,6 +287,9 @@ namespace smol
 
     }
 
+    //
+    // Shows a blocking popup if we are building or generating the solution
+    //
     bool isBusy = false;
     const char* msg;
     const char* errorMsg;
@@ -315,7 +326,6 @@ namespace smol
     }
 
     gui.end();
-
   }
 
   void Editor::toggleMode()
@@ -327,7 +337,10 @@ namespace smol
       {
         debugLogInfo("Editor mode change: RUN"); 
         mode = Mode::MODE_PRERUN;
-        ProjectManager::buildProjectModule(*project);
+        if (!Platform::fileExists("game.dll") || ConfigManager::get().editorConfig().alwaysRebuildBeforeRun)
+        {
+          ProjectManager::buildProjectModule(*project);
+        }
       }
     }
     else if (mode == Mode::MODE_RUNNING)
@@ -344,7 +357,8 @@ namespace smol
   {
     if (event.type == Event::KEYBOARD)
     {
-      if (event.keyboardEvent.type == KeyboardEvent::KEY_DOWN && event.keyboardEvent.keyCode == KEYCODE_F5)
+      Keycode keyStartStop = ConfigManager::get().editorConfig().keyStartStop;
+      if (event.keyboardEvent.type == KeyboardEvent::KEY_DOWN && event.keyboardEvent.keyCode == keyStartStop)
       {
         toggleMode();
         return true;

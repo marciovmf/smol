@@ -164,7 +164,7 @@ namespace smol
           evt.type = Event::KEYBOARD;
           evt.keyboardEvent.type = (wasDown && !isDown) ?
             KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
-          evt.keyboardEvent.keyCode = (uint8) vkCode;
+          evt.keyboardEvent.keyCode = (Keycode) vkCode;
           eventManager.pushEvent(evt);
         }
         break;
