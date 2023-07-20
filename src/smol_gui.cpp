@@ -1,7 +1,7 @@
+#include <exception>
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
 #include <smol/smol_input_manager.h>
-#include <system_error>
 
 namespace smol
 {
@@ -85,6 +85,7 @@ namespace smol
   {
     lastRect = Rect(x, y, w, h);
     windowCount++;
+    currentWindowId = id;
 
     // Bring the topmost window way above other windows
 
@@ -124,6 +125,12 @@ namespace smol
     beginArea(x, y + titleBarHeight, w, h - titleBarHeight);
     lastRect = Rect(x, y, w, h);
 
+    if (lastRect.containsPoint(mouseCursorPosition) && mouseLButtonDownThisFrame())
+    {
+        topmostWindowId = id;
+        currentCursorZ = z;
+    }
+
     // check for dragging the title bar
     Point2 newPos = Point2{x, y};
     const Point2& cursorPos = mouseCursorPosition;
@@ -147,6 +154,7 @@ namespace smol
       if (mouseLButtonDownThisFrame())
       {
         draggedControlId = id;
+        topmostWindowId = id;
         cursorDragOffset = Point2{x - cursorPos.x, y - cursorPos.y};
         newPos.x = cursorDragOffset.x + cursorPos.x;
         newPos.y = cursorDragOffset.y + cursorPos.y;
@@ -163,6 +171,8 @@ namespace smol
       debugLogError("Unbalanced begin/end window calls.");
       return;
     }
+
+    currentWindowId = 0;
     windowCount--;
     endArea();
   }
@@ -301,6 +311,7 @@ namespace smol
     GUISkin::ID styleId;
     bool returnValue = false;
     bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
+
     bool isActiveControl = activeControlId == id;
 
     if (mouseOver)
@@ -399,7 +410,7 @@ namespace smol
 
   bool GUI::doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
-    const uint32 size = DEFAULT_CONTROL_HEIGHT;
+    const uint32 size = (int32)(0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
@@ -467,7 +478,7 @@ namespace smol
 
   bool GUI::doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
-    const uint32 size = DEFAULT_CONTROL_HEIGHT;
+    const uint32 size = (int32)(0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     x = areaOffset.x + x;
     y = areaOffset.y + y;
     lastRect = Rect(x, y, size, size);
@@ -534,7 +545,7 @@ namespace smol
     const float handleScaleHover  = 0.8f;
     const float handleScaleNormal = 0.65f;
     const float handleScaleDrag   = 0.5f;
-    const uint32 handleSize = DEFAULT_CONTROL_HEIGHT;
+    const uint32 handleSize = (int32) (0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     float innerHandleScale = handleScaleNormal;
 
     x = areaOffset.x + x;
@@ -556,6 +567,9 @@ namespace smol
     {
       if (mouseLButtonIsDown())
       {
+        if (topmostWindowId)
+          topmostWindowId = currentWindowId;
+
         innerHandleScale = handleScaleDrag;
         handlePos = (float)(cursorDragOffset.x + cursorPos.x);
       }
@@ -624,7 +638,7 @@ namespace smol
     const float handleScaleHover  = 0.8f;
     const float handleScaleNormal = 0.65f;
     const float handleScaleDrag   = 0.5f;
-    const uint32 handleSize = DEFAULT_CONTROL_HEIGHT;
+    const uint32 handleSize = (int32) (0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     float innerHandleScale = handleScaleNormal;
 
     x = areaOffset.x + x;
@@ -645,6 +659,9 @@ namespace smol
     {
       if (mouseLButtonIsDown())
       {
+        if (topmostWindowId)
+          topmostWindowId = currentWindowId;
+
         innerHandleScale = handleScaleDrag;
         handlePos = (float)(cursorDragOffset.y + cursorPos.y);
       }
@@ -716,31 +733,35 @@ namespace smol
     // Popups are the frontmost possible controls. So we always draw them way above everything else.
     z= -0.95f + popupCount * 0.001f;
 
-    int32 selectedOption = -1;
+    int32 selectedOption = POPUP_MENU_IDLE;
     const Point2 mousePos = mouseCursorPosition;
     const int vSpacing = 1;
-    const float totalMenuHeight = ((optionCount * skin.labelFontSize) + (optionCount * vSpacing));
+    const float minHeight = DEFAULT_CONTROL_HEIGHT;
+    const float controlHeight = skin.labelFontSize > (float) minHeight ? skin.labelFontSize : (float) minHeight;
+    const float halfControlHeight = controlHeight / 2.0f;
 
     // First we draw all the labels to figure out how large this popup should be.
     bool isActiveControl = activeControlId == id;
-    Rectf selectionRect((float)x,(float) y,(float) minWidth, skin.labelFontSize);
+    Rectf selectionRect((float)x,(float) y,(float) minWidth, controlHeight);
     bool mouseOver = false;
     for (uint32 i = 0; i < optionCount; i++)
     { 
       // label
       label(id, options[i],
-          (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
-          (int32) selectionRect.y - areaOffset.y, 0, NONE, skin.color[GUISkin::MENU]);
+          (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+          (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0, NONE, skin.color[GUISkin::MENU]);
 
       if (lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f > selectionRect.w)
         selectionRect.w = lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f;
 
-      selectionRect.y += skin.labelFontSize + vSpacing;
+      selectionRect.y += vSpacing + controlHeight;
     }
 
+    const float totalMenuHeight = ((optionCount * controlHeight) + (optionCount * vSpacing));
     // Reset y so we start drawing the selection from the top again
     selectionRect.y = (float) y;
     // Draw the background
+    Rectf totalRect(selectionRect.x, selectionRect.y, selectionRect.w, totalMenuHeight);
     Renderer::pushSprite(streamBuffer,
         Vector3(selectionRect.x / screenW, selectionRect.y / screenH, z + 0.01f),
         Vector2(selectionRect.w / screenW, totalMenuHeight / screenH),
@@ -756,13 +777,13 @@ namespace smol
         mouseOver = true;
         Renderer::pushSprite(streamBuffer,
             Vector3(selectionRect.x / screenW , selectionRect.y / screenH, z),
-            Vector2(selectionRect.w / screenW, selectionRect.h / screenH),
+            Vector2(selectionRect.w / screenW, (controlHeight) / screenH),
             Rectf(), skin.color[GUISkin::MENU_SELECTION]);
 
         // redraw the label over the selection
         label(id, options[i],
-            (int32)selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
-            (int32) selectionRect.y - areaOffset.y, 0, NONE, skin.color[GUISkin::MENU_SELECTION]);
+            (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+            (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0, NONE, skin.color[GUISkin::MENU_SELECTION]);
 
         if (mouseLButtonDownThisFrame() || (isActiveControl && mouseLButtonIsDown()))
           activeControlId = id;
@@ -774,24 +795,21 @@ namespace smol
         }
       }
 
-      selectionRect.y += skin.labelFontSize + vSpacing;
+      selectionRect.y += controlHeight + vSpacing;
     }
 
     if (mouseLButtonDownThisFrame() && !mouseOver)
     {
       activeControlId = 0;
       hoverControlId = 0;
+      selectedOption = POPUP_MENU_DMISMISS;
     }
+
+    lastRect = Rect((int32) totalRect.x, (int32) totalRect.y, (int32) totalRect.w, (int32) totalRect.h);
 
     // We resotre the previous global Z
     z = oldZ;
     return selectedOption;
-  }
-
-
-  int32 GUI::doPopupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth)
-  {
-    return false;
   }
 
   int32 GUI::doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
@@ -804,7 +822,6 @@ namespace smol
     bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
     bool isActiveControl = activeControlId == id;
 
-
     // BOX
     GUISkin::ID styleId = mouseOver ? GUISkin::COMBO_BOX : GUISkin::COMBO_BOX_HOVER;
     Renderer::pushSprite(streamBuffer,
@@ -813,9 +830,10 @@ namespace smol
         Rectf(), skin.color[styleId]);
 
     // RIGHT SIDE "chevron icon"
+    float chevronSize = ((float)DEFAULT_CONTROL_HEIGHT * 0.8f);
     Renderer::pushSprite(streamBuffer,
-        Vector3((x + w - DEFAULT_CONTROL_HEIGHT - DEFAULT_H_SPACING) / screenW, y / screenH, z), 
-        Vector2((int32) DEFAULT_CONTROL_HEIGHT / screenW, (int32) DEFAULT_CONTROL_HEIGHT / screenH),
+        Vector3((x + w - chevronSize - (float) DEFAULT_H_SPACING) / screenW, y / screenH, z), 
+        Vector2((int32) chevronSize / screenW, (int32) (float) chevronSize / screenH),
         skin.spriteComboBoxChevron, Color::WHITE);
 
     // Label
@@ -841,10 +859,13 @@ namespace smol
       if (mouseLButtonDownThisFrame() && !isActiveControl)
       {
         activeControlId = id;
+
+        if (topmostWindowId)
+          topmostWindowId = currentWindowId;
       }
     }
 
-    if (newSelectedIndex >= 0)
+    if (newSelectedIndex >= 0 && newSelectedIndex < (int32) optionCount)
       selectedIndex = newSelectedIndex;
 
     return selectedIndex;

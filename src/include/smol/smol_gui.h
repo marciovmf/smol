@@ -7,6 +7,7 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
 #include <smol/smol_font.h>
+#include <limits.h>
 
 #define SMOL_CONTROL_ID (__LINE__)
 
@@ -79,8 +80,6 @@ namespace smol
     {
       MAX_NESTED_AREAS = 16,
       DEFAULT_H_SPACING = 5,
-      DEFAULT_CONTROL_HEIGHT = 20,
-
     };
 
     StreamBuffer streamBuffer;
@@ -92,6 +91,8 @@ namespace smol
     GUIControlID activeControlId;     // tracks statate of controls that have idle/hover/active states like buttons and checkboxes
     GUIControlID draggedControlId;    // tracks sliders and windows being dragged
     GUIControlID topmostWindowId;     // tracks the topmost window
+    GUIControlID currentWindowId;
+
     float currentCursorZ;
 
     Point2 cursorDragOffset;          // cursor offset related to the control it's dragging 
@@ -147,7 +148,6 @@ namespace smol
     bool doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
     bool doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
     bool doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
-    int32 doPopupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth);
     int32 doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
     float doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
     float doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
@@ -160,6 +160,13 @@ namespace smol
 
     //private:
     // returns the index of the selected option. Returns -1 if nothing was selected
+   
+    enum
+    {
+      DEFAULT_CONTROL_HEIGHT = 25,
+      POPUP_MENU_DMISMISS = INT_MIN,
+      POPUP_MENU_IDLE = INT_MAX,
+    };
     int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth);
   };
 }

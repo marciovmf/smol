@@ -26,7 +26,7 @@ void dummyOnGameGUICallback(smol::GUI&) {}
 namespace smol
 {
   std::string pipe;
-  const int controlHeight = 30;
+  const int controlHeight = GUI::DEFAULT_CONTROL_HEIGHT;
   Point2 windowPos = Point2{550, 150};
   Point2 windowPos2 = Point2{100, 300};
   bool radioOption = false;
@@ -80,7 +80,7 @@ namespace smol
     gui.endWindow();
   }
 
-  void Editor::drawMainMenu( int width, int height)
+  void Editor::drawMainMenu(int width, int height)
   {
     static int32 activeMenu = -1;
     const char* projectMenuOptions[] { 
@@ -94,6 +94,9 @@ namespace smol
 
     // Project menu
     gui.panel(SMOL_CONTROL_ID, 0, 0, width, height);
+
+
+    //if (gui.doLabelButton(projectControlId, "Project", 5, 0, 64, controlHeight))
     if (gui.doLabelButton(SMOL_CONTROL_ID, "Project", 5, 0, 64, controlHeight))
     {
       activeMenu = 0;
@@ -101,14 +104,13 @@ namespace smol
 
     if (activeMenu == 0)
     {
-      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions,
-          numOptions, 0, controlHeight, 120);
-
+      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions, numOptions, 0, controlHeight, 120);
       Project::CMakeGenerator generator = Project::CMakeGenerator::GENERATOR_COUNT;
-      if (option != -1)
+      if (option == GUI::POPUP_MENU_DMISMISS)
+        activeMenu = -1;
+      else if (option != GUI::POPUP_MENU_IDLE)
       {
         activeMenu = -1;
-
         if (option == openProjectOption)
         {
           bool success = Platform::showOpenFileDialog("Open project", reopenProjectFilePath,
@@ -214,7 +216,7 @@ namespace smol
       //
       // Run button
       //
-      
+
       gui.enabled = (project->state == Project::GENERATED || project->state == Project::READY);
       if (gui.doButton(SMOL_CONTROL_ID, "Play", 5, yPos, 290, controlHeight))
       {
