@@ -114,11 +114,12 @@ namespace smol
     const int32 OPTION_NEW = 0;
     const int32 OPTION_OPEN = 1;
 
+    int x = 5;
     //
     // Menu bar
     //
     gui.panel(SMOL_CONTROL_ID, 0, 0, width, height);
-    if (gui.doLabelButton(SMOL_CONTROL_ID, "Project", 5, 0, 64, controlHeight))
+    if (gui.doLabelButton(SMOL_CONTROL_ID, "Project", x, 0, 64, controlHeight))
     {
       activeMenu = MainMenu::PROJECT;
       projectActiveSubmenu = -1;
@@ -134,7 +135,7 @@ namespace smol
 
     if (activeMenu == MainMenu::PROJECT || activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
     {
-      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions, numOptions, 0, controlHeight, 120, projectActiveSubmenu);
+      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions, numOptions, x, controlHeight, 120, projectActiveSubmenu);
       if (option != GUI::POPUP_MENU_IDLE)
       {
         if (option == GUI::POPUP_MENU_DMISMISS && projectActiveSubmenu == -1)
@@ -168,7 +169,7 @@ namespace smol
     if (activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
     {
       projectActiveSubmenu = OPTION_NEW;
-      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectTypeOptions, numProjectTypeOptions, gui.getLastRect().w,
+      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectTypeOptions, numProjectTypeOptions, x + gui.getLastRect().w + 1,
           controlHeight, 120);
 
       if (option == GUI::POPUP_MENU_DMISMISS)
