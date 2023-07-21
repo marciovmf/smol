@@ -746,14 +746,16 @@ namespace smol
     bool mouseOver = false;
     for (uint32 i = 0; i < optionCount; i++)
     { 
-      // label
-      label(id, options[i],
-          (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
-          (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0, NONE, skin.color[GUISkin::MENU]);
+      if (options[i][0] != 0)
+      {
+        // label
+        label(id, options[i],
+            (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+            (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0, NONE, skin.color[GUISkin::MENU]);
 
-      if (lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f > selectionRect.w)
-        selectionRect.w = lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f;
-
+        if (lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f > selectionRect.w)
+          selectionRect.w = lastRect.w + (int32)DEFAULT_H_SPACING * skin.labelFontSize * 0.5f;
+      }
       selectionRect.y += vSpacing + controlHeight;
     }
 
@@ -770,7 +772,15 @@ namespace smol
     // Test for mouse interaction on each label
     for (uint32 i = 0; i < optionCount; i++)
     { 
-      if (selectionRect.containsPoint(mousePos) && z < currentCursorZ)
+      // Empty strings are separators
+      if (options[i][0] == 0)
+      {
+        Renderer::pushSprite(streamBuffer,
+            Vector3((selectionRect.x + (int32) DEFAULT_H_SPACING) / screenW , (selectionRect.y + halfControlHeight) / screenH, z),
+            Vector2((selectionRect.w - (int32) DEFAULT_H_SPACING * 2) / screenW, 2 / screenH),
+            Rectf(), skin.color[GUISkin::SEPARATOR]);
+      }
+      else if (selectionRect.containsPoint(mousePos) && z < currentCursorZ)
       {
         currentCursorZ = z;
         hoverControlId = id;

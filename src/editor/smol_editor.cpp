@@ -88,6 +88,7 @@ namespace smol
         (const char*) "New Visual Studio 2017 project", 
         (const char*) "New Makefile project", 
         (const char*) "New Ninja project", 
+        (const char*) "",
         (const char*) "Open project" };
     const int numOptions = sizeof(projectMenuOptions) / sizeof(char*);
     const int32 openProjectOption = 4;
