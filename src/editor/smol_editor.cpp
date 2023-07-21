@@ -1,5 +1,6 @@
 #include "smol_editor.h"
 #include "smol_editor_icons.h"
+#include <complex>
 #include <smol/smol_log.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_project_manager.h>
@@ -25,6 +26,13 @@ void dummyOnGameGUICallback(smol::GUI&) {}
 
 namespace smol
 {
+  enum MainMenu
+  {
+    NONE = 0,
+    PROJECT = 1,
+    PROJECT_SUBMENU_NEW = 2,
+  };
+
   std::string pipe;
   const int controlHeight = GUI::DEFAULT_CONTROL_HEIGHT;
   Point2 windowPos = Point2{550, 150};
@@ -61,6 +69,7 @@ namespace smol
     skin.spriteRadioButtonChecked = iconRADIO_CHECKED();
     skin.spriteSliderHandle = iconSLIDER_HANDLE();
     skin.spriteComboBoxChevron = iconCHEVRON_DOWN();
+    skin.spritePopupMenuChevron = iconCHEVRON_RIGHT();
     this->project = &project;
     this->reopenProjectFilePath[0] = 0;
     this->closeFlag = false;
@@ -82,38 +91,68 @@ namespace smol
 
   void Editor::drawMainMenu(int width, int height)
   {
-    static int32 activeMenu = -1;
-    const char* projectMenuOptions[] { 
-      (const char*) "New Visual Studio 2019 project", 
-        (const char*) "New Visual Studio 2017 project", 
-        (const char*) "New Makefile project", 
-        (const char*) "New Ninja project", 
-        (const char*) "",
-        (const char*) "Open project" };
+    static MainMenu activeMenu = MainMenu::NONE;
+    static int32 projectActiveSubmenu = -1;
+
+    const char* projectMenuOptions[] = 
+    { 
+      (const char*) ">New", 
+      (const char*) "Open project"
+    };
+
+    const char* projectTypeOptions[] =
+    {
+      (const char*) "Visual Studio 2019 project", 
+      (const char*) "Visual Studio 2017 project", 
+      (const char*) "Makefile project", 
+      (const char*) "Ninja project", 
+    };
+
     const int numOptions = sizeof(projectMenuOptions) / sizeof(char*);
-    const int32 openProjectOption = 4;
+    const int numProjectTypeOptions = sizeof(projectTypeOptions) / sizeof(char*);
 
-    // Project menu
+    const int32 OPTION_NEW = 0;
+    const int32 OPTION_OPEN = 1;
+
+    //
+    // Menu bar
+    //
     gui.panel(SMOL_CONTROL_ID, 0, 0, width, height);
-
-
-    //if (gui.doLabelButton(projectControlId, "Project", 5, 0, 64, controlHeight))
     if (gui.doLabelButton(SMOL_CONTROL_ID, "Project", 5, 0, 64, controlHeight))
     {
-      activeMenu = 0;
+      activeMenu = MainMenu::PROJECT;
+      projectActiveSubmenu = -1;
     }
 
-    if (activeMenu == 0)
+    // 
+    // Menus
+    //
+
+    //
+    // Project
+    //
+
+    if (activeMenu == MainMenu::PROJECT || activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
     {
-      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions, numOptions, 0, controlHeight, 120);
-      Project::CMakeGenerator generator = Project::CMakeGenerator::GENERATOR_COUNT;
-      if (option == GUI::POPUP_MENU_DMISMISS)
-        activeMenu = -1;
-      else if (option != GUI::POPUP_MENU_IDLE)
+      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions, numOptions, 0, controlHeight, 120, projectActiveSubmenu);
+      if (option != GUI::POPUP_MENU_IDLE)
       {
-        activeMenu = -1;
-        if (option == openProjectOption)
+        if (option == GUI::POPUP_MENU_DMISMISS && projectActiveSubmenu == -1)
         {
+          activeMenu = MainMenu::NONE;
+        }
+        else if (option & GUI::POPUP_HOVER)
+        {
+          activeMenu = MainMenu::PROJECT;
+          projectActiveSubmenu = -1;
+          if (option == (GUI::POPUP_HOVER | OPTION_NEW))
+          {
+            activeMenu = MainMenu::PROJECT_SUBMENU_NEW;
+          }
+        }
+        else if (option == OPTION_OPEN)
+        {
+          activeMenu = MainMenu::NONE;
           bool success = Platform::showOpenFileDialog("Open project", reopenProjectFilePath,
               (const char*)"Smol project Files\0project.smol\0\0",
               (const char*) "project.smol");
@@ -122,22 +161,37 @@ namespace smol
             closeFlag = true;
           }
         }
-        else
+      }
+    }
+
+    // project/new submenu
+    if (activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
+    {
+      projectActiveSubmenu = OPTION_NEW;
+      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectTypeOptions, numProjectTypeOptions, gui.getLastRect().w,
+          controlHeight, 120);
+
+      if (option == GUI::POPUP_MENU_DMISMISS)
+      {
+        activeMenu = MainMenu::NONE;
+      }
+      else if (option >= 0 && option < numProjectTypeOptions)
+      {
+        activeMenu = MainMenu::NONE;
+
+        Project::CMakeGenerator generator = Project::CMakeGenerator::GENERATOR_COUNT;
+        bool success = Platform::showSaveFileDialog("New project", reopenProjectFilePath,
+            (const char*)"Smol project Files\0project.smol\0\0",
+            (const char*) "project.smol");
+        if (success)
         {
-          bool success = Platform::showSaveFileDialog("New project", reopenProjectFilePath,
-              (const char*)"Smol project Files\0project.smol\0\0",
-              (const char*) "project.smol");
-          if (success)
+          generator = (Project::CMakeGenerator) option;
+          const char* projectName = "Smol Game";
+          if (ProjectManager::createProject(reopenProjectFilePath, projectName, generator))
           {
-            generator = (Project::CMakeGenerator) option;
-            const char* projectName = "Smol Game";
-            if (ProjectManager::createProject(reopenProjectFilePath, projectName, generator))
-            {
-              closeFlag = true;
-            }
+            closeFlag = true;
           }
         }
-
       }
     }
   }
@@ -248,6 +302,7 @@ namespace smol
         {
           if (displayConfig.aspectRatio == aspectValues[0])
           {
+            debugLogInfo("Initial aspect ration = %d", i);
             aspectComboValue = i;
             break;
           }

@@ -722,7 +722,7 @@ namespace smol
     return returnValue;
   }
 
-  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth)
+  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth, uint32 defaultSelection)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -739,17 +739,24 @@ namespace smol
     const float minHeight = DEFAULT_CONTROL_HEIGHT;
     const float controlHeight = skin.labelFontSize > (float) minHeight ? skin.labelFontSize : (float) minHeight;
     const float halfControlHeight = controlHeight / 2.0f;
+    float chevronSize = ((float) controlHeight * 0.5f);
 
-    // First we draw all the labels to figure out how large this popup should be.
+
+    //
+    // Draw all labels first so we know the final dimention of the popup
+    //
     bool isActiveControl = activeControlId == id;
     Rectf selectionRect((float)x,(float) y,(float) minWidth, controlHeight);
     bool mouseOver = false;
     for (uint32 i = 0; i < optionCount; i++)
     { 
-      if (options[i][0] != 0)
+      const char* strLabel = options[i];
+      if (strLabel[0] != 0)
       {
-        // label
-        label(id, options[i],
+        if (strLabel[0] == '>') // it's a hover activated entry
+          strLabel++;
+
+        label(id, strLabel,
             (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
             (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0, NONE, skin.color[GUISkin::MENU]);
 
@@ -760,20 +767,24 @@ namespace smol
     }
 
     const float totalMenuHeight = ((optionCount * controlHeight) + (optionCount * vSpacing));
-    // Reset y so we start drawing the selection from the top again
-    selectionRect.y = (float) y;
-    // Draw the background
+
+    //
+    // Draw the background behind the labels
+    //
+    selectionRect.y = (float) y; // Reset y so we start drawing the selection from the top again
     Rectf totalRect(selectionRect.x, selectionRect.y, selectionRect.w, totalMenuHeight);
     Renderer::pushSprite(streamBuffer,
         Vector3(selectionRect.x / screenW, selectionRect.y / screenH, z + 0.01f),
         Vector2(selectionRect.w / screenW, totalMenuHeight / screenH),
         Rectf(), skin.color[GUISkin::MENU]);
 
-    // Test for mouse interaction on each label
     for (uint32 i = 0; i < optionCount; i++)
     { 
-      // Empty strings are separators
-      if (options[i][0] == 0)
+      const char* strLabel = options[i];
+      bool isSubmenuParent  =  (strLabel[0] == '>');
+      bool isSeparator      =  (strLabel[0] == '0');
+
+      if (isSeparator)
       {
         Renderer::pushSprite(streamBuffer,
             Vector3((selectionRect.x + (int32) DEFAULT_H_SPACING) / screenW , (selectionRect.y + halfControlHeight) / screenH, z),
@@ -785,18 +796,28 @@ namespace smol
         currentCursorZ = z;
         hoverControlId = id;
         mouseOver = true;
+        selectedOption = (POPUP_HOVER | i);
+
+        if (isSubmenuParent)
+        {
+          strLabel++;
+        }
+
+        // Selection background
         Renderer::pushSprite(streamBuffer,
             Vector3(selectionRect.x / screenW , selectionRect.y / screenH, z),
             Vector2(selectionRect.w / screenW, (controlHeight) / screenH),
             Rectf(), skin.color[GUISkin::MENU_SELECTION]);
 
         // redraw the label over the selection
-        label(id, options[i],
-            (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
-            (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0, NONE, skin.color[GUISkin::MENU_SELECTION]);
+        label(id, strLabel, (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+            (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0,
+            NONE, skin.color[GUISkin::MENU_SELECTION]);
 
         if (mouseLButtonDownThisFrame() || (isActiveControl && mouseLButtonIsDown()))
+        {
           activeControlId = id;
+        }
         else if(mouseLButtonUpThisFrame() && isActiveControl)
         {
           activeControlId = 0;
@@ -805,8 +826,52 @@ namespace smol
         }
       }
 
+      if (isSubmenuParent)
+      {
+        Renderer::pushSprite(streamBuffer,
+            Vector3((selectionRect.x + selectionRect.w - chevronSize - (float) DEFAULT_H_SPACING) / screenW,
+              (y + (controlHeight / 2) - (chevronSize / 2)) / screenH,
+              z), 
+            Vector2((int32) chevronSize / screenW, (int32) (float) chevronSize / screenH),
+            skin.spritePopupMenuChevron, Color::WHITE);
+      }
+
       selectionRect.y += controlHeight + vSpacing;
     }
+
+    //
+    // Highlight default if nothing was selected
+    //
+    if (selectedOption == POPUP_MENU_IDLE && defaultSelection >= 0 && defaultSelection < optionCount && hoverControlId != id)
+    {
+      selectionRect.y = (float) y;
+      const char* strLabel = options[defaultSelection];
+      bool isHoverOption = (strLabel[0] == '>');
+      if (isHoverOption)
+        strLabel++;
+
+      Renderer::pushSprite(streamBuffer,
+          Vector3(selectionRect.x / screenW , selectionRect.y / screenH, z),
+          Vector2(selectionRect.w / screenW, (controlHeight) / screenH),
+          Rectf(), skin.color[GUISkin::MENU_SELECTION]);
+
+      // DE the label over the selection
+      label(id, strLabel, (int32) selectionRect.x + DEFAULT_H_SPACING - areaOffset.x,
+          (int32) (selectionRect.y - areaOffset.y + halfControlHeight - (skin.labelFontSize / 2.0f)), 0,
+          NONE, skin.color[GUISkin::MENU_SELECTION]);
+
+      if (isHoverOption)
+      {
+        // RIGHT SIDE "chevron icon"
+        Renderer::pushSprite(streamBuffer,
+            Vector3((selectionRect.x + selectionRect.w - chevronSize - (float) DEFAULT_H_SPACING) / screenW,
+              (y + (controlHeight / 2) - (chevronSize / 2)) / screenH,
+              z), 
+            Vector2((int32) chevronSize / screenW, (int32) (float) chevronSize / screenH),
+            skin.spritePopupMenuChevron, Color::WHITE);
+      }
+    }
+
 
     if (mouseLButtonDownThisFrame() && !mouseOver)
     {
@@ -840,9 +905,10 @@ namespace smol
         Rectf(), skin.color[styleId]);
 
     // RIGHT SIDE "chevron icon"
-    float chevronSize = ((float)DEFAULT_CONTROL_HEIGHT * 0.8f);
+    float chevronSize = ((float)DEFAULT_CONTROL_HEIGHT * 0.5f);
     Renderer::pushSprite(streamBuffer,
-        Vector3((x + w - chevronSize - (float) DEFAULT_H_SPACING) / screenW, y / screenH, z), 
+        Vector3((x + w - chevronSize - (float) DEFAULT_H_SPACING) / screenW,
+          (y + ((float) h / 2 ) - (chevronSize / 2)) / screenH, z), 
         Vector2((int32) chevronSize / screenW, (int32) (float) chevronSize / screenH),
         skin.spriteComboBoxChevron, Color::WHITE);
 

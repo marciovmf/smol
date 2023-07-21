@@ -29,6 +29,7 @@ namespace smol
     Rectf spriteCheckBoxChecked;
     Rectf spriteSliderHandle;
     Rectf spriteComboBoxChevron;
+    Rectf spritePopupMenuChevron;
 
     enum ID
     {
@@ -166,8 +167,10 @@ namespace smol
       DEFAULT_CONTROL_HEIGHT = 25,
       POPUP_MENU_DMISMISS = INT_MIN,
       POPUP_MENU_IDLE = INT_MAX,
+      POPUP_HOVER = 1 << 24
     };
-    int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth);
+
+    int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth,  uint32 defaultSelection = -1);
   };
 }
 #endif //SMOL_GUI_H
