@@ -9,6 +9,7 @@
 #include <smol/smol_event.h>
 #include <smol/smol_mouse.h>
 #include <smol/smol_random.h>
+#include <ShellScalingAPI.h>
 #include <cstdio>
 #include <stdlib.h>
 #include <time.h>
@@ -18,7 +19,6 @@
 
 namespace smol
 {
-
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
   struct PlatformInternal
   {
@@ -47,6 +47,14 @@ namespace smol
 
         QueryPerformanceFrequency(&ticksPerSecond);
         QueryPerformanceCounter(&ticksSinceEngineStartup);
+
+        // set High DPI awareness
+        HRESULT hr = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+        if (FAILED(hr))
+        {
+          Log::warning("Failed to to set HighDPI awarenes.");
+        }
+
       }
   }; 
 

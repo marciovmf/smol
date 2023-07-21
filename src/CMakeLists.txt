@@ -25,8 +25,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/bin" CACHE PATH "" FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
 
-add_compile_options(/Zi /DEBUG)
-add_link_options(/debug)
 
 # Genereate correct smol_version.h
 configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/include/smol/smol_version.h)
@@ -36,7 +34,10 @@ configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/incl
 #
 string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM)
 if(PLATFORM STREQUAL "windows")
+  add_compile_options(/Zi /DEBUG)
+  add_link_options(/debug)
   set(PLATFORM "win64")
+  set(LIBS  Advapi32.lib Shlwapi.lib Shcore.lib)
 endif()
 
 
@@ -141,7 +142,7 @@ target_include_directories(smol PUBLIC
   "${SOURCE_PATH}/include" 
   "${SOURCE_PATH}/include/smol")
 
-target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY} Advapi32.lib Shlwapi.lib)
+target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY} ${LIBS})
 
 if(SMOL_EXPORT_SDK)
   add_custom_command(TARGET smol POST_BUILD 
