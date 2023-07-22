@@ -3,6 +3,9 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_cfg_parser.h>
+#include <smol/smol_font.h>
+#include <smol/smol_image.h>
+#include <smol/smol_render_target.h>
 #include <smol/smol_renderer.h>
 
 namespace smol
@@ -94,6 +97,15 @@ namespace smol
       return texture;
 
     return INVALID_HANDLE(Texture);
+  }
+
+  Handle<Texture> ResourceManager::getTextureFromRenderTarget(const RenderTarget& target)
+  {
+    Handle<Texture> texture = textures.reserve();
+    texture->glTextureObject = target.colorTexture.glTextureObject;
+    texture->width = target.colorTexture.width;
+    texture->height = target.colorTexture.height;
+    return texture;
   }
 
   inline Texture& ResourceManager::getTexture(Handle<Texture> handle) const
@@ -217,7 +229,7 @@ namespace smol
       return *shaderProgram;
 
     debugLogWarning("Could not get Shader from Handle. Returning default Shader.");
-    return getDefaultShader();
+    return *defaultShader;
 
   }
 
@@ -228,11 +240,11 @@ namespace smol
     return (ShaderProgram*) shaders.getArray();
   }
 
-  inline ShaderProgram& ResourceManager::getDefaultShader() const
-  {
-    return *defaultShader;
-  }
 
+  Handle<ShaderProgram> ResourceManager::getDefaultShader() const
+  {
+    return defaultShaderHandle;
+  }
 
   //
   // Material Resources
@@ -741,11 +753,21 @@ namespace smol
     }
   }
 
-  ResourceManager::ResourceManager(): textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4) 
+  ResourceManager::ResourceManager():
+    initialized(false), textures(16), shaders(16), materials(16), meshes(16 * sizeof(Mesh)), fonts(4)
   { }
+
+  ResourceManager& ResourceManager::get()
+  {
+    static ResourceManager instance;
+    return instance;
+  }
 
   void ResourceManager::initialize()
   {
+    SMOL_ASSERT(initialized == false, "Atempt reinitialize ResourceManager");
+    initialized = true;
+
     // Make the default Texture
     Image* img = ResourceManager::createCheckersImage(800, 600, 32);
     defaultTextureHandle = createTexture(*img);
@@ -753,7 +775,7 @@ namespace smol
 
     // Make the default ShaderProgram
     const ShaderProgram& program = Renderer::getDefaultShaderProgram();
-    Handle<ShaderProgram> defaultShaderHandle = shaders.add(program);
+    defaultShaderHandle = shaders.add(program);
 
     // Make the default Material
     Handle<Material> defaultMaterialHandle = createMaterial(defaultShaderHandle, &defaultTextureHandle, 1);

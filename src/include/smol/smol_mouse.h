@@ -30,7 +30,7 @@ namespace smol
     int getWheelDelta() const;
     void update();
 
-    // Disallow coppies
+    // Disallow copies
     Mouse(const Mouse& other) = delete;
     Mouse(const Mouse&& other) = delete;
     Mouse& operator=(const Mouse& other) = delete;

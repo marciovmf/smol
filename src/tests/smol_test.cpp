@@ -45,7 +45,7 @@ namespace smol
   }
 
   Test::Test(SmolTestFuncPtr func, const char* name):
-    func(func), state(State::NOT_RUN), passed(false), abort(false), name(name)
+    state(State::NOT_RUN), func(func), passed(false), abort(false), name(name)
   {
   }
 

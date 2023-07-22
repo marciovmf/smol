@@ -1,0 +1,3 @@
+#include "resource.h"
+LANGUAGE 0,0
+PACKAGE_ICON_ID ICON "package.ico"

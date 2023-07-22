@@ -5,13 +5,54 @@
 #include <smol/smol_random.h>
 #include <smol/smol_renderer.h>
 #include <smol/smol_material.h>
+#include <smol/smol_image.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_scene.h>
-#include <smol/smol_systems_root.h>
 #include <smol/smol_cfg_parser.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_render_target.h>
 #include <smol/smol_platform.h>
+#include <smol/smol_config_manager.h>
+
+#ifndef SMOL_RELEASE
+#define checkGlError() _checkNoGlError(__FILE__, __LINE__)
+static void _clearGlError()
+{
+  GLenum err;
+  do
+  {
+    err = glGetError();
+  }while (err != GL_NO_ERROR);
+}
+
+static int32 _checkNoGlError(const char* file, uint32 line)
+{
+  _clearGlError();
+  const char* error = "UNKNOWN ERROR CODE";
+  GLenum err = glGetError();
+  int32 success = 1;
+  uchar noerror = 1;
+  while(err!=GL_NO_ERROR)
+  {
+    switch(err)
+    {
+      case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
+      case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
+      case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
+      case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
+      case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
+    }
+    success=0;
+    debugLogError("GL ERROR %s at %s:%d",error, file, line);
+    noerror=0;
+    err=glGetError();
+  }
+  return success;
+}
+
+#else
+#define checkGlError() 
+#endif
 
 namespace smol
 {
@@ -29,7 +70,7 @@ namespace smol
   void Renderer::setMaterial(const Material* material)
   {
     GLuint shaderProgramId = 0; 
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
+    ResourceManager& resourceManager = ResourceManager::get();
     ShaderProgram& shader = resourceManager.getShader(material->shader);
 
     switch(material->depthTest)
@@ -184,9 +225,19 @@ namespace smol
 
   }
 
-  void Renderer::clearBuffers(ClearBufferFlag flag)
+  void Renderer::clearBuffers(uint32 flag)
   {
     glClear(flag);
+  }
+
+  void Renderer::setClearColor(float r, float g, float b, float a)
+  {
+    glClearColor(r, g, b, a);
+  }
+
+  void Renderer::setClearColor(const Color& color)
+  {
+    glClearColor(color.r, color.g, color.b, color.a);
   }
 
   void Renderer::beginScissor(uint32 x, uint32 y, uint32 w, uint32 h)
@@ -233,6 +284,64 @@ namespace smol
     glBufferSubData(GL_UNIFORM_BUFFER, SMOL_UBO_FLOAT_ELAPSED_SECONDS,
         sizeof(float), &elapsedSeconds);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  }
+
+  bool Renderer::createTextureRenderTarget(RenderTarget* out, int32 width, int32 height)
+  {
+    out->type = RenderTarget::TEXTURE;
+    glCreateFramebuffers(1, &out->glFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, out->glFbo);
+
+    Image dummyImage;
+    dummyImage.width = width;
+    dummyImage.height = height;
+    dummyImage.bitsPerPixel = 24;   //RGB
+    dummyImage.data = nullptr;
+    Renderer::createTexture(&out->colorTexture, dummyImage);
+
+    // bind the texture as color attachment
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, out->colorTexture.glTextureObject, 0);
+
+    // create a buffer attachment for depth and stencil
+    glGenRenderbuffers(1, &out->glRbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, out->glRbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, out->glRbo);
+
+    bool success = (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    if (!success)
+    {
+      glDeleteFramebuffers(1, &out->glFbo);
+      glDeleteRenderbuffers(1, &out->glRbo);
+      glDeleteTextures(1, &out->colorTexture.glTextureObject);
+      debugLogError("Failed to create a Texture Render Target");
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return success;
+  }
+
+  void Renderer::resizeTextureRenderTarget(const RenderTarget& target, int32 width, int32 height)
+  {
+    glBindTexture(GL_TEXTURE_2D, target.colorTexture.glTextureObject);
+    bool useSRGB = ConfigManager::get().rendererConfig().enableGammaCorrection;
+    glTexImage2D(GL_TEXTURE_2D, 0, useSRGB ? GL_SRGB_ALPHA : GL_RGBA, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, target.glRbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  }
+
+  void Renderer::useRenderTarget(const RenderTarget& target)
+  {
+    glBindFramebuffer(GL_FRAMEBUFFER, target.glFbo);
+  }
+
+  void Renderer::useDefaultRenderTarget()
+  {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
 
   void Renderer::initialize(const GlobalRendererConfig& config)
@@ -309,7 +418,7 @@ namespace smol
     glBindTexture(GL_TEXTURE_2D, outTexture->glTextureObject);
 
     // if the engine is set to use SRGB ?
-    bool useSRGB = SystemsRoot::get()->rendererConfig.enableGammaCorrection;
+    bool useSRGB = ConfigManager::get().rendererConfig().enableGammaCorrection;
 
     glTexImage2D(GL_TEXTURE_2D, 0, useSRGB ? GL_SRGB_ALPHA : GL_RGBA, image.width, image.height, 0, textureFormat, textureType, image.data);
 

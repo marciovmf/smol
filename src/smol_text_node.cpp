@@ -2,7 +2,7 @@
 #include <smol/smol_text_node.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_transform.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_scene_manager.h>
 #include <smol/smol_scene.h>
 #include <smol/smol_font.h>
 #include <string.h>
@@ -17,7 +17,7 @@ namespace smol
       const char* text,
       const Color& color)
   {
-    Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
+    Scene& scene = SceneManager::get().getCurrentScene();
     Handle<SceneNode> handle = scene.createNode(SceneNode::Type::TEXT, transform);
     TextNode& textNode = handle->text;
     textNode.batcher = batcher;
@@ -55,6 +55,7 @@ namespace smol
     strncpy(this->text, text, textLen + 1);
 
     GlyphDrawData* background = drawData;
+
     this->textBounds = font->computeString(this->text, color, this->drawData+1, 0.0f, lineHeightScale);
 
     background->position = Vector3(0.0f, 0.0f, -0.2f);
@@ -123,7 +124,7 @@ namespace smol
   void TextNode::destroy(Handle<SceneNode> handle)
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::TEXT), "Handle passed to TextNode::destroy() is not of type TEXT");
-    SystemsRoot::get()->sceneManager.getCurrentScene().destroyNode(handle);
+    SceneManager::get().getCurrentScene().destroyNode(handle);
     handle->sprite.batcher->textNodeCount--;
   }
 

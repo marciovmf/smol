@@ -1,0 +1,5 @@
+#include "resource.h"
+LANGUAGE 0,0
+
+SMOL_ICON_ID          ICON  "smol.ico"
+SMOL_ICON_PACKAGE_ID  ICON  "package.ico"

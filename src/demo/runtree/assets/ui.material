@@ -1,0 +1,10 @@
+# Material
+#depthTest:  DISABLE = 0, LESS = 1, LESS_EQUAL = 2, EQUAL = 3, GREATER = 4, GREATER_EQUAL = 5, DIFFERENT = 6, NEVER = 7, ALWAYS = 8
+#cullFace: NONE = 0, BACK = 1, FRONT = 2, FRONT_AND_BACK  = 3
+@material:
+  queue: 50,
+  depthTest: 2,
+  cullFace: 0,
+  shader: "assets/ui.shader",
+  mainTex: ""
+

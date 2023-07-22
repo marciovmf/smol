@@ -20,13 +20,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/smolSDK")
+file(MAKE_DIRECTORY "${OUTPUT_DIR}")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/bin" CACHE PATH "" FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
 
-add_compile_options(/Zi /DEBUG)
-add_link_options(/debug)
 
 # Genereate correct smol_version.h
 configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/include/smol/smol_version.h)
@@ -36,7 +35,10 @@ configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/incl
 #
 string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM)
 if(PLATFORM STREQUAL "windows")
+  add_compile_options(/Zi /DEBUG)
+  add_link_options(/debug)
   set(PLATFORM "win64")
+  set(LIBS  Advapi32.lib Shlwapi.lib Shcore.lib)
 endif()
 
 
@@ -47,6 +49,7 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_string_hash.h
   ${SOURCE_PATH}/include/smol/smol_random.h
   ${SOURCE_PATH}/smol_random.cpp
   ${SOURCE_PATH}/include/smol/smol_point.h
@@ -59,18 +62,26 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/smol_renderable.cpp
   ${SOURCE_PATH}/include/smol/smol_rect.h
   ${SOURCE_PATH}/smol_rect.cpp
+  ${SOURCE_PATH}/include/smol/smol_package.h
+  ${SOURCE_PATH}/smol_package.cpp
+  ${SOURCE_PATH}/include/smol/smol_project_manager.h
+  ${SOURCE_PATH}/smol_project_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_event.h
   ${SOURCE_PATH}/include/smol/smol_event_manager.h
   ${SOURCE_PATH}/smol_event_manager.cpp
+  ${SOURCE_PATH}/include/smol/smol_config_manager.h
+  ${SOURCE_PATH}/smol_config_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_shader.h
   ${SOURCE_PATH}/include/smol/smol_texture.h
   ${SOURCE_PATH}/include/smol/smol_material.h
   ${SOURCE_PATH}/include/smol/smol_font.h
+  ${SOURCE_PATH}/include/smol/smol_image.h
+  ${SOURCE_PATH}/include/smol/smol_render_target.h
   ${SOURCE_PATH}/smol_font.cpp
   ${SOURCE_PATH}/smol_material.cpp
   ${SOURCE_PATH}/include/smol/smol_handle_list.h
-  ${SOURCE_PATH}/include/smol/smol_systems_root.h
-  ${SOURCE_PATH}/smol_systems_root.cpp
+  ${SOURCE_PATH}/include/smol/smol_input_manager.h
+  ${SOURCE_PATH}/smol_input_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_scene_manager.h
   ${SOURCE_PATH}/smol_scene_manager.cpp
   ${SOURCE_PATH}/include/smol/smol_keyboard.h
@@ -124,7 +135,7 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
-add_library(smol SHARED ${SOURCES})
+add_library(smol SHARED ${SOURCES} )
 
 set_target_properties(smol PROPERTIES VERSION ${SMOL_VERSION})
 target_compile_definitions(smol PRIVATE SMOL_ENGINE_IMPLEMENTATION)
@@ -132,38 +143,40 @@ target_include_directories(smol PUBLIC
   "${SOURCE_PATH}/include" 
   "${SOURCE_PATH}/include/smol")
 
-target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY})
+target_link_libraries(smol PRIVATE ${OPENGL_LIBRARY} ${LIBS})
 
 if(SMOL_EXPORT_SDK)
   add_custom_command(TARGET smol POST_BUILD 
     COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}/include
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${OUTPUT_DIR}/include)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_PATH}/include/smol/ ${OUTPUT_DIR}/include/smol)
 endif()
 
-#
-# build demo game
-#
-add_library(game SHARED "${SOURCE_PATH}/demo/game.cpp")
-target_include_directories(game PUBLIC 
-  "${SOURCE_PATH}/include" 
-  "${SOURCE_PATH}/include/smol")
-target_link_libraries(game PRIVATE smol)
 
 #
-# Copy assets
+# Copy runtime data
 #
 add_custom_target(assets ALL)
-add_custom_command(TARGET assets POST_BUILD
+add_custom_command(TARGET assets PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo "Coppying assets..."
-  COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:smol>/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/../assets $<TARGET_FILE_DIR:smol>/assets)
+  #COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:smol>/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${CMAKE_CURRENT_SOURCE_DIR}/../data $<TARGET_FILE_DIR:smol>
+  )
 
+# Builds the editor
+add_subdirectory(editor)
 
-#
-# slauncher.exe: Editor / Game launcher
-#
-add_subdirectory("Launcher")
+# Builds the packer tool and generate a package with the template project source code
+add_subdirectory(tools/packer)
+add_subdirectory(template)
+add_dependencies(template packer)
+
+# Make sure to only copy assets to the output folder after we generate packages
+add_dependencies(assets template editor)
+
+# Bilds the demo game
+set(ENGINE_PATH ${OUTPUT_DIR})
+add_subdirectory(demo)
+add_dependencies(game assets smol editor)
 
 #
 # Build and run tests
