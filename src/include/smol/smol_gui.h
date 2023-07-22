@@ -15,6 +15,8 @@ namespace smol
 {
   typedef uint32 GUIControlID;
   struct SystemsRoot;
+  struct EventHandler;
+  struct Event;
 
   struct SMOL_ENGINE_API GUISkin final
   {
@@ -36,6 +38,12 @@ namespace smol
       TEXT,
       TEXT_DEBUG_BACKGROUND,
       TEXT_DISABLED,
+
+      TEXT_INPUT,
+      TEXT_INPUT_HOVER,
+      TEXT_INPUT_ACTIVE,
+
+      CURSOR,
 
       MENU,
       MENU_SELECTION,
@@ -68,7 +76,6 @@ namespace smol
       WINDOW_TITLE_BAR,
 
       SEPARATOR,
-
       SKIN_COLOR_COUNT
     };
 
@@ -105,7 +112,13 @@ namespace smol
     Rect area[MAX_NESTED_AREAS];
     Rect areaOffset;
     float z;
-    //Point2 mousePos;
+
+    // Text input
+    char* inputBuffer;
+    size_t inputBufferCapacity;
+    size_t inputBufferUsed;
+    //size_t inputCursor;
+    Handle<EventHandler> eventHandler;
 
     Point2 mouseCursorPosition;
     bool LMBDownThisFrame;
@@ -152,6 +165,7 @@ namespace smol
     int32 doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
     float doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
     float doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
+    char* doTextInput(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width);
     void end();
 
 #ifndef SMOL_MODULE_GAME
@@ -161,7 +175,6 @@ namespace smol
 
     //private:
     // returns the index of the selected option. Returns -1 if nothing was selected
-   
     enum
     {
       DEFAULT_CONTROL_HEIGHT = 25,
@@ -169,6 +182,10 @@ namespace smol
       POPUP_MENU_IDLE = INT_MAX,
       POPUP_HOVER = 1 << 24
     };
+
+    void beginTextInput(char* buffer, size_t size);
+    void endTextInput();
+    bool onEvent(const Event& event, void* payload);
 
     int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth,  uint32 defaultSelection = -1);
   };

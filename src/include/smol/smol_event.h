@@ -12,6 +12,7 @@ namespace smol
     {
       CHARACTER_INPUT = 0,
       BACKSPACE       = 1,
+      DEL             = 2,
     };
 
     Type type;
@@ -60,6 +61,9 @@ namespace smol
 
     Type type;
     Keycode keyCode; 
+    bool ctrlIsDown;
+    bool shiftIsDown;
+    bool altIsDown;
   };
 
   /**

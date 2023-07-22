@@ -33,6 +33,8 @@ namespace smol
     PROJECT_SUBMENU_NEW = 2,
   };
 
+  char inputBuffer1[32];
+  char inputBuffer2[32];
   std::string pipe;
   const int controlHeight = GUI::DEFAULT_CONTROL_HEIGHT;
   Point2 windowPos = Point2{550, 150};
@@ -289,6 +291,18 @@ namespace smol
       {
         closeFlag = true;
       }
+      yPos += vSpacing + controlHeight;
+
+      //
+      // Input box 1
+      //
+      gui.doTextInput(SMOL_CONTROL_ID, inputBuffer1, sizeof(inputBuffer1), 5, yPos, 290);
+      yPos += vSpacing + controlHeight;
+
+      //
+      // Input box 2
+      //
+      gui.doTextInput(SMOL_CONTROL_ID, inputBuffer2, sizeof(inputBuffer2), 5, yPos, 290);
       yPos += vSpacing + controlHeight;
 
       //

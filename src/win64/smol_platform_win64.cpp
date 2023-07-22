@@ -139,8 +139,10 @@ namespace smol
 
       case WM_CHAR:
         evt.type                = Event::TEXT;
-        evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
         evt.textEvent.character = (uint32) wParam;
+        evt.textEvent.type      = ((uint32) wParam == VK_BACK) ? TextEvent::BACKSPACE :
+          ((uint32) wParam == VK_DELETE) ? TextEvent::DEL :
+          TextEvent::CHARACTER_INPUT;
         eventManager.pushEvent(evt);
         break;
 
@@ -173,6 +175,11 @@ namespace smol
           evt.keyboardEvent.type = (wasDown && !isDown) ?
             KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
           evt.keyboardEvent.keyCode = (Keycode) vkCode;
+
+          evt.keyboardEvent.ctrlIsDown = internal.keyboardState.key[KEYCODE_CONTROL];
+          evt.keyboardEvent.shiftIsDown = internal.keyboardState.key[KEYCODE_SHIFT];
+          evt.keyboardEvent.altIsDown = internal.keyboardState.key[KEYCODE_ALT];
+
           eventManager.pushEvent(evt);
         }
         break;

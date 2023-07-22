@@ -2,9 +2,40 @@
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
 #include <smol/smol_input_manager.h>
+#include <smol/smol_event_manager.h>
+#include <smol/smol_platform.h>
 
 namespace smol
 {
+  static bool onEventForwarder(const Event& event, void* ptrGUI)
+  {
+    GUI* gui = (GUI*) ptrGUI;
+    return gui->onEvent(event, nullptr);
+  };
+
+  bool GUI::onEvent(const Event& event, void* payload)
+  {
+    if (event.type == Event::TEXT)
+    {
+      if (event.textEvent.type == TextEvent::BACKSPACE)
+      {
+        if (inputBufferUsed > 0)
+        {
+          inputBuffer[--inputBufferUsed] = 0;
+        }
+      }
+      else if (inputBufferUsed < (inputBufferCapacity - 1))
+      {
+        inputBuffer[inputBufferUsed++] = event.textEvent.character;
+        inputBuffer[inputBufferUsed] = 0;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
   Vector2 GUI::getScreenSize() const { return Vector2(screenW, screenH); }
 
   GUISkin& GUI::getSkin() { return skin; }
@@ -127,8 +158,8 @@ namespace smol
 
     if (lastRect.containsPoint(mouseCursorPosition) && mouseLButtonDownThisFrame())
     {
-        topmostWindowId = id;
-        currentCursorZ = z;
+      topmostWindowId = id;
+      currentCursorZ = z;
     }
 
     // check for dragging the title bar
@@ -223,7 +254,7 @@ namespace smol
     GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
     Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, w / (float)fontSize, 1.0f + skin.lineHeightAdjust);
     bounds.mult(scaleX, scaleY);
-  
+
 
     if (align == Align::CENTER)
     {
@@ -722,6 +753,84 @@ namespace smol
     return returnValue;
   }
 
+  void GUI::beginTextInput(char* buffer, size_t size)
+  {
+    debugLogInfo("Begin Text input at %x; capacity %d", buffer, size);
+    eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
+    inputBuffer = buffer;
+    inputBufferCapacity = size;
+    inputBufferUsed = strlen(inputBuffer);
+
+    SMOL_ASSERT(inputBufferCapacity > inputBufferUsed, "Input buffer contents are larger than the buffer size. Did you forget to initialized the buffer ?");
+  }
+
+  void GUI::endTextInput()
+  {
+    debugLogInfo("Ended Text input at %x; capacity %d", inputBuffer, inputBufferCapacity);
+    EventManager::get().removeHandler(eventHandler);
+  }
+
+  char* GUI::doTextInput(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    uint32 h = DEFAULT_CONTROL_HEIGHT;
+    lastRect = Rect(x , y, width, h);
+
+    bool mouseOver = lastRect.containsPoint(mouseCursorPosition) && (z <= currentCursorZ);
+    bool isActiveControl = activeControlId == id;
+
+    GUISkin::ID styleId = skin.TEXT_INPUT;
+
+    if (isActiveControl)
+    {
+      styleId = skin.TEXT_INPUT_ACTIVE;
+      if (mouseLButtonDownThisFrame())
+      {
+        activeControlId = 0;
+        hoverControlId = 0;
+        endTextInput();
+      }
+    }
+    else if (mouseOver)
+    {
+      hoverControlId = id;
+      styleId = skin.TEXT_INPUT_HOVER;
+
+      if (mouseLButtonDownThisFrame())
+      {
+        activeControlId = id;
+        beginTextInput(buffer, bufferCapacity);
+        if (topmostWindowId)
+          topmostWindowId = currentWindowId;
+      }
+    }
+
+    // BOX
+    Renderer::pushSprite(streamBuffer,
+        Vector3(x / screenW, y / screenH, z), 
+        Vector2(width / screenW, h / screenH),
+        Rectf(), skin.color[styleId]);
+
+    // Label
+    const int labelX = (x - areaOffset.x) + DEFAULT_H_SPACING;
+    const int labelY = (y - areaOffset.y) + h/2;
+    label(id, buffer, labelX, labelY, 0, LEFT);
+
+    // Cursor
+    if (isActiveControl)
+    {
+      Color c = skin.color[skin.CURSOR];
+      c.a = (float) sin(7 * Platform::getSecondsSinceStartup());
+      Renderer::pushSprite(streamBuffer,
+          Vector3((lastRect.x + lastRect.w) / screenW, (y + 2) / screenH, z), 
+          Vector2(2 / screenW, (h - 4) / screenH),
+          Rectf(), c);
+    }
+
+    return buffer;
+  }
+
   int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth, uint32 defaultSelection)
   {
     x = areaOffset.x + x;
@@ -1002,6 +1111,12 @@ namespace smol
     skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]  = Color::BLACK;
     skin.color[GUISkin::TEXT_DISABLED]          = Color::GRAY;
 
+    skin.color[GUISkin::TEXT_INPUT]         = controlSurface;
+    skin.color[GUISkin::TEXT_INPUT_HOVER]   = controlSurfaceHover;
+    skin.color[GUISkin::TEXT_INPUT_ACTIVE]  = controlBackground;
+
+    skin.color[GUISkin::CURSOR]             = Color::WHITE;
+
     skin.color[GUISkin::BUTTON]        = controlSurface;
     skin.color[GUISkin::BUTTON_HOVER]  = controlSurfaceHover;
     skin.color[GUISkin::BUTTON_ACTIVE] = controlBackground;
@@ -1037,5 +1152,4 @@ namespace smol
   }
 
 #endif
-
 }
