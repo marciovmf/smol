@@ -150,7 +150,7 @@ namespace smol
       ResourceManager::get().initialize();
       Renderer::initialize(ConfigManager::get().rendererConfig());
       ResourceManager& resourceManager = ResourceManager::get();
-      EventManager::get().addHandler(onEvent, Event::DISPLAY | Event::GAME, &displayConfig);
+      EventManager::get().addHandler(onEvent, Event::DISPLAY, &displayConfig);
 
       Editor editor;
       editor.initialize(window, project);
