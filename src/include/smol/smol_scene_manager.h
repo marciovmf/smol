@@ -17,6 +17,7 @@ namespace smol
     static SceneManager& get();
     void renderScene(float deltaTime);
     Scene& getCurrentScene();
+    void cleanupScene();
 
     // Disallow copies
     SceneManager(const SceneManager& other) = delete;

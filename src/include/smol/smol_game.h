@@ -21,32 +21,50 @@
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_material.h>
+#include <smol/smol_renderer.h>
+#include <smol/smol_point.h>
+#include <smol/smol_resource_manager.h>
+#include <smol/smol_scene_manager.h>
+#include <smol/smol_input_manager.h>
+#include <smol/smol_config_manager.h>
+#include <smol/smol_cfg_parser.h>
+#include <smol/smol_font.h>
+#include <smol/smol_sprite_node.h>
+#include <smol/smol_camera_node.h>
+#include <smol/smol_gui.h>
+
+#define SMOL_CALLBACK_NAME_ONSTART  "onStart"
+#define SMOL_CALLBACK_NAME_ONSTOP   "onStop"
+#define SMOL_CALLBACK_NAME_ONUPDATE "onUpdate"
+#define SMOL_CALLBACK_NAME_ONGUI    "onGUI"
 
 namespace smol
 {
   struct SystemsRoot;
+  struct Module;
   class GUI;
-
-  const char* SMOL_CALLBACK_NAME_ONSTART = "onStart";
-  const char* SMOL_CALLBACK_NAME_ONSTOP = "onStop";
-  const char* SMOL_CALLBACK_NAME_ONUPDATE = "onUpdate";
-  const char* SMOL_CALLBACK_NAME_ONGUI = "onGUI";
 
   typedef void (*SMOL_GAME_CALLBACK_ONSTART)();
   typedef void (*SMOL_GAME_CALLBACK_ONSTOP)();
   typedef void (*SMOL_GAME_CALLBACK_ONUPDATE)(float);
-  typedef void (*SMOL_GAME_CALLBACK_ONGUI)(smol::GUI&);
+  typedef void (*SMOL_GAME_CALLBACK_ONGUI)(GUI&);
+
+  struct GameModule
+  {
+    Module* module;
+    SMOL_GAME_CALLBACK_ONSTART  onStart;
+    SMOL_GAME_CALLBACK_ONSTOP   onStop;
+    SMOL_GAME_CALLBACK_ONUPDATE onUpdate;
+    SMOL_GAME_CALLBACK_ONGUI    onGUI;
+  };
 }
 
 extern "C"
 {
   SMOL_GAME_API void onStart();
-  SMOL_GAME_API void onUpdate(float deltaTime);
   SMOL_GAME_API void onStop();
   SMOL_GAME_API void onGUI(smol::GUI&);
+  SMOL_GAME_API void onUpdate(float deltaTime);
 }
 
 #endif// SMOL_GAME_H
-
-
-

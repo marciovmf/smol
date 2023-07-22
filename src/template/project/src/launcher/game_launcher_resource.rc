@@ -1,0 +1,3 @@
+#include "game_launcher_resource.h"
+LANGUAGE 0,0
+GAME_ICON_ID ICON "game_icon.ico"

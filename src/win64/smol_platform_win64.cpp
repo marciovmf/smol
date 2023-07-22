@@ -1,3 +1,4 @@
+#define _CR_NO_SECURE_WARNINGS
 #include <smol/smol.h>
 #define SMOL_GL_DEFINE_EXTERN
 #include <smol/smol_gl.h>
@@ -8,14 +9,17 @@
 #include <smol/smol_event.h>
 #include <smol/smol_mouse.h>
 #include <smol/smol_random.h>
+#include <ShellScalingAPI.h>
 #include <cstdio>
 #include <stdlib.h>
 #include <time.h>
+#include <shlwapi.h>
+#include <Commdlg.h>
+#include "../editor/resource.h" //TODO(marcio): This is messy.
 
 namespace smol
 {
   constexpr UINT SMOL_CLOSE_WINDOW = WM_USER + 1;
-  constexpr INT SMOL_DEFAULT_ICON_ID = 101;
   struct PlatformInternal
   {
     char binaryPath[MAX_PATH];
@@ -41,12 +45,16 @@ namespace smol
         defaultCursor = LoadCursor(NULL, IDC_ARROW);
         cursorChanged = true;
 
-        //Change the working directory to the binary location
-        smol::Log::info("Running from %s", binaryPath);
-        SetCurrentDirectory(binaryPath);
-
         QueryPerformanceFrequency(&ticksPerSecond);
         QueryPerformanceCounter(&ticksSinceEngineStartup);
+
+        // set High DPI awareness
+        HRESULT hr = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+        if (FAILED(hr))
+        {
+          Log::warning("Failed to to set HighDPI awarenes.");
+        }
+
       }
   }; 
 
@@ -131,8 +139,10 @@ namespace smol
 
       case WM_CHAR:
         evt.type                = Event::TEXT;
-        evt.textEvent.type      = TextEvent::CHARACTER_INPUT;
         evt.textEvent.character = (uint32) wParam;
+        evt.textEvent.type      = ((uint32) wParam == VK_BACK) ? TextEvent::BACKSPACE :
+          ((uint32) wParam == VK_DELETE) ? TextEvent::DEL :
+          TextEvent::CHARACTER_INPUT;
         eventManager.pushEvent(evt);
         break;
 
@@ -164,7 +174,12 @@ namespace smol
           evt.type = Event::KEYBOARD;
           evt.keyboardEvent.type = (wasDown && !isDown) ?
             KeyboardEvent::KEY_UP : (!wasDown && isDown) ? KeyboardEvent::KEY_DOWN : KeyboardEvent::KEY_HOLD;
-          evt.keyboardEvent.keyCode = (uint8) vkCode;
+          evt.keyboardEvent.keyCode = (Keycode) vkCode;
+
+          evt.keyboardEvent.ctrlIsDown = internal.keyboardState.key[KEYCODE_CONTROL];
+          evt.keyboardEvent.shiftIsDown = internal.keyboardState.key[KEYCODE_SHIFT];
+          evt.keyboardEvent.altIsDown = internal.keyboardState.key[KEYCODE_ALT];
+
           eventManager.pushEvent(evt);
         }
         break;
@@ -450,7 +465,7 @@ namespace smol
       wc.style = CS_OWNDC;
       wc.lpfnWndProc = smolWindowProc;
       wc.hInstance = hInstance;
-      wc.hIcon = LoadIconA(hInstance, MAKEINTRESOURCE(SMOL_DEFAULT_ICON_ID));
+      wc.hIcon = LoadIconA(hInstance, MAKEINTRESOURCE(SMOL_ICON_ID));
       wc.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
       wc.lpszClassName = smolWindowClass;
 
@@ -621,12 +636,14 @@ namespace smol
       return module;
     }
 
-    smol::Log::error("Failed loading module '%s'", path);
     return nullptr;
   }
 
   bool Platform::unloadModule(Module* module)
   {
+    if (!module)
+      return false;
+
     if (! FreeLibrary(module->handle)) 
     {
       smol::Log::error("Error unloading module");
@@ -641,7 +658,6 @@ namespace smol
     void* addr = (void*) GetProcAddress(module->handle, function);
     if (! addr)
     {
-      smol::Log::error("Faild to fetch '%s' function pointer from module", function);
       return nullptr;
     }
     return addr;
@@ -776,5 +792,244 @@ namespace smol
     uint64 now = Platform::getTicks();
     uint64 ticksSinceStartup = now - internal.ticksSinceEngineStartup.QuadPart;
     return (float)ticksSinceStartup /  internal.ticksPerSecond.QuadPart;
+  }
+
+  bool Platform::getWorkingDirectory(char* buffer, size_t buffSize)
+  {
+    return (GetCurrentDirectory((DWORD) buffSize, buffer) != 0);
+  }
+
+  bool Platform::setWorkingDirectory(const char* buffer)
+  {
+    bool success = SetCurrentDirectory(buffer) != 0;
+    if (success)
+    {
+      debugLogInfo("Running from %s", buffer);
+    }
+    return success;
+  }
+
+  char Platform::pathSeparator()
+  {
+    return '\\';
+  }
+
+  bool Platform::copyFile(const char* source, const char* dest, bool failIfExists)
+  {
+    return CopyFile(source, dest, failIfExists);
+  }
+
+  bool Platform::createDirectoryRecursive(const char* path)
+  {
+    DWORD fileAttributes = GetFileAttributes(path);
+    if (fileAttributes != INVALID_FILE_ATTRIBUTES)
+    {
+      if (fileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        return true;
+      else
+      {
+        return false;
+      }
+    }
+
+    char parentPath[MAX_PATH];
+    strcpy_s(parentPath, MAX_PATH, path);
+    PathRemoveFileSpec(parentPath);
+
+    if (!Platform::createDirectoryRecursive(parentPath))
+    {
+      debugLogError("Failed to create parent directory: %s\n", parentPath);
+      return FALSE;
+    }
+
+    if (CreateDirectory(path, NULL))
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  bool Platform::copyDirectory(const char* sourceDir, const char* destDir)
+  {
+    char srcPath[MAX_PATH];
+    char destPath[MAX_PATH];
+
+    if (!Platform::directoryExists(destDir))
+    {
+      if (!CreateDirectory(destDir, NULL))
+      {
+        debugLogError("Failed to create directory '%s'", destDir);
+        return false;
+      }
+    }
+
+    WIN32_FIND_DATA findData;
+    HANDLE hFind;
+
+    // Copy files in the source directory
+    sprintf(srcPath, "%s\\*", sourceDir);
+    hFind = FindFirstFile(srcPath, &findData);
+    if (hFind != INVALID_HANDLE_VALUE) {
+      do {
+        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        {
+          sprintf(srcPath, "%s\\%s", sourceDir, findData.cFileName);
+          sprintf(destPath, "%s\\%s", destDir, findData.cFileName);
+
+          if (!CopyFile(srcPath, destPath, FALSE))
+            debugLogError("Failed to copy file '%s' to '%s'", srcPath, destPath);
+        }
+      } while (FindNextFile(hFind, &findData));
+      FindClose(hFind);
+    }
+
+    // Copy subdirectories
+    sprintf(srcPath, "%s\\*", sourceDir);
+    hFind = FindFirstFile(srcPath, &findData);
+    if (hFind != INVALID_HANDLE_VALUE) {
+      do {
+        if ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+            strcmp(findData.cFileName, ".") != 0 &&
+            strcmp(findData.cFileName, "..") != 0)
+        {
+          sprintf(srcPath, "%s\\%s", sourceDir, findData.cFileName);
+          sprintf(destPath, "%s\\%s", destDir, findData.cFileName);
+          if (!Platform::copyDirectory(srcPath, destPath))
+            debugLogError("Failed to copy directory '%s' to '%s'", srcPath, destPath);
+        }
+      } while (FindNextFile(hFind, &findData));
+      FindClose(hFind);
+    }
+    return true;
+  }
+
+  bool Platform::pathIsDirectory(const char* path)
+  {
+    return PathIsDirectory(path);
+  }
+
+  bool Platform::pathIsFile(const char* path)
+  {
+    return !pathIsDirectory(path);
+  }
+
+  bool Platform::pathExists(const char* path)
+  {
+    return Platform::fileExists(path) || Platform::directoryExists(path);
+  }
+
+  bool Platform::fileExists(const char* path)
+  {
+    DWORD fileAttributes = GetFileAttributes(path);
+    return (fileAttributes != INVALID_FILE_ATTRIBUTES) && !(fileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+  }
+
+  bool Platform::directoryExists(const char* path)
+  {
+    DWORD fileAttributes = GetFileAttributes(path);
+    return (fileAttributes != INVALID_FILE_ATTRIBUTES) && (fileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+  }
+
+  size_t Platform::getFileSize(const char* path)
+  {
+    HANDLE fileHandle = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) { return 0; }
+    size_t fileSize = (size_t) GetFileSize(fileHandle, NULL);
+    CloseHandle(fileHandle);
+    return fileSize;
+  }
+
+  void Platform::messageBox(const char* title, const char* message)
+  {
+    MessageBox(0, message, title, MB_OK);
+  }
+
+  void Platform::messageBoxError(const char* title, const char* message)
+  {
+    Log::error(message, 0);
+    MessageBox(0, message, title, MB_OK | MB_ICONERROR);
+  }
+
+  void Platform::messageBoxWarning(const char* title, const char* message)
+  {
+    Log::warning(message, 0);
+    MessageBox(0, message, title, MB_OK | MB_ICONWARNING);
+  }
+
+  bool Platform::messageBoxYesNo(const char* title, const char* message)
+  {
+    return MessageBox(0, message, title, MB_YESNO) == IDYES;
+  }
+
+
+  bool Platform::showSaveFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedSaveFileName )
+  {
+    OPENFILENAMEA ofn;
+    if (suggestedSaveFileName)
+      strncpy(buffer, suggestedSaveFileName, MAX_PATH_LEN);
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = (char*) filterList;
+    ofn.lpstrFile = buffer;
+    ofn.nMaxFile = MAX_PATH_LEN;
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+
+    if (GetSaveFileNameA(&ofn))
+    {
+      return true;
+    }
+
+    buffer[0] = 0;
+    return false;
+  }
+
+  bool Platform::showOpenFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedOpenFileName)
+  {
+    OPENFILENAMEA ofn;
+    if (suggestedOpenFileName)
+      strncpy(buffer, suggestedOpenFileName, MAX_PATH_LEN);
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = (char*) filterList;
+    ofn.lpstrFile = buffer;
+    ofn.nMaxFile = MAX_PATH_LEN;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameA(&ofn))
+    {
+      return true;
+    }
+
+    buffer[0] = 0;
+    return false;
+  }
+
+  Color Platform::showColorPickerDialog()
+  {
+    Color selectedColor = Color::WHITE;
+    CHOOSECOLOR chooseColor;
+    static COLORREF customColors[16] = { 0 };
+    ZeroMemory(&chooseColor, sizeof(chooseColor));
+    chooseColor.lStructSize = sizeof(chooseColor);
+    chooseColor.hwndOwner = NULL;
+    chooseColor.rgbResult = RGB(0, 0, 0);
+    chooseColor.lpCustColors = customColors;
+    chooseColor.Flags = CC_FULLOPEN | CC_RGBINIT;
+
+    if (ChooseColor(&chooseColor))
+    {
+      selectedColor.r = GetRValue(chooseColor.rgbResult) / 255.0f;
+      selectedColor.g = GetGValue(chooseColor.rgbResult) / 255.0f;
+      selectedColor.b = GetBValue(chooseColor.rgbResult) / 255.0f;
+    }
+
+    return selectedColor;
   }
 } 

@@ -18,6 +18,7 @@
 
 #include <smol/smol.h>
 #include <smol/smol_point.h>
+#include <smol/smol_color.h>
 
 namespace smol
 {
@@ -53,6 +54,11 @@ namespace smol
 
   struct SMOL_PLATFORM_API Platform final
   {
+    enum
+    {
+      MAX_PATH_LEN = 1024
+    };
+
 #ifndef SMOL_MODULE_GAME
     // Basic windowing functions
     static Window* createWindow(int width, int height, const char* title);
@@ -72,9 +78,8 @@ namespace smol
     static void* getFunctionFromModule(Module* module,  const char* function);
 #endif
 
-    // Keyboard handling
+    // Keyboard and mouse handling
     static const unsigned char* getKeyboardState();
-    // Mouse handling
     static const MouseState* getMouseState();
     static const Point2& getCursorPosition();
     static void captureCursor(Window* window);
@@ -95,6 +100,31 @@ namespace smol
     static uint64 getTicks();   // return number of ticks since platform startup
     static float getMillisecondsBetweenTicks(uint64 start, uint64 end);
     static float getSecondsSinceStartup();
+
+    // get/set working directory
+    static bool getWorkingDirectory(char* buffer, size_t buffSize);
+    static bool setWorkingDirectory(const char* buffer);
+
+    // File and directory manipulation
+    static char pathSeparator();
+    static bool copyFile(const char* source, const char* dest, bool failIfExists);
+    static bool createDirectoryRecursive(const char* path);
+    static bool copyDirectory(const char* sourceDir, const char* destDir);
+    static bool pathIsDirectory(const char* path);
+    static bool pathIsFile(const char* path);
+    static bool pathExists(const char* path);
+    static bool fileExists(const char* path);
+    static bool directoryExists(const char* path);
+    static size_t getFileSize(const char* path);
+
+    // dialog boxes
+    static void messageBox(const char* title, const char* message);
+    static void messageBoxError(const char* title, const char* message);
+    static void messageBoxWarning(const char* title, const char* message);
+    static bool messageBoxYesNo(const char* title, const char* message);
+    static bool showSaveFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedSaveFileName = nullptr);
+    static bool showOpenFileDialog(const char* title, char buffer[Platform::MAX_PATH_LEN], const char* filterList, const char* suggestedopenFileName = nullptr);
+    static Color showColorPickerDialog();
   };
 } 
 
