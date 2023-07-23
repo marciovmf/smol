@@ -7,6 +7,7 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
 #include <smol/smol_font.h>
+#include <smol/smol_text_input.h>
 #include <limits.h>
 
 #define SMOL_CONTROL_ID (__LINE__)
@@ -118,14 +119,8 @@ namespace smol
     float cursorAnimateWaitMilisseconds;
 
     // Text input
-    bool isTextInputEnabled;
-    char* inputBuffer;
-    int32 inputBufferCapacity;
-    int32 inputBufferUsed;
-
-    // Cursor selection
     float cursorXPosition;
-    int32 cursorIndex;
+    TextInput input;
 
     //size_t inputCursor;
     Handle<EventHandler> eventHandler;

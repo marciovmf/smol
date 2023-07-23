@@ -23,18 +23,12 @@ namespace smol
       cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
       if (event.textEvent.type == TextEvent::BACKSPACE)
       {
-        if (inputBufferUsed > 0)
-        {
-          inputBuffer[--inputBufferUsed] = 0;
-          cursorIndex--;
-          changed = true;
-        }
+        input.deleteCharacterBeforeCursor();
+        changed = true;
       }
-      else if (inputBufferUsed < (inputBufferCapacity - 1))
+      else
       {
-        inputBuffer[inputBufferUsed++] = event.textEvent.character;
-        inputBuffer[inputBufferUsed] = 0;
-        cursorIndex++;
+        input.addCharacterAtCursor(event.textEvent.character);
         changed = true;
       }
       return true;
@@ -46,32 +40,26 @@ namespace smol
       {
         if (event.keyboardEvent.keyCode == Keycode::KEYCODE_HOME)
         {
+          input.moveCursorHome();
           cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
-          cursorIndex = 0;
           return true;
         }
         else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_END)
         {
           cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
-          cursorIndex = inputBufferUsed;
+          input.moveCursorEnd();
           return true;
         }
         else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_LEFT)
         {
           cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
-          if (cursorIndex > 0)
-          {
-            cursorIndex--;
-          }
+          input.moveCursorLeft();
           return true;
         }
         else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_RIGHT)
         {
           cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
-          if (cursorIndex < inputBufferUsed) 
-          {
-            cursorIndex++;
-          }
+          input.moveCursorRight();
           return true;
         }
       }
@@ -330,7 +318,7 @@ namespace smol
       Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
     }
 
-    if (isTextInputEnabled)
+    if (input.isEnabled())
     {
       if (textLen == 0)
       {
@@ -339,6 +327,7 @@ namespace smol
       }
       else
       {
+        int32 cursorIndex = input.getCursorIndex();
         // End, past the of last character
         //
         if (cursorIndex < textLen)
@@ -823,29 +812,21 @@ namespace smol
   {
     // We cant guarantee the order the GUI will call begin/end so we might be
     // able to end previous input session here befor starting another one.
-    if (isTextInputEnabled)
+    if (input.isEnabled())
       endTextInput();
 
-    isTextInputEnabled = true;
+    input.enable();
     eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
-    inputBuffer         = buffer;
-    inputBufferCapacity = (int32) size;
-    inputBufferUsed     = (int32) strlen(inputBuffer);
-    cursorIndex         = (int32) inputBufferUsed;
-    cursorXPosition     = 0.0f;
-
-    SMOL_ASSERT(inputBufferCapacity > inputBufferUsed, "Input buffer contents are larger than the buffer size. Did you forget to initialized the buffer ?");
+    input.setBuffer(buffer, size);
+    cursorXPosition = 0.0f;
   }
 
   void GUI::endTextInput()
   {
-    SMOL_ASSERT(isTextInputEnabled, "EndTextInput() called when no text input is not enabled.");
-    isTextInputEnabled = false;
+    SMOL_ASSERT(input.isEnabled(), "EndTextInput() called when no text input is not enabled.");
+    input.disable();
     EventManager::get().removeHandler(eventHandler);
-    inputBuffer         = nullptr;
-    inputBufferCapacity = 0;
-    inputBufferUsed     = 0;
-    cursorIndex         = 0;
+    cursorXPosition = 0.0f;
   }
 
   char* GUI::doTextInput(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width)
@@ -1190,7 +1171,7 @@ namespace smol
     skin.sliderThickness = 0.1f;
     skin.windowOpacity = .98f;
 
-    isTextInputEnabled = false;
+    input.disable();
 
     const Color windowBackground        = Color(29, 29, 29);
     const Color panelBackground         = Color(77, 77, 77);
