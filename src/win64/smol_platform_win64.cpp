@@ -140,9 +140,7 @@ namespace smol
       case WM_CHAR:
         evt.type                = Event::TEXT;
         evt.textEvent.character = (uint32) wParam;
-        evt.textEvent.type      = ((uint32) wParam == VK_BACK) ? TextEvent::BACKSPACE :
-          ((uint32) wParam == VK_DELETE) ? TextEvent::DEL :
-          TextEvent::CHARACTER_INPUT;
+        evt.textEvent.type      = ((uint32) wParam == VK_BACK) ? TextEvent::BACKSPACE : TextEvent::CHARACTER_INPUT;
         eventManager.pushEvent(evt);
         break;
 

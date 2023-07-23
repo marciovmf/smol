@@ -38,7 +38,12 @@ namespace smol
     {
       if (event.keyboardEvent.type == KeyboardEvent::KEY_DOWN || event.keyboardEvent.type == KeyboardEvent::KEY_HOLD)
       {
-        if (event.keyboardEvent.keyCode == Keycode::KEYCODE_HOME)
+        if (event.keyboardEvent.keyCode == Keycode::KEYCODE_DELETE)
+        {
+          input.deleteCharacterAfterCursor();
+          changed = true;
+        }
+        else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_HOME)
         {
           input.moveCursorHome();
           cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;

@@ -12,7 +12,6 @@ namespace smol
     {
       CHARACTER_INPUT = 0,
       BACKSPACE       = 1,
-      DEL             = 2,
     };
 
     Type type;

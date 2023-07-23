@@ -48,6 +48,12 @@ namespace smol
     return cursorIndex;
   }
 
+  inline void TextInput::setCursorIndex(int32 index)
+  {
+    if (index > 0 && index < bufferUsed)
+      cursorIndex = index;
+  }
+
   inline void TextInput::moveCursorLeft()
   {
     if (cursorIndex > 0)
@@ -112,6 +118,15 @@ namespace smol
         buffer[--bufferUsed] = 0;
 
       cursorIndex--;
+    }
+  }
+
+  void TextInput::deleteCharacterAfterCursor()
+  {
+    if (cursorIndex+1 <= bufferUsed) // when cursorIndex == bufferUsed, it's past the last character which is a valid cursor position!
+    {
+      cursorIndex++;
+      deleteCharacterBeforeCursor();
     }
   }
 }

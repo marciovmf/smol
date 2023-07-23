@@ -21,6 +21,7 @@ namespace smol
     void disable();
 
     int getCursorIndex();
+    void setCursorIndex(int32 index);
 
     void moveCursorLeft();
     void moveCursorRight();
@@ -29,6 +30,7 @@ namespace smol
 
     void addCharacterAtCursor(char c);
     void deleteCharacterBeforeCursor();
+    void deleteCharacterAfterCursor();
   };
 
 }
