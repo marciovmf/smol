@@ -44,6 +44,7 @@ namespace smol
       TEXT_INPUT_ACTIVE,
 
       CURSOR,
+      CURSOR_HOT,
 
       MENU,
       MENU_SELECTION,
@@ -113,10 +114,19 @@ namespace smol
     Rect areaOffset;
     float z;
 
+    float deltaTime;
+    float cursorAnimateWaitMilisseconds;
+
     // Text input
+    bool isTextInputEnabled;
     char* inputBuffer;
-    size_t inputBufferCapacity;
-    size_t inputBufferUsed;
+    int32 inputBufferCapacity;
+    int32 inputBufferUsed;
+
+    // Cursor selection
+    float cursorXPosition;
+    int32 cursorIndex;
+
     //size_t inputCursor;
     Handle<EventHandler> eventHandler;
 
@@ -146,7 +156,7 @@ namespace smol
     Vector2 getScreenSize() const;
     GUISkin& getSkin();
     Rect getLastRect() const;
-    void begin(int screenWidth, int32 screenHeight);
+    void begin(float deltaTime, int screenWidth, int32 screenHeight);
     void panel(GUIControlID id, int32 x, int32 y, int32 w, int32 h);
     void horizontalSeparator(int32 x, int32 y, int32 width);
     void verticalSeparator(int32 x, int32 y, int32 height);

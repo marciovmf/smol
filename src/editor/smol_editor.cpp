@@ -33,7 +33,7 @@ namespace smol
     PROJECT_SUBMENU_NEW = 2,
   };
 
-  char inputBuffer1[32];
+  char inputBuffer1[32] = {"Hello, Sailor!"};
   char inputBuffer2[32];
   std::string pipe;
   const int controlHeight = GUI::DEFAULT_CONTROL_HEIGHT;
@@ -199,7 +199,7 @@ namespace smol
     }
   }
 
-  void Editor::update(int windowWidth, int windowHeight)
+  void Editor::update(float deltaTime, int windowWidth, int windowHeight)
   {
     //
     // Should game.onStart be called ?
@@ -221,7 +221,7 @@ namespace smol
     const int vSpacing = 5;
     int yPos;
 
-    gui.begin(windowWidth, windowHeight);
+    gui.begin(deltaTime, windowWidth, windowHeight);
 
     if (mode == MODE_EDIT)
     {
