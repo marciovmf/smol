@@ -43,6 +43,7 @@ namespace smol
       TEXT_INPUT,
       TEXT_INPUT_HOVER,
       TEXT_INPUT_ACTIVE,
+      TEXT_SELECTION,
 
       CURSOR,
       CURSOR_HOT,
@@ -120,6 +121,7 @@ namespace smol
 
     // Text input
     float cursorXPosition;
+    float selectionXPosition;
     TextInput input;
 
     //size_t inputCursor;
@@ -129,10 +131,6 @@ namespace smol
     bool LMBDownThisFrame;
     bool LMBUpThisFrame;
     bool LMBIsDown;
-
-    inline bool mouseLButtonDownThisFrame();
-    inline bool mouseLButtonUpThisFrame();
-    inline bool mouseLButtonIsDown();
 
     public:
 
@@ -162,16 +160,19 @@ namespace smol
     void endArea();
 
     void label(GUIControlID id, const char* text, int32 x, int32 y, int w, Align align = NONE, Color bgColor = Color::NO_COLOR);
-    bool doLabelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align = CENTER, Color bgColor = Color::NO_COLOR);
-    bool doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h);
-    bool doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
-    bool doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
-    bool doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
-    int32 doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
-    float doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
-    float doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
-    char* doTextInput(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width);
+    bool labelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align = CENTER, Color bgColor = Color::NO_COLOR);
+    bool button(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h);
+    bool toggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
+    bool radioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
+    bool checkBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
+    int32 comboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
+    float horizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
+    float verticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
+    char* textBox(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width);
+    int32 popupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth,  uint32 defaultSelection = -1);
     void end();
+
+    bool onEvent(const Event& event, void* payload);
 
 #ifndef SMOL_MODULE_GAME
     void initialize(Handle<Material> material, Handle<Font> font);
@@ -188,11 +189,13 @@ namespace smol
       POPUP_HOVER = 1 << 24
     };
 
+    private:
+    inline bool mouseLButtonDownThisFrame();
+    inline bool mouseLButtonUpThisFrame();
+    inline bool mouseLButtonIsDown();
     void beginTextInput(char* buffer, size_t size);
     void endTextInput();
-    bool onEvent(const Event& event, void* payload);
-
-    int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth,  uint32 defaultSelection = -1);
+    void drawText(const char* text, int32 x, int32 y, int w, Align align = NONE, Color bgColor = Color::NO_COLOR);
   };
 }
 #endif //SMOL_GUI_H

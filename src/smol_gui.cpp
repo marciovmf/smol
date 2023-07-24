@@ -38,6 +38,20 @@ namespace smol
     {
       if (event.keyboardEvent.type == KeyboardEvent::KEY_DOWN || event.keyboardEvent.type == KeyboardEvent::KEY_HOLD)
       {
+        Keycode keycode = event.keyboardEvent.keyCode;
+        if (keycode != KEYCODE_DELETE &&
+            keycode != KEYCODE_HOME &&
+            keycode != KEYCODE_END &&
+            keycode != KEYCODE_LEFT &&
+            keycode != KEYCODE_RIGHT)
+          return false;
+
+        bool hasSelection = input.getSelectionStartIndex() >= 0;
+        if (event.keyboardEvent.shiftIsDown && !hasSelection)
+          input.beginSelectionAtCursor();
+        else if (!event.keyboardEvent.shiftIsDown && hasSelection)
+          input.clearSelection();
+
         if (event.keyboardEvent.keyCode == Keycode::KEYCODE_DELETE)
         {
           input.deleteCharacterAfterCursor();
@@ -119,6 +133,10 @@ namespace smol
     Renderer::begin(streamBuffer);
   }
 
+  //
+  // Controls
+  //
+  
   void GUI::panel(GUIControlID id, int32 x, int32 y, int32 w, int32 h)
   {
     lastRect = Rect(x, y, w, h);
@@ -274,11 +292,8 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align, Color bg)
+  void GUI::drawText(const char* text, int32 x, int32 y, int w, Align align, Color bgColor)
   {
-    x = areaOffset.x + x;
-    y = areaOffset.y + y;
-
     const float fontSize =  skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
     const float scaleY  = fontSize / screenH;
@@ -311,8 +326,8 @@ namespace smol
     lastRect = Rect((int32)(posX * screenW), (int32)(posY * screenW), (int32) (bounds.x * screenW), (int32) (bounds.y * screenH));
 
     // Draws a solid background behind the text. Keep this here for debugging
-    if (bg.a > 0.00f)
-      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bg);
+    if (bgColor.a > 0.00f)
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bgColor);
 
     for (int i = 0; i < textLen; i++)
     {
@@ -334,7 +349,6 @@ namespace smol
       {
         int32 cursorIndex = input.getCursorIndex();
         // End, past the of last character
-        //
         if (cursorIndex < textLen)
         {
           GlyphDrawData& data = drawData[cursorIndex];
@@ -344,11 +358,33 @@ namespace smol
           GlyphDrawData& data = drawData[cursorIndex - 1];
           cursorXPosition = posX + data.position.x * scaleX + data.size.x * scaleX;
         }
+
+        int32 selectionStartIndex = input.getSelectionStartIndex();
+        if (selectionStartIndex >= 0)
+        {
+          // End, past the of last character
+          if (selectionStartIndex < textLen)
+          {
+            GlyphDrawData& data = drawData[selectionStartIndex];
+            selectionXPosition = posX + data.position.x * scaleX;
+          }
+          else {
+            GlyphDrawData& data = drawData[selectionStartIndex - 1];
+            selectionXPosition = posX + data.position.x * scaleX + data.size.x * scaleX;
+          }
+        }
       }
     }
   }
 
-  bool GUI::doLabelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align, Color bg)
+  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align, Color bg)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    drawText(text, x, y, w, align, bg);
+  }
+
+  bool GUI::labelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align, Color bg)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -393,7 +429,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h)
+  bool GUI::button(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -444,7 +480,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
+  bool GUI::toggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -499,7 +535,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
+  bool GUI::radioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
     const uint32 size = (int32)(0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     x = areaOffset.x + x;
@@ -567,7 +603,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
+  bool GUI::checkBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
     const uint32 size = (int32)(0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     x = areaOffset.x + x;
@@ -630,7 +666,7 @@ namespace smol
     return returnValue;
   }
 
-  float GUI::doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w)
+  float GUI::horizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w)
   {
     //inner handle scales according to user action
     const float handleScaleHover  = 0.8f;
@@ -723,7 +759,7 @@ namespace smol
     return returnValue;
   }
 
-  float GUI::doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h)
+  float GUI::verticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h)
   {
     //inner handle scales according to user action
     const float handleScaleHover  = 0.8f;
@@ -813,28 +849,7 @@ namespace smol
     return returnValue;
   }
 
-  void GUI::beginTextInput(char* buffer, size_t size)
-  {
-    // We cant guarantee the order the GUI will call begin/end so we might be
-    // able to end previous input session here befor starting another one.
-    if (input.isEnabled())
-      endTextInput();
-
-    input.enable();
-    eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
-    input.setBuffer(buffer, size);
-    cursorXPosition = 0.0f;
-  }
-
-  void GUI::endTextInput()
-  {
-    SMOL_ASSERT(input.isEnabled(), "EndTextInput() called when no text input is not enabled.");
-    input.disable();
-    EventManager::get().removeHandler(eventHandler);
-    cursorXPosition = 0.0f;
-  }
-
-  char* GUI::doTextInput(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width)
+  char* GUI::textBox(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -854,6 +869,7 @@ namespace smol
       {
         activeControlId = 0;
         hoverControlId = 0;
+        isActiveControl = false;
         endTextInput();
       }
     }
@@ -905,12 +921,34 @@ namespace smol
           Vector3(cursorXPosition, (y + 2) / screenH, z), 
           Vector2(1 / screenW, (h - 4) / screenH),
           Rectf(), c);
+
+      if (input.getSelectionStartIndex() >= 0)
+      {
+        float sP, sW;
+        if (cursorXPosition > selectionXPosition)
+        {
+          sP = cursorXPosition;
+          sW = selectionXPosition - cursorXPosition;
+        }
+        else
+        {
+          sP = selectionXPosition;
+          sW = cursorXPosition - selectionXPosition;
+        }
+
+        c = skin.color[GUISkin::TEXT_SELECTION];
+        c.a = 0.5f;
+        Renderer::pushSprite(streamBuffer,
+            Vector3(sP, y / screenH, z), 
+            Vector2(sW, h / screenH),
+            Rectf(), c);
+      }
     }
 
     return buffer;
   }
 
-  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth, uint32 defaultSelection)
+  int32 GUI::popupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth, uint32 defaultSelection)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -1075,7 +1113,7 @@ namespace smol
     return selectedOption;
   }
 
-  int32 GUI::doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
+  int32 GUI::comboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -1115,7 +1153,7 @@ namespace smol
     int32 newSelectedIndex = selectedIndex;
     if (isActiveControl)
     {
-      newSelectedIndex = doOptionList(id, options, optionCount, x, y + h, w);
+      newSelectedIndex = popupMenu(id, options, optionCount, x, y + h, w);
     }
     else if (mouseOver)
     {
@@ -1138,6 +1176,31 @@ namespace smol
   void GUI::end()
   {
     Renderer::end(streamBuffer);
+  }
+
+  //
+  // Internal and utility functions
+  //
+  
+  void GUI::beginTextInput(char* buffer, size_t size)
+  {
+    // We cant guarantee the order the GUI will call begin/end so we might be
+    // able to end previous input session here befor starting another one.
+    if (input.isEnabled())
+      endTextInput();
+
+    input.enable();
+    eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
+    input.setBuffer(buffer, size);
+    cursorXPosition = 0.0f;
+    selectionXPosition = 0.0f;
+  }
+
+  void GUI::endTextInput()
+  {
+    SMOL_ASSERT(input.isEnabled(), "EndTextInput() called when no text input is not enabled.");
+    input.disable();
+    EventManager::get().removeHandler(eventHandler);
   }
 
 #ifndef SMOL_MODULE_GAME
@@ -1190,6 +1253,7 @@ namespace smol
     skin.color[GUISkin::TEXT]                   = Color::WHITE;
     skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]  = Color::BLACK;
     skin.color[GUISkin::TEXT_DISABLED]          = Color::GRAY;
+    skin.color[GUISkin::TEXT_SELECTION]         = highlight;
 
     skin.color[GUISkin::TEXT_INPUT]         = controlBackground;
     skin.color[GUISkin::TEXT_INPUT_HOVER]   = controlBackgroundHover;

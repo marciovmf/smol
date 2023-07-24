@@ -7,11 +7,14 @@ namespace smol
 {
   class SMOL_ENGINE_API TextInput
   {
-    bool enabled;
     char* buffer;
     int32 bufferCapacity;
     int32 bufferUsed;
     int32 cursorIndex;
+    int32 selectionIndex; // negative number means no selection
+    bool enabled;
+
+    bool deleteSelection();
 
     public:
     void setBuffer(char* buffer, size_t size);
@@ -31,6 +34,9 @@ namespace smol
     void addCharacterAtCursor(char c);
     void deleteCharacterBeforeCursor();
     void deleteCharacterAfterCursor();
+    void beginSelectionAtCursor();
+    int32 getSelectionStartIndex(); // returns the character index where the selection starts or -1 if no selection is active.
+    void clearSelection();
   };
 
 }

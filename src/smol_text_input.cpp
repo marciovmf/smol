@@ -1,7 +1,7 @@
 #include <smol/smol_text_input.h>
 #include <smol/smol_log.h>
 #include <string.h>
-#include <vcruntime_string.h>
+#include <math.h>
 
 namespace smol
 {
@@ -13,17 +13,22 @@ namespace smol
     }
   }
 
-  void moveCharactersBackward(char *buff, int32 startIndex, int32 length)
+  void moveCharactersBackward(char *buff, int32 startIndex, int32 length, int32 amount = 1)
   {
-    memcpy(buff + startIndex - 1, buff + startIndex, length);
+    memcpy(buff + startIndex - amount, buff + startIndex, length);
+  }
+
+  void removeSelectedCharacters(char* buff, int32 startIndex, int32 endIndex)
+  {
   }
 
   void TextInput::setBuffer(char* buffer, size_t size)
   {
-    this->buffer        = buffer;
-    bufferCapacity = (int32) size;
-    bufferUsed     = (int32) strlen(buffer);
-    cursorIndex         = (int32) bufferUsed;
+    this->buffer    = buffer;
+    bufferCapacity  = (int32) size;
+    bufferUsed      = (int32) strlen(buffer);
+    cursorIndex     = (int32) bufferUsed;
+    selectionIndex  = -1;
     SMOL_ASSERT(bufferCapacity > bufferUsed, "Input buffer contents are larger than the buffer size. Did you forget to initialized the buffer ?");
     memset(buffer + bufferUsed, 0, size - bufferUsed);
   }
@@ -82,6 +87,9 @@ namespace smol
 
   void TextInput::addCharacterAtCursor(char c)
   {
+    // if there is a selection, we need to delete it first
+    deleteSelection();
+
     if (bufferUsed >= (bufferCapacity - 1))
       return;
 
@@ -105,8 +113,58 @@ namespace smol
     }
   }
 
+  bool TextInput::deleteSelection()
+  {
+    if (selectionIndex < 0)
+      return false;
+
+    int32 start, end, size;
+
+    if (cursorIndex > selectionIndex)
+    {
+      start = selectionIndex;
+      end   = cursorIndex;
+    }
+    else
+    {
+      start = cursorIndex;
+      end   = selectionIndex;
+    }
+
+    size = end - start;
+    if (end == bufferUsed)
+    {
+      memset(buffer + start, 0, size);
+      bufferUsed = start;
+      cursorIndex = bufferUsed;
+      selectionIndex = -1;
+    }
+    else if (start == 0)
+    {
+      moveCharactersBackward(buffer, end, bufferUsed - end, end);
+      memset(buffer + end, 0, size);
+      bufferUsed -= size;
+      cursorIndex = 0;
+      selectionIndex = -1;
+    }
+    else
+    {
+      int32 remainingCount = bufferUsed - end;
+      moveCharactersBackward(buffer, end, bufferUsed - end, size);
+      memset(buffer + start + remainingCount, 0, size);
+      bufferUsed -= size;
+      cursorIndex = start;
+      selectionIndex = -1;
+    }
+    return true;
+  }
+
   void TextInput::deleteCharacterBeforeCursor()
   {
+    // is there a selection active ?
+    if (deleteSelection())
+      return;
+
     if (bufferUsed > 0 && cursorIndex > 0)
     {
       if (cursorIndex < bufferUsed)
@@ -123,10 +181,25 @@ namespace smol
 
   void TextInput::deleteCharacterAfterCursor()
   {
-    if (cursorIndex+1 <= bufferUsed) // when cursorIndex == bufferUsed, it's past the last character which is a valid cursor position!
+    if ((cursorIndex + 1) <= bufferUsed) // when cursorIndex == bufferUsed, it's past the last character which is a valid cursor position!
     {
       cursorIndex++;
       deleteCharacterBeforeCursor();
     }
+  }
+
+  void TextInput::beginSelectionAtCursor()
+  {
+    selectionIndex = cursorIndex;
+  }
+
+  void TextInput::clearSelection()
+  {
+    selectionIndex = -1;
+  }
+
+  int32 TextInput::getSelectionStartIndex()
+  {
+    return selectionIndex;
   }
 }
