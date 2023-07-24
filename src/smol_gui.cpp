@@ -292,7 +292,7 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::drawText(const char* text, int32 x, int32 y, int w, Align align, Color bgColor, TextInput* textInput)
+  void GUI::drawText(const char* text, int32 x, int32 y, int w, Align align, Color bgColor, TextInput* textInput, int32 cursorHeight)
   {
     const float fontSize =  skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
@@ -307,6 +307,7 @@ namespace smol
     GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
     Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, w / (float)fontSize, 1.0f + skin.lineHeightAdjust);
     bounds.mult(scaleX, scaleY);
+    float cursorY = 0.0f;
 
     if (align == Align::CENTER)
     {
@@ -321,98 +322,172 @@ namespace smol
     else if (align == Align::LEFT)
     {
       posY -= bounds.y/2;
+      cursorY = (y - cursorHeight/2.0f)  / screenH;
     }
 
     lastRect = Rect((int32)(posX * screenW), (int32)(posY * screenW), (int32) (bounds.x * screenW), (int32) (bounds.y * screenH));
 
-    bool repositionCursor = false;
-    float mouseX = mouseCursorPosition.x / screenW;
-    if (textInput && textInput->isEnabled() && textLen > 0)
-    {
-      bool isSelecting = input.getSelectionStartIndex() >= 0;
-      if(mouseLButtonDownThisFrame())
-      {
-        repositionCursor = true;
-        input.clearSelection();
-      }
-      else if (mouseLButtonIsDown())
-      {
-        repositionCursor = true;
-        if (!isSelecting)
-          input.beginSelectionAtCursor();
-      }
-    }
-
-    // Draws a solid background behind the text. Keep this here for debugging
-    if (bgColor.a > 0.00f)
-      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bgColor);
-
-    float previousX = 0.0f;
+    //
+    // First pass: Convert from font coordinates to screen cordinates
+    //
     for (int i = 0; i < textLen; i++)
     {
       GlyphDrawData& data = drawData[i];
       Vector3 offset = Vector3(posX + data.position.x * scaleX, posY + data.position.y *  scaleY, z);
       Vector2 size = data.size;
       size.mult(scaleX, scaleY);
-      Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
-
-      // find the closest charecter to the point where the mouse button was clicked
-      if (repositionCursor)
-      {
-        if(mouseX >= previousX && mouseX < (offset.x + size.x))
-        {
-          textInput->setCursorIndex(i);
-          cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
-          repositionCursor = false;
-        }
-      }
-      previousX = offset.x;
+      data.position = offset;
+      data.size = size;
     }
 
-    // if mouse click was not inside any letter, it's certainly after.
-    if (repositionCursor)
+    //
+    // Draw cursor and selection
+    //
+    if (textInput)
     {
-      textInput->setCursorIndex((int32) textLen);
-      cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
-    }
+      int32 selectionStartIndex = textInput->getSelectionStartIndex();
+      float cursorXPosition = 0.0f;
+      float selectionXPosition = 0.0f;
+      bool selecting = false;
 
-    // Get curor X position based on it's position on the text
-    if (textInput && textInput->isEnabled())
-    {
-      if (textLen == 0)
+      if (textInput->isEnabled())
       {
-        // Beggining of the string
-        cursorXPosition = posX;
-      }
-      else
-      {
-        int32 cursorIndex = textInput->getCursorIndex();
-        // End, past the of last character
-        if (cursorIndex < textLen)
-        {
-          GlyphDrawData& data = drawData[cursorIndex];
-          cursorXPosition = posX + data.position.x * scaleX;
-        }
-        else {
-          GlyphDrawData& data = drawData[cursorIndex - 1];
-          cursorXPosition = posX + data.position.x * scaleX + data.size.x * scaleX;
-        }
-
-        int32 selectionStartIndex = textInput->getSelectionStartIndex();
+        //
+        // Get selection position
+        //
         if (selectionStartIndex >= 0)
         {
-          // End, past the of last character
+          selecting = true;
+          // selected past the last character
           if (selectionStartIndex < textLen)
           {
             GlyphDrawData& data = drawData[selectionStartIndex];
-            selectionXPosition = posX + data.position.x * scaleX;
+            selectionXPosition = data.position.x;
           }
-          else {
+          else
+          {
+            // selection ends in the middle of the string
             GlyphDrawData& data = drawData[selectionStartIndex - 1];
-            selectionXPosition = posX + data.position.x * scaleX + data.size.x * scaleX;
+            selectionXPosition = data.position.x + data.size.x;
+          }
+        }
+
+        if (textLen > 0)
+        {
+          bool repositionCursor = false;
+          // should we reposition the cursor because of a mouse click ?
+          if(mouseLButtonDownThisFrame())
+          {
+            repositionCursor = true;
+            input.clearSelection();
+          }
+          else if (mouseLButtonIsDown())
+          {
+            repositionCursor = true;
+            if (!selecting)
+              input.beginSelectionAtCursor();
+          }
+
+          int32 cursorIndex = textInput->getCursorIndex();
+          if (cursorIndex < textLen)
+          {
+            // cursor is in the middle of the string
+            GlyphDrawData& data = drawData[cursorIndex];
+            cursorXPosition = data.position.x;
+          }
+          else
+          {
+            // cursor is at the end of the string
+            GlyphDrawData& data = drawData[cursorIndex - 1];
+            cursorXPosition = data.position.x + data.size.x;
+          }
+
+          //
+          // optional pass: Click to reposition the cursor.
+          //
+          if (repositionCursor)
+          {
+            float mouseX = mouseCursorPosition.x / screenW;
+            if (mouseX >= drawData[textLen - 1].position.x)
+            {
+              textInput->setCursorIndex((int32) textLen);
+            }
+            else
+            {
+              float previousX = 0.0f;
+              for (int i = 0; i < textLen; i++)
+              {
+                GlyphDrawData& data = drawData[i];
+                if(mouseX >= previousX && mouseX < (data.position.x + data.size.x))
+                {
+                  textInput->setCursorIndex(i);
+                  cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+                  repositionCursor = false;
+                  break;
+                }
+                previousX = data.position.x;
+              }
+            }
+          }
+
+          //
+          // Draw selection
+          //
+          if (selecting)
+          {
+            float sP, sW;
+            if (cursorXPosition > selectionXPosition)
+            {
+              sP = cursorXPosition;
+              sW = selectionXPosition - cursorXPosition;
+            }
+            else
+            {
+              sP = selectionXPosition;
+              sW = cursorXPosition - selectionXPosition;
+            }
+
+            Color c = skin.color[GUISkin::TEXT_SELECTION];
+            Renderer::pushSprite(streamBuffer,
+                Vector3(sP, cursorY, z), 
+                Vector2(sW, cursorHeight / screenH),
+                Rectf(), c);
           }
         }
       }
+
+      //
+      // Draw Cursor
+      //
+      Color c = skin.color[skin.CURSOR];
+      if (cursorAnimateWaitMilisseconds <= 0.0f)
+      {
+        cursorAnimateWaitMilisseconds = 0.0f;
+        c.a = (float) sin(4 * Platform::getSecondsSinceStartup());
+      }
+      else
+      {
+        c = skin.color[skin.CURSOR_HOT];
+        cursorAnimateWaitMilisseconds -= deltaTime;
+      }
+
+      Renderer::pushSprite(streamBuffer,
+          Vector3(cursorXPosition, cursorY, z),
+          Vector2(1 / screenW, cursorHeight / screenH),
+          Rectf(), c);
+    }
+
+    // Draws a solid background behind the text. Keep this here for debugging
+    if (bgColor.a > 0.00f)
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bgColor);
+
+    //
+    // Second pass: Draw text
+    //
+    for (int i = 0; i < textLen; i++)
+    {
+      GlyphDrawData& data = drawData[i];
+      Renderer::pushSprite(streamBuffer, data.position, data.size, data.uv, data.color);
     }
   }
 
@@ -938,10 +1013,11 @@ namespace smol
     // Text
     const int labelX = x + DEFAULT_H_SPACING;
     const int labelY = y + h/2;
-    drawText(buffer, labelX, labelY, 0, LEFT, Color::NO_COLOR, isActiveControl ? &input : nullptr);
+    drawText(buffer, labelX, labelY, 0, LEFT, Color::NO_COLOR, isActiveControl ? &input : nullptr, h - 2);
 
     // Cursor
     // Note that drawText() updates the this->cursorXPosition if isTextInputEnabled == true
+#if 0
     if (isActiveControl)
     { 
       Color c = skin.color[skin.CURSOR];
@@ -977,7 +1053,7 @@ namespace smol
         }
 
         // Selection
-        c = skin.color[GUISkin::TEXT_SELECTION];
+        Color c = skin.color[GUISkin::TEXT_SELECTION];
         c.a = 0.5f;
         Renderer::pushSprite(streamBuffer,
             Vector3(sP, y / screenH, z), 
@@ -985,6 +1061,7 @@ namespace smol
             Rectf(), c);
       }
     }
+#endif
 
     return buffer;
   }
@@ -1233,8 +1310,8 @@ namespace smol
     input.enable();
     eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
     input.setBuffer(buffer, size);
-    cursorXPosition = 0.0f;
-    selectionXPosition = 0.0f;
+    //cursorXPosition = 0.0f;
+    //selectionXPosition = 0.0f;
   }
 
   void GUI::endTextInput()

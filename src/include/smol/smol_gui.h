@@ -119,12 +119,8 @@ namespace smol
     float deltaTime;
     float cursorAnimateWaitMilisseconds;
 
-    // Text input
-    float cursorXPosition;
-    float selectionXPosition;
     TextInput input;
 
-    //size_t inputCursor;
     Handle<EventHandler> eventHandler;
 
     Point2 mouseCursorPosition;
@@ -195,7 +191,7 @@ namespace smol
     inline bool mouseLButtonIsDown();
     void beginTextInput(char* buffer, size_t size);
     void endTextInput();
-    void drawText(const char* text, int32 x, int32 y, int w, Align align = NONE, Color bgColor = Color::NO_COLOR, TextInput* textInput = nullptr);
+    void drawText(const char* text, int32 x, int32 y, int w, Align align = NONE, Color bgColor = Color::NO_COLOR, TextInput* textInput = nullptr, int32 cursorHeight = 0);
   };
 }
 #endif //SMOL_GUI_H
