@@ -55,7 +55,7 @@ namespace smol
 
   inline void TextInput::setCursorIndex(int32 index)
   {
-    if (index > 0 && index < bufferUsed)
+    if (index >= 0 && index <= bufferUsed)
       cursorIndex = index;
   }
 
@@ -132,24 +132,25 @@ namespace smol
     }
 
     size = end - start;
-    if (end == bufferUsed)
+    int32 remainingCount = bufferUsed - end;
+
+    if (start == 0)
+    {
+      moveCharactersBackward(buffer, end, bufferUsed - end, end);
+      memset(buffer + start + remainingCount, 0, size);
+      bufferUsed -= size;
+      cursorIndex = 0;
+      selectionIndex = -1;
+    }
+    else if (end == bufferUsed)
     {
       memset(buffer + start, 0, size);
       bufferUsed = start;
       cursorIndex = bufferUsed;
       selectionIndex = -1;
     }
-    else if (start == 0)
-    {
-      moveCharactersBackward(buffer, end, bufferUsed - end, end);
-      memset(buffer + end, 0, size);
-      bufferUsed -= size;
-      cursorIndex = 0;
-      selectionIndex = -1;
-    }
     else
     {
-      int32 remainingCount = bufferUsed - end;
       moveCharactersBackward(buffer, end, bufferUsed - end, size);
       memset(buffer + start + remainingCount, 0, size);
       bufferUsed -= size;

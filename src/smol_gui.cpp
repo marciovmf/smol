@@ -292,7 +292,7 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::drawText(const char* text, int32 x, int32 y, int w, Align align, Color bgColor)
+  void GUI::drawText(const char* text, int32 x, int32 y, int w, Align align, Color bgColor, TextInput* textInput)
   {
     const float fontSize =  skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
@@ -325,10 +325,29 @@ namespace smol
 
     lastRect = Rect((int32)(posX * screenW), (int32)(posY * screenW), (int32) (bounds.x * screenW), (int32) (bounds.y * screenH));
 
+    bool repositionCursor = false;
+    float mouseX = mouseCursorPosition.x / screenW;
+    if (textInput && textInput->isEnabled() && textLen > 0)
+    {
+      bool isSelecting = input.getSelectionStartIndex() >= 0;
+      if(mouseLButtonDownThisFrame())
+      {
+        repositionCursor = true;
+        input.clearSelection();
+      }
+      else if (mouseLButtonIsDown())
+      {
+        repositionCursor = true;
+        if (!isSelecting)
+          input.beginSelectionAtCursor();
+      }
+    }
+
     // Draws a solid background behind the text. Keep this here for debugging
     if (bgColor.a > 0.00f)
       Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bgColor);
 
+    float previousX = 0.0f;
     for (int i = 0; i < textLen; i++)
     {
       GlyphDrawData& data = drawData[i];
@@ -336,9 +355,29 @@ namespace smol
       Vector2 size = data.size;
       size.mult(scaleX, scaleY);
       Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
+
+      // find the closest charecter to the point where the mouse button was clicked
+      if (repositionCursor)
+      {
+        if(mouseX >= previousX && mouseX < (offset.x + size.x))
+        {
+          textInput->setCursorIndex(i);
+          cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+          repositionCursor = false;
+        }
+      }
+      previousX = offset.x;
     }
 
-    if (input.isEnabled())
+    // if mouse click was not inside any letter, it's certainly after.
+    if (repositionCursor)
+    {
+      textInput->setCursorIndex((int32) textLen);
+      cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+    }
+
+    // Get curor X position based on it's position on the text
+    if (textInput && textInput->isEnabled())
     {
       if (textLen == 0)
       {
@@ -347,7 +386,7 @@ namespace smol
       }
       else
       {
-        int32 cursorIndex = input.getCursorIndex();
+        int32 cursorIndex = textInput->getCursorIndex();
         // End, past the of last character
         if (cursorIndex < textLen)
         {
@@ -359,7 +398,7 @@ namespace smol
           cursorXPosition = posX + data.position.x * scaleX + data.size.x * scaleX;
         }
 
-        int32 selectionStartIndex = input.getSelectionStartIndex();
+        int32 selectionStartIndex = textInput->getSelectionStartIndex();
         if (selectionStartIndex >= 0)
         {
           // End, past the of last character
@@ -881,6 +920,7 @@ namespace smol
       if (mouseLButtonDownThisFrame())
       {
         cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+        isActiveControl = true;
         activeControlId = id;
         hoverControlId = id;
         beginTextInput(buffer, bufferCapacity);
@@ -896,12 +936,12 @@ namespace smol
         Rectf(), skin.color[styleId]);
 
     // Text
-    const int labelX = (x - areaOffset.x) + DEFAULT_H_SPACING;
-    const int labelY = (y - areaOffset.y) + h/2;
-    label(id, buffer, labelX, labelY, 0, LEFT);
+    const int labelX = x + DEFAULT_H_SPACING;
+    const int labelY = y + h/2;
+    drawText(buffer, labelX, labelY, 0, LEFT, Color::NO_COLOR, isActiveControl ? &input : nullptr);
 
     // Cursor
-    // Note that label() updates the this->cursorXPosition if isTextInputEnabled == true
+    // Note that drawText() updates the this->cursorXPosition if isTextInputEnabled == true
     if (isActiveControl)
     { 
       Color c = skin.color[skin.CURSOR];
@@ -936,6 +976,7 @@ namespace smol
           sW = cursorXPosition - selectionXPosition;
         }
 
+        // Selection
         c = skin.color[GUISkin::TEXT_SELECTION];
         c.a = 0.5f;
         Renderer::pushSprite(streamBuffer,
@@ -1181,7 +1222,7 @@ namespace smol
   //
   // Internal and utility functions
   //
-  
+
   void GUI::beginTextInput(char* buffer, size_t size)
   {
     // We cant guarantee the order the GUI will call begin/end so we might be
