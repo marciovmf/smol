@@ -1,28 +1,28 @@
 # variables.txt
 
-@editor:
-  always_build_on_run: 0,         # if 0, will only build if the game module is missing
-  key_play_stop: "F5"
+@editor 
+  always_build_on_run  0,         # if 0, will only build if the game module is missing
+  key_play_stop  "F5"
 
-@system:
-  show_cursor: 1,
-  capture_cursor: 0,
-  gl_version: {3, 3}
+@system 
+  show_cursor  1,
+  capture_cursor  0,
+  gl_version  {3, 3}
 
-@renderer:
-  enable_gamma_correction: 1,
-  enable_msaa: 1,
-  enable_msaa: 1
+@renderer 
+  enable_gamma_correction  1,
+  enable_msaa  1,
+  enable_msaa  1
 
-@display:
-  size:         {1920, 1080},
-  caption:      "SMOL engine v0.1",
-  aspect_ratio:  1.777,           # 16:9 = 1.777; 21:9 = 2.333; 0:0 = free aspect ratio
-  crop_area_color: {0.01, 0.01, 0.01},
-  fullscreen:   0
+@display 
+  size          {1920, 1080},
+  caption       "SMOL engine v0.1",
+  aspect_ratio   1.777,           # 16 9 = 1.777; 21 9 = 2.333; 0 0 = free aspect ratio
+  crop_area_color  {0.01, 0.01, 0.01},
+  fullscreen    0
 
-@game:
-  seed: 1655119152,
-  numHSprites: 5,
-  numVSprites: 5
+@game 
+  seed  1655119152,
+  numHSprites  5,
+  numVSprites  5
 

@@ -1,4 +1,4 @@
-vertexShader:"
+vertexShader "
 #version 330 core
 
   layout (location = 0) in vec3 vertPos;
@@ -12,7 +12,7 @@ vertexShader:"
   uv = vertUVIn;
 }
 ",
-fragmentShader:"
+fragmentShader "
 #version 330 core
   out vec4 fragColor;
   uniform sampler2D mainTex;

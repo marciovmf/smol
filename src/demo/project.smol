@@ -1,1 +1,1 @@
-@project: name: "Demo Game", engine_version_major: 0, engine_version_minor: 1, generator: 0
+@project  name "Demo Game", engine_version_major 0, engine_version_minor 1, generator  0
