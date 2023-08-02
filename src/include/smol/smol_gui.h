@@ -7,6 +7,8 @@
 #include <smol/smol_renderer.h>
 #include <smol/smol_point.h>
 #include <smol/smol_font.h>
+#include <smol/smol_text_input.h>
+#include <limits.h>
 
 #define SMOL_CONTROL_ID (__LINE__)
 
@@ -14,6 +16,8 @@ namespace smol
 {
   typedef uint32 GUIControlID;
   struct SystemsRoot;
+  struct EventHandler;
+  struct Event;
 
   struct SMOL_ENGINE_API GUISkin final
   {
@@ -28,12 +32,21 @@ namespace smol
     Rectf spriteCheckBoxChecked;
     Rectf spriteSliderHandle;
     Rectf spriteComboBoxChevron;
+    Rectf spritePopupMenuChevron;
 
     enum ID
     {
       TEXT,
       TEXT_DEBUG_BACKGROUND,
       TEXT_DISABLED,
+
+      TEXT_INPUT,
+      TEXT_INPUT_HOVER,
+      TEXT_INPUT_ACTIVE,
+      TEXT_SELECTION,
+
+      CURSOR,
+      CURSOR_HOT,
 
       MENU,
       MENU_SELECTION,
@@ -66,7 +79,6 @@ namespace smol
       WINDOW_TITLE_BAR,
 
       SEPARATOR,
-
       SKIN_COLOR_COUNT
     };
 
@@ -79,8 +91,6 @@ namespace smol
     {
       MAX_NESTED_AREAS = 16,
       DEFAULT_H_SPACING = 5,
-      DEFAULT_CONTROL_HEIGHT = 20,
-
     };
 
     StreamBuffer streamBuffer;
@@ -89,8 +99,11 @@ namespace smol
     GUISkin skin;
     Rect lastRect;                    // Rect of the last control drawn
     GUIControlID hoverControlId;
-    GUIControlID activeControlId;
-    GUIControlID draggedControlId;
+    GUIControlID activeControlId;     // tracks statate of controls that have idle/hover/active states like buttons and checkboxes
+    GUIControlID draggedControlId;    // tracks sliders and windows being dragged
+    GUIControlID topmostWindowId;     // tracks the topmost window
+    GUIControlID currentWindowId;
+
     float currentCursorZ;
 
     Point2 cursorDragOffset;          // cursor offset related to the control it's dragging 
@@ -102,11 +115,18 @@ namespace smol
     Rect area[MAX_NESTED_AREAS];
     Rect areaOffset;
     float z;
-    //Point2 mousePos;
+
+    float deltaTime;
+    float cursorAnimateWaitMilisseconds;
+
+    TextInput input;
+
+    Handle<EventHandler> eventHandler;
+
     Point2 mouseCursorPosition;
-    bool mouseLButtonDownThisFrame;
-    bool mouseLButtonUpThisFrame;
-    bool mouseLButtonIsDown;
+    bool LMBDownThisFrame;
+    bool LMBUpThisFrame;
+    bool LMBIsDown;
 
     public:
 
@@ -125,33 +145,53 @@ namespace smol
     Vector2 getScreenSize() const;
     GUISkin& getSkin();
     Rect getLastRect() const;
-    void begin(int screenWidth, int32 screenHeight);
+    void begin(float deltaTime, int screenWidth, int32 screenHeight);
     void panel(GUIControlID id, int32 x, int32 y, int32 w, int32 h);
     void horizontalSeparator(int32 x, int32 y, int32 width);
     void verticalSeparator(int32 x, int32 y, int32 height);
-    Point2 beginWindow(GUIControlID id, const char* title, int32 x, int32 y, int32 w, int32 h);
+    Point2 beginWindow(GUIControlID id, const char* title, int32 x, int32 y, int32 w, int32 h, bool topmost = false);
     void endWindow();
 
     void beginArea(int32 x, int32 y, int32 w, int32 h);
     void endArea();
 
-    void label(GUIControlID id, const char* text, int32 x, int32 y, int w, Align align = NONE);
-    bool doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h);
-    bool doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
-    bool doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
-    bool doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
-    // returns the index of the option selected. Returns -1 if nothing was selected
-    int32 doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 maxWidth);
-    int32 doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
-    float doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
-    float doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
+    void label(GUIControlID id, const char* text, int32 x, int32 y, int w, Align align = NONE, Color bgColor = Color::NO_COLOR);
+    bool labelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align = CENTER, Color bgColor = Color::NO_COLOR);
+    bool button(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h);
+    bool toggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h);
+    bool radioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
+    bool checkBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y);
+    int32 comboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w);
+    float horizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w);
+    float verticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h);
+    char* textBox(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width);
+    int32 popupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth,  uint32 defaultSelection = -1);
     void end();
+
+    bool onEvent(const Event& event, void* payload);
 
 #ifndef SMOL_MODULE_GAME
     void initialize(Handle<Material> material, Handle<Font> font);
     Handle<Material> getMaterial() const;
 #endif
 
+    //private:
+    // returns the index of the selected option. Returns -1 if nothing was selected
+    enum
+    {
+      DEFAULT_CONTROL_HEIGHT = 25,
+      POPUP_MENU_DMISMISS = INT_MIN,
+      POPUP_MENU_IDLE = INT_MAX,
+      POPUP_HOVER = 1 << 24
+    };
+
+    private:
+    inline bool mouseLButtonDownThisFrame();
+    inline bool mouseLButtonUpThisFrame();
+    inline bool mouseLButtonIsDown();
+    void beginTextInput(char* buffer, size_t size);
+    void endTextInput();
+    void drawText(const char* text, int32 x, int32 y, int w, Align align = NONE, Color bgColor = Color::NO_COLOR, TextInput* textInput = nullptr, int32 cursorHeight = 0);
   };
 }
 #endif //SMOL_GUI_H

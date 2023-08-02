@@ -153,14 +153,12 @@ namespace smol
     }
 
     fflush(stdout);
-    bool error = false;
     globalStdoutCopy = dup(1);
 
     #ifdef SMOL_PLATFORM_WINDOWS
-        error = freopen_s(&globalStream, fileName, "a+", stdout) != 0;
+    freopen_s(&globalStream, fileName, "a+", stdout);
     #else
-        globalStream = freopen(fileName, "a+", stdout);
-        error = (fd == 0 ); 
+    globalStream = freopen(fileName, "a+", stdout);
     #endif
 
     if (!globalStream)

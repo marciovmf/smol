@@ -8,7 +8,6 @@
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_cfg_parser.h>
-#include <smol/smol_systems_root.h>
 #include <string.h>
 #include <utility>
 
@@ -223,8 +222,8 @@ namespace smol
 
   void Scene::render(float deltaTime)
   {
-    ResourceManager& resourceManager = SystemsRoot::get()->resourceManager;
-    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader().glProgramId;
+    ResourceManager& resourceManager = ResourceManager::get();
+    const GLuint defaultShaderProgramId = resourceManager.getDefaultShader()->glProgramId;
     const Material& defaultMaterial = resourceManager.getDefaultMaterial();
 
     const SceneNode* allNodes = nodes.getArray();
@@ -336,15 +335,12 @@ namespace smol
       // ----------------------------------------------------------------------
       // CLEAR
       const Color& clearColor = cameraNode->camera.getClearColor();
-      glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+      Renderer::setClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 
       unsigned int clearOperation = cameraNode->camera.getClearOperation();
       if (clearOperation != Renderer::ClearBufferFlag::CLEAR_NONE)
       {
-        //TODO(marcio): This hack will allow us to clear only the camera's viewport. Remove it when we have per camera Framebuffers working.
-        Renderer::beginScissor((GLsizei) screenRect.x, (GLsizei) screenRect.y, (GLsizei) screenRect.w, (GLsizei) screenRect.h);
-        Renderer::clearBuffers((Renderer::ClearBufferFlag)clearOperation);
-        Renderer::endScissor();
+        Renderer::clearBuffers(clearOperation);
       }
 
       // ----------------------------------------------------------------------

@@ -15,6 +15,7 @@
 #include <smol/smol_mesh_data.h>
 #include <smol/smol_mesh.h>
 #include <smol/smol_renderable.h>
+#include <smol/smol_font.h>
 
 //smol_color.h is not used by this header, but included by convenience and consistency since Color is a type meant to be used by the renderer
 

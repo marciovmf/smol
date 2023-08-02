@@ -1,4 +1,5 @@
 
+#include "include/smol/smol_scene_manager.h"
 #include <smol/smol_scene_manager.h>
 #include <smol/smol_scene.h>
 
@@ -21,8 +22,20 @@ namespace smol
     return *scene;
   };
 
-  void SceneManager::render(float deltaTime)
+  void SceneManager::renderScene(float deltaTime)
   {
     scene->render(deltaTime);
+  }
+
+  SceneManager& SceneManager::get()
+  {
+    static SceneManager instance;
+    return instance;
+  }
+
+  void SceneManager::cleanupScene()
+  {
+    scene->~Scene();
+    scene = new Scene();
   }
 }

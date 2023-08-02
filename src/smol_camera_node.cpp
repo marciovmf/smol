@@ -1,5 +1,5 @@
 #include <smol/smol_camera_node.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_scene_manager.h>
 #include <smol/smol_scene.h>
 
 namespace smol
@@ -8,7 +8,7 @@ namespace smol
 
   Handle<SceneNode> CameraNode::createPerspective(float fov, float zNear, float zFar, Transform& transform)
   {
-    Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
+    Scene& scene = SceneManager::get().getCurrentScene();
     Handle<SceneNode> handle = scene.createNode(SceneNode::Type::CAMERA, transform);
     handle->camera = CameraNode();
     handle->camera.setPerspective(fov, zNear, zFar);
@@ -17,7 +17,7 @@ namespace smol
 
   Handle<SceneNode> CameraNode::createOrthographic(float size, float zNear, float zFar, Transform& transform)
   {
-    Scene& scene = SystemsRoot::get()->sceneManager.getCurrentScene();
+    Scene& scene = SceneManager::get().getCurrentScene();
     Handle<SceneNode> handle = scene.createNode(SceneNode::Type::CAMERA, transform);
     handle->camera = CameraNode();
     handle->camera.setOrthographic(size, zNear, zFar);
@@ -27,7 +27,7 @@ namespace smol
   void CameraNode::destroy(Handle<SceneNode> handle)
   {
     SMOL_ASSERT(handle->typeIs(SceneNode::Type::CAMERA), "Handle passed to CameraNode::destroy() is not of type Camera");
-    SystemsRoot::get()->sceneManager.getCurrentScene().destroyNode(handle);
+    SceneManager::get().getCurrentScene().destroyNode(handle);
   }
 }
 

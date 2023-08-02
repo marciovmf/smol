@@ -27,7 +27,7 @@ namespace smol
   const Color Color::RED =          Color(255,0,0);
   const Color Color::SILVER =       Color(192,192,192);
   const Color Color::TEAL =         Color(0,128,128);
-  const Color Color::TRANSPARENT =  Color(0,0,0, 0);
+  const Color Color::NO_COLOR =     Color(0,0,0,0);
   const Color Color::WHITE =        Color(255,255,255);
   const Color Color::YELLOW =       Color(255,255,0);
 }

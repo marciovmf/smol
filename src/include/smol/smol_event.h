@@ -2,6 +2,7 @@
 #define SMOL_EVENT_H
 
 #include <smol/smol_engine.h>
+#include <smol/smol_keyboard.h>
 
 namespace smol
 {
@@ -11,6 +12,7 @@ namespace smol
     {
       CHARACTER_INPUT = 0,
       BACKSPACE       = 1,
+      DEL             = 2,
     };
 
     Type type;
@@ -58,7 +60,10 @@ namespace smol
     };
 
     Type type;
-    uint8 keyCode; 
+    Keycode keyCode; 
+    bool ctrlIsDown;
+    bool shiftIsDown;
+    bool altIsDown;
   };
 
   /**

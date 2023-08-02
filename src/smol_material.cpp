@@ -1,5 +1,5 @@
 #include <smol/smol_material.h>
-#include <smol/smol_systems_root.h>
+#include <smol/smol_resource_manager.h>
 
 namespace smol
 {
@@ -28,7 +28,7 @@ namespace smol
     if (param)
     {
       textureDiffuse[param->uintValue] = handle;
-      Texture& texture = SystemsRoot::get()->resourceManager.getTexture(handle);
+      Texture& texture = ResourceManager::get().getTexture(handle);
     }
     return *this;
   }

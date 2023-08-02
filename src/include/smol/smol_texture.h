@@ -1,6 +1,7 @@
 #ifndef SMOL_TEXTURE_H
 #define SMOL_TEXTURE_H
 #include <smol/smol_vector2.h>
+#include <smol/smol_handle_list.h>
 
 namespace smol
 {

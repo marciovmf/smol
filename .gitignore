@@ -45,5 +45,13 @@ CMakeFiles/
 # build folder
 build/
 src/include/smol/smol_version.h
+project.vim
+*.rdbg
+.cache
+Session.vim
+data/template_project.package
+src/demo/workspace
+*.ilk
+*.pdb
 !src/tools/objimport/samples/
 !src/tools/objimport/samples/*.obj
