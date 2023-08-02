@@ -1,3 +1,4 @@
+#include "include/smol/smol_gui.h"
 #include <exception>
 #include <smol/smol_gui.h>
 #include <smol/smol_material.h>
@@ -7,6 +8,8 @@
 
 namespace smol
 {
+  const float CURSOR_WAIT_MILLISECONDS_ON_EVENT = 0.48f;
+
   static bool onEventForwarder(const Event& event, void* ptrGUI)
   {
     GUI* gui = (GUI*) ptrGUI;
@@ -15,22 +18,73 @@ namespace smol
 
   bool GUI::onEvent(const Event& event, void* payload)
   {
+    if (!enabled)
+      return false;
+
     if (event.type == Event::TEXT)
     {
+      cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
       if (event.textEvent.type == TextEvent::BACKSPACE)
       {
-        if (inputBufferUsed > 0)
+        input.deleteCharacterBeforeCursor();
+        changed = true;
+      }
+      else
+      {
+        input.addCharacterAtCursor(event.textEvent.character);
+        changed = true;
+      }
+      return true;
+    }
+
+    if (event.type == Event::KEYBOARD)
+    {
+      if (event.keyboardEvent.type == KeyboardEvent::KEY_DOWN || event.keyboardEvent.type == KeyboardEvent::KEY_HOLD)
+      {
+        Keycode keycode = event.keyboardEvent.keyCode;
+        if (keycode != KEYCODE_DELETE &&
+            keycode != KEYCODE_HOME &&
+            keycode != KEYCODE_END &&
+            keycode != KEYCODE_LEFT &&
+            keycode != KEYCODE_RIGHT)
+          return false;
+
+        bool hasSelection = input.getSelectionStartIndex() >= 0;
+        if (event.keyboardEvent.shiftIsDown && !hasSelection)
+          input.beginSelectionAtCursor();
+        else if (!event.keyboardEvent.shiftIsDown && hasSelection)
+          input.clearSelection();
+
+        if (event.keyboardEvent.keyCode == Keycode::KEYCODE_DELETE)
         {
-          inputBuffer[--inputBufferUsed] = 0;
+          input.deleteCharacterAfterCursor();
+          changed = true;
+        }
+        else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_HOME)
+        {
+          input.moveCursorHome();
+          cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+          return true;
+        }
+        else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_END)
+        {
+          cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+          input.moveCursorEnd();
+          return true;
+        }
+        else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_LEFT)
+        {
+          cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+          input.moveCursorLeft();
+          return true;
+        }
+        else if (event.keyboardEvent.keyCode == Keycode::KEYCODE_RIGHT)
+        {
+          cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+          input.moveCursorRight();
+          return true;
         }
       }
-      else if (inputBufferUsed < (inputBufferCapacity - 1))
-      {
-        inputBuffer[inputBufferUsed++] = event.textEvent.character;
-        inputBuffer[inputBufferUsed] = 0;
-      }
-
-      return true;
     }
 
     return false;
@@ -42,11 +96,13 @@ namespace smol
 
   Rect GUI::getLastRect() const { return lastRect; }
 
-  void GUI::begin(int screenWidth, int screenHeight)
+  void GUI::begin(float deltaTime, int screenWidth, int screenHeight)
   {
     screenW = (float) screenWidth;
     screenH = (float) screenHeight;
     changed = false;
+    this->deltaTime = deltaTime;
+
     if (enabled)
     {
       Mouse& mouse = InputManager::get().mouse;
@@ -80,6 +136,10 @@ namespace smol
     Renderer::begin(streamBuffer);
   }
 
+  //
+  // Controls
+  //
+  
   void GUI::panel(GUIControlID id, int32 x, int32 y, int32 w, int32 h)
   {
     lastRect = Rect(x, y, w, h);
@@ -191,7 +251,6 @@ namespace smol
         newPos.y = cursorDragOffset.y + cursorPos.y;
       }
     }
-
     return newPos;
   }
 
@@ -236,11 +295,8 @@ namespace smol
       areaOffset = Rect(0, 0, 0 ,0);
   }
 
-  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align, Color bg)
+  void GUI::drawText(const char* text, int32 x, int32 y, int w, Align align, Color bgColor, TextInput* textInput, int32 cursorHeight)
   {
-    x = areaOffset.x + x;
-    y = areaOffset.y + y;
-
     const float fontSize =  skin.labelFontSize;
     const float scaleX  = fontSize / screenW;
     const float scaleY  = fontSize / screenH;
@@ -249,12 +305,12 @@ namespace smol
     const size_t textLen = strlen(text);
 
     GlyphDrawData* drawData =
-      (GlyphDrawData*) glyphDrawDataArena.pushSize((1 + textLen) * sizeof(GlyphDrawData));
+      (GlyphDrawData*) glyphDrawDataArena.pushSize(textLen * sizeof(GlyphDrawData));
 
     GUISkin::ID textColor = enabled ?  GUISkin::TEXT : GUISkin::TEXT_DISABLED;
     Vector2 bounds = skin.font->computeString(text, skin.color[textColor], drawData, w / (float)fontSize, 1.0f + skin.lineHeightAdjust);
     bounds.mult(scaleX, scaleY);
-
+    float cursorY = 0.0f;
 
     if (align == Align::CENTER)
     {
@@ -269,26 +325,183 @@ namespace smol
     else if (align == Align::LEFT)
     {
       posY -= bounds.y/2;
+      cursorY = (y - cursorHeight/2.0f)  / screenH;
     }
 
     lastRect = Rect((int32)(posX * screenW), (int32)(posY * screenW), (int32) (bounds.x * screenW), (int32) (bounds.y * screenH));
 
-    // Draws a solid background behind the text. Keep this here for debugging
-    if (bg.a > 0.00f)
-      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bg);
-
+    //
+    // First pass: Convert from font coordinates to screen cordinates
+    //
     for (int i = 0; i < textLen; i++)
     {
       GlyphDrawData& data = drawData[i];
       Vector3 offset = Vector3(posX + data.position.x * scaleX, posY + data.position.y *  scaleY, z);
       Vector2 size = data.size;
       size.mult(scaleX, scaleY);
-      Renderer::pushSprite(streamBuffer, offset, size, data.uv, data.color);
+      data.position = offset;
+      data.size = size;
     }
 
+    //
+    // Draw cursor and selection
+    //
+    if (textInput)
+    {
+      int32 selectionStartIndex = textInput->getSelectionStartIndex();
+      float cursorXPosition = 0.0f;
+      float selectionXPosition = 0.0f;
+      bool selecting = false;
+
+      if (textInput->isEnabled())
+      {
+        //
+        // Get selection position
+        //
+        if (selectionStartIndex >= 0)
+        {
+          selecting = true;
+          // selected past the last character
+          if (selectionStartIndex < textLen)
+          {
+            GlyphDrawData& data = drawData[selectionStartIndex];
+            selectionXPosition = data.position.x;
+          }
+          else
+          {
+            // selection ends in the middle of the string
+            GlyphDrawData& data = drawData[selectionStartIndex - 1];
+            selectionXPosition = data.position.x + data.size.x;
+          }
+        }
+
+        if (textLen > 0)
+        {
+          bool repositionCursor = false;
+          // should we reposition the cursor because of a mouse click ?
+          if(mouseLButtonDownThisFrame())
+          {
+            repositionCursor = true;
+            input.clearSelection();
+          }
+          else if (mouseLButtonIsDown())
+          {
+            repositionCursor = true;
+            if (!selecting)
+              input.beginSelectionAtCursor();
+          }
+
+          int32 cursorIndex = textInput->getCursorIndex();
+          if (cursorIndex < textLen)
+          {
+            // cursor is in the middle of the string
+            GlyphDrawData& data = drawData[cursorIndex];
+            cursorXPosition = data.position.x;
+          }
+          else
+          {
+            // cursor is at the end of the string
+            GlyphDrawData& data = drawData[cursorIndex - 1];
+            cursorXPosition = data.position.x + data.size.x;
+          }
+
+          //
+          // optional pass: Click to reposition the cursor.
+          //
+          if (repositionCursor)
+          {
+            float mouseX = mouseCursorPosition.x / screenW;
+            if (mouseX >= drawData[textLen - 1].position.x)
+            {
+              textInput->setCursorIndex((int32) textLen);
+            }
+            else
+            {
+              float previousX = 0.0f;
+              for (int i = 0; i < textLen; i++)
+              {
+                GlyphDrawData& data = drawData[i];
+                if(mouseX >= previousX && mouseX < (data.position.x + data.size.x))
+                {
+                  textInput->setCursorIndex(i);
+                  cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+                  repositionCursor = false;
+                  break;
+                }
+                previousX = data.position.x;
+              }
+            }
+          }
+
+          //
+          // Draw selection
+          //
+          if (selecting)
+          {
+            float sP, sW;
+            if (cursorXPosition > selectionXPosition)
+            {
+              sP = cursorXPosition;
+              sW = selectionXPosition - cursorXPosition;
+            }
+            else
+            {
+              sP = selectionXPosition;
+              sW = cursorXPosition - selectionXPosition;
+            }
+
+            Color c = skin.color[GUISkin::TEXT_SELECTION];
+            Renderer::pushSprite(streamBuffer,
+                Vector3(sP, cursorY, z), 
+                Vector2(sW, cursorHeight / screenH),
+                Rectf(), c);
+          }
+        }
+      }
+
+      //
+      // Draw Cursor
+      //
+      Color c = skin.color[skin.CURSOR];
+      if (cursorAnimateWaitMilisseconds <= 0.0f)
+      {
+        cursorAnimateWaitMilisseconds = 0.0f;
+        c.a = (float) sin(4 * Platform::getSecondsSinceStartup());
+      }
+      else
+      {
+        c = skin.color[skin.CURSOR_HOT];
+        cursorAnimateWaitMilisseconds -= deltaTime;
+      }
+
+      Renderer::pushSprite(streamBuffer,
+          Vector3(cursorXPosition, cursorY, z),
+          Vector2(1 / screenW, cursorHeight / screenH),
+          Rectf(), c);
+    }
+
+    // Draws a solid background behind the text. Keep this here for debugging
+    if (bgColor.a > 0.00f)
+      Renderer::pushSprite(streamBuffer, Vector3(posX, posY, 0.0f), Vector2(bounds.x, bounds.y), Rectf(), bgColor);
+
+    //
+    // Second pass: Draw text
+    //
+    for (int i = 0; i < textLen; i++)
+    {
+      GlyphDrawData& data = drawData[i];
+      Renderer::pushSprite(streamBuffer, data.position, data.size, data.uv, data.color);
+    }
   }
 
-  bool GUI::doLabelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align, Color bg)
+  void GUI::label(GUIControlID id, const char* text, int32 x, int32 y, int32 w, Align align, Color bg)
+  {
+    x = areaOffset.x + x;
+    y = areaOffset.y + y;
+    drawText(text, x, y, w, align, bg);
+  }
+
+  bool GUI::labelButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h, Align align, Color bg)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -333,7 +546,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doButton(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h)
+  bool GUI::button(GUIControlID id, const char* text, int32 x, int32 y, int32 w, int32 h)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -384,7 +597,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doToggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
+  bool GUI::toggleButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y, int32 w, int32 h)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -439,7 +652,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doRadioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
+  bool GUI::radioButton(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
     const uint32 size = (int32)(0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     x = areaOffset.x + x;
@@ -507,7 +720,7 @@ namespace smol
     return returnValue;
   }
 
-  bool GUI::doCheckBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
+  bool GUI::checkBox(GUIControlID id, const char* text, bool toggled, int32 x, int32 y)
   {
     const uint32 size = (int32)(0.8f * (int32)DEFAULT_CONTROL_HEIGHT);
     x = areaOffset.x + x;
@@ -570,7 +783,7 @@ namespace smol
     return returnValue;
   }
 
-  float GUI::doHorizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w)
+  float GUI::horizontalSlider(GUIControlID id, float value, int32 x, int32 y, int32 w)
   {
     //inner handle scales according to user action
     const float handleScaleHover  = 0.8f;
@@ -663,7 +876,7 @@ namespace smol
     return returnValue;
   }
 
-  float GUI::doVerticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h)
+  float GUI::verticalSlider(GUIControlID id, float value, int32 x, int32 y, int32 h)
   {
     //inner handle scales according to user action
     const float handleScaleHover  = 0.8f;
@@ -753,24 +966,7 @@ namespace smol
     return returnValue;
   }
 
-  void GUI::beginTextInput(char* buffer, size_t size)
-  {
-    debugLogInfo("Begin Text input at %x; capacity %d", buffer, size);
-    eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
-    inputBuffer = buffer;
-    inputBufferCapacity = size;
-    inputBufferUsed = strlen(inputBuffer);
-
-    SMOL_ASSERT(inputBufferCapacity > inputBufferUsed, "Input buffer contents are larger than the buffer size. Did you forget to initialized the buffer ?");
-  }
-
-  void GUI::endTextInput()
-  {
-    debugLogInfo("Ended Text input at %x; capacity %d", inputBuffer, inputBufferCapacity);
-    EventManager::get().removeHandler(eventHandler);
-  }
-
-  char* GUI::doTextInput(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width)
+  char* GUI::textBox(GUIControlID id, char* buffer, size_t bufferCapacity, int32 x, int32 y, int32 width)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -785,10 +981,12 @@ namespace smol
     if (isActiveControl)
     {
       styleId = skin.TEXT_INPUT_ACTIVE;
-      if (mouseLButtonDownThisFrame())
+
+      if (mouseLButtonDownThisFrame() && !mouseOver)
       {
         activeControlId = 0;
         hoverControlId = 0;
+        isActiveControl = false;
         endTextInput();
       }
     }
@@ -799,39 +997,79 @@ namespace smol
 
       if (mouseLButtonDownThisFrame())
       {
+        cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;
+        isActiveControl = true;
         activeControlId = id;
+        hoverControlId = id;
         beginTextInput(buffer, bufferCapacity);
         if (topmostWindowId)
           topmostWindowId = currentWindowId;
       }
     }
 
-    // BOX
+    // Box
     Renderer::pushSprite(streamBuffer,
         Vector3(x / screenW, y / screenH, z), 
         Vector2(width / screenW, h / screenH),
         Rectf(), skin.color[styleId]);
 
-    // Label
-    const int labelX = (x - areaOffset.x) + DEFAULT_H_SPACING;
-    const int labelY = (y - areaOffset.y) + h/2;
-    label(id, buffer, labelX, labelY, 0, LEFT);
+    // Text
+    const int labelX = x + DEFAULT_H_SPACING;
+    const int labelY = y + h/2;
+    drawText(buffer, labelX, labelY, 0, LEFT, Color::NO_COLOR, isActiveControl ? &input : nullptr, h - 2);
 
     // Cursor
+    // Note that drawText() updates the this->cursorXPosition if isTextInputEnabled == true
+#if 0
     if (isActiveControl)
-    {
+    { 
       Color c = skin.color[skin.CURSOR];
-      c.a = (float) sin(7 * Platform::getSecondsSinceStartup());
+      if (cursorAnimateWaitMilisseconds <= 0.0f)
+      {
+        cursorAnimateWaitMilisseconds = 0.0f;
+
+        c.a = (float) sin(4 * Platform::getSecondsSinceStartup());
+      }
+      else
+      {
+        c = skin.color[skin.CURSOR_HOT];
+        cursorAnimateWaitMilisseconds -= deltaTime;
+      }
+
       Renderer::pushSprite(streamBuffer,
-          Vector3((lastRect.x + lastRect.w) / screenW, (y + 2) / screenH, z), 
-          Vector2(2 / screenW, (h - 4) / screenH),
+          Vector3(cursorXPosition, (y + 2) / screenH, z), 
+          Vector2(1 / screenW, (h - 4) / screenH),
           Rectf(), c);
+
+      if (input.getSelectionStartIndex() >= 0)
+      {
+        float sP, sW;
+        if (cursorXPosition > selectionXPosition)
+        {
+          sP = cursorXPosition;
+          sW = selectionXPosition - cursorXPosition;
+        }
+        else
+        {
+          sP = selectionXPosition;
+          sW = cursorXPosition - selectionXPosition;
+        }
+
+        // Selection
+        Color c = skin.color[GUISkin::TEXT_SELECTION];
+        c.a = 0.5f;
+        Renderer::pushSprite(streamBuffer,
+            Vector3(sP, y / screenH, z), 
+            Vector2(sW, h / screenH),
+            Rectf(), c);
+      }
     }
+#endif
 
     return buffer;
   }
 
-  int32 GUI::doOptionList(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth, uint32 defaultSelection)
+  int32 GUI::popupMenu(GUIControlID  id, const char** options, uint32 optionCount, uint32 x, uint32 y, uint32 minWidth, uint32 defaultSelection)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -996,7 +1234,7 @@ namespace smol
     return selectedOption;
   }
 
-  int32 GUI::doComboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
+  int32 GUI::comboBox(GUIControlID  id, const char** options, uint32 optionCount, int32 selectedIndex, uint32 x, uint32 y, uint32 w)
   {
     x = areaOffset.x + x;
     y = areaOffset.y + y;
@@ -1036,7 +1274,7 @@ namespace smol
     int32 newSelectedIndex = selectedIndex;
     if (isActiveControl)
     {
-      newSelectedIndex = doOptionList(id, options, optionCount, x, y + h, w);
+      newSelectedIndex = popupMenu(id, options, optionCount, x, y + h, w);
     }
     else if (mouseOver)
     {
@@ -1059,6 +1297,31 @@ namespace smol
   void GUI::end()
   {
     Renderer::end(streamBuffer);
+  }
+
+  //
+  // Internal and utility functions
+  //
+
+  void GUI::beginTextInput(char* buffer, size_t size)
+  {
+    // We cant guarantee the order the GUI will call begin/end so we might be
+    // able to end previous input session here befor starting another one.
+    if (input.isEnabled())
+      endTextInput();
+
+    input.enable();
+    eventHandler = EventManager::get().addHandler(onEventForwarder, Event::TEXT | Event::KEYBOARD, this);
+    input.setBuffer(buffer, size);
+    //cursorXPosition = 0.0f;
+    //selectionXPosition = 0.0f;
+  }
+
+  void GUI::endTextInput()
+  {
+    SMOL_ASSERT(input.isEnabled(), "EndTextInput() called when no text input is not enabled.");
+    input.disable();
+    EventManager::get().removeHandler(eventHandler);
   }
 
 #ifndef SMOL_MODULE_GAME
@@ -1094,15 +1357,16 @@ namespace smol
     z = 0.0f;
     enabled = true;
     drawLabelDebugBackground = false;
-
     skin.sliderThickness = 0.1f;
     skin.windowOpacity = .98f;
+
+    input.disable();
 
     const Color windowBackground        = Color(29, 29, 29);
     const Color panelBackground         = Color(77, 77, 77);
     const Color controlBackground       = Color(15, 15, 15);
     const Color controlSurface          = Color(40, 40, 40);
-    const Color controlBackgroundHoover = controlSurface;
+    const Color controlBackgroundHover = Color(20, 20, 20);;
     const Color controlSurfaceHover     = Color(50, 50, 50);
     const Color highlight               = Color(0, 10, 250);
     const Color contrastLight           = Color(150, 150, 150);
@@ -1110,6 +1374,14 @@ namespace smol
     skin.color[GUISkin::TEXT]                   = Color::WHITE;
     skin.color[GUISkin::TEXT_DEBUG_BACKGROUND]  = Color::BLACK;
     skin.color[GUISkin::TEXT_DISABLED]          = Color::GRAY;
+    skin.color[GUISkin::TEXT_SELECTION]         = highlight;
+
+    skin.color[GUISkin::TEXT_INPUT]         = controlBackground;
+    skin.color[GUISkin::TEXT_INPUT_HOVER]   = controlBackgroundHover;
+    skin.color[GUISkin::TEXT_INPUT_ACTIVE]  = controlBackground;
+
+    skin.color[GUISkin::CURSOR]             = Color::WHITE;
+    skin.color[GUISkin::CURSOR_HOT]         = Color(255, 165, 0);
 
     skin.color[GUISkin::TEXT_INPUT]         = controlSurface;
     skin.color[GUISkin::TEXT_INPUT_HOVER]   = controlSurfaceHover;
@@ -1127,10 +1399,10 @@ namespace smol
     skin.color[GUISkin::TOGGLE_BUTTON_ACTIVE]         = highlight;
 
     skin.color[GUISkin::COMBO_BOX]              = controlBackground;
-    skin.color[GUISkin::COMBO_BOX_HOVER]         = controlBackgroundHoover;
+    skin.color[GUISkin::COMBO_BOX_HOVER]         = controlSurface;
 
     skin.color[GUISkin::CHECKBOX]               = controlBackground;
-    skin.color[GUISkin::CHECKBOX_HOVER]         = controlBackgroundHoover;
+    skin.color[GUISkin::CHECKBOX_HOVER]         = controlSurface;
     skin.color[GUISkin::CHECKBOX_ACTIVE]        = Color::BLACK;
     skin.color[GUISkin::CHECKBOX_CHECK]         = Color::WHITE;
 

@@ -37,7 +37,7 @@ namespace smol
     public:
     bool onEvent(const Event& event);
     void initialize(Window* window, Project& project);
-    void update(int windowWidth, int windowHeight);
+    void update(float deltaTime, int windowWidth, int windowHeight);
     void terminate();
     bool getCloseFlag();
     void updateGame(float delta);

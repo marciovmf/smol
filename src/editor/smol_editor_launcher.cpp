@@ -207,7 +207,7 @@ namespace smol
             Vector2(gameQuadPosition.w, gameQuadPosition.h), Rectf(0.0f, 0.0f, 1.0f, 1.0f), Color::WHITE);
         Renderer::end(streamBuffer);
 
-        editor.update(displayConfig.width, displayConfig.height);
+        editor.update(deltaTime, displayConfig.width, displayConfig.height);
 
         // Draw to the window
         Platform::swapBuffers(window);
