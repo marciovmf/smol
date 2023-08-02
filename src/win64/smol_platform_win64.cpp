@@ -126,7 +126,7 @@ namespace smol
             SetCursor(internal.defaultCursor);
           }
           else
-           internal.cursorChanged = true;
+            internal.cursorChanged = true;
           return result;
         }
         break;
@@ -459,6 +459,13 @@ namespace smol
     HINSTANCE hInstance = GetModuleHandleA(NULL);
     WNDCLASSEXA wc = {};
 
+    // Calculate total window size
+    RECT clientArea = {(LONG)0,(LONG)0, (LONG)width, (LONG)height};
+    if (!AdjustWindowRect(&clientArea, WS_OVERLAPPEDWINDOW, FALSE))
+    {
+      Log::error("Could not calculate window size");
+    }
+
     if (! GetClassInfoExA(hInstance, smolWindowClass, &wc))
     {
       wc.cbSize = sizeof(WNDCLASSEXA);
@@ -477,13 +484,15 @@ namespace smol
       }
     }
 
+    uint32 windowWidth = clientArea.right - clientArea.left;
+    uint32 windowHeight = clientArea.bottom - clientArea.top;
     HWND windowHandle = CreateWindowExA(
         0,
         smolWindowClass,
         title, 
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        width, height,
+        windowWidth, windowHeight,
         NULL, NULL,
         hInstance,
         NULL);
