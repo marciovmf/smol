@@ -140,9 +140,7 @@ namespace smol
       case WM_CHAR:
         evt.type                = Event::TEXT;
         evt.textEvent.character = (uint32) wParam;
-        evt.textEvent.type      = ((uint32) wParam == VK_BACK) ? TextEvent::BACKSPACE :
-          ((uint32) wParam == VK_DELETE) ? TextEvent::DEL :
-          TextEvent::CHARACTER_INPUT;
+        evt.textEvent.type      = ((uint32) wParam == VK_BACK) ? TextEvent::BACKSPACE : TextEvent::CHARACTER_INPUT;
         eventManager.pushEvent(evt);
         break;
 
@@ -459,6 +457,13 @@ namespace smol
     HINSTANCE hInstance = GetModuleHandleA(NULL);
     WNDCLASSEXA wc = {};
 
+    // Calculate total window size
+    RECT clientArea = {(LONG)0,(LONG)0, (LONG)width, (LONG)height};
+    if (!AdjustWindowRect(&clientArea, WS_OVERLAPPEDWINDOW, FALSE))
+    {
+      Log::error("Could not calculate window size");
+    }
+
     if (! GetClassInfoExA(hInstance, smolWindowClass, &wc))
     {
       wc.cbSize = sizeof(WNDCLASSEXA);
@@ -477,13 +482,15 @@ namespace smol
       }
     }
 
+    uint32 windowWidth = clientArea.right - clientArea.left;
+    uint32 windowHeight = clientArea.bottom - clientArea.top;
     HWND windowHandle = CreateWindowExA(
         0,
         smolWindowClass,
         title, 
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        width, height,
+        windowWidth, windowHeight,
         NULL, NULL,
         hInstance,
         NULL);

@@ -26,7 +26,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/bin" CACHE PATH "" FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}/lib" CACHE PATH "" FORCE)
 
-
 # Genereate correct smol_version.h
 configure_file(${SOURCE_PATH}/include/smol/smol_version.h.in ${SOURCE_PATH}/include/smol/smol_version.h)
 
@@ -49,6 +48,9 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/include/smol/smol_gl.h
   ${SOURCE_PATH}/smol_gl.cpp
   # Core Engine
+  ${SOURCE_PATH}/include/smol/smol_text_input.h
+  ${SOURCE_PATH}/smol_text_input.cpp
+  ${SOURCE_PATH}/include/smol/smol_random.h
   ${SOURCE_PATH}/include/smol/smol_string_hash.h
   ${SOURCE_PATH}/include/smol/smol_random.h
   ${SOURCE_PATH}/smol_random.cpp

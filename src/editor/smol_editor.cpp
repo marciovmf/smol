@@ -33,8 +33,8 @@ namespace smol
     PROJECT_SUBMENU_NEW = 2,
   };
 
-  char inputBuffer1[32];
-  char inputBuffer2[32];
+  char inputBuffer1[32] = {"Hello, Sailor!"};
+  char inputBuffer2[32] = {"Hello my friend!"};
   std::string pipe;
   const int controlHeight = GUI::DEFAULT_CONTROL_HEIGHT;
   Point2 windowPos = Point2{550, 150};
@@ -121,7 +121,7 @@ namespace smol
     // Menu bar
     //
     gui.panel(SMOL_CONTROL_ID, 0, 0, width, height);
-    if (gui.doLabelButton(SMOL_CONTROL_ID, "Project", x, 0, 64, controlHeight))
+    if (gui.labelButton(SMOL_CONTROL_ID, "Project", x, 0, 64, controlHeight))
     {
       activeMenu = MainMenu::PROJECT;
       projectActiveSubmenu = -1;
@@ -137,7 +137,7 @@ namespace smol
 
     if (activeMenu == MainMenu::PROJECT || activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
     {
-      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectMenuOptions, numOptions, x, controlHeight, 120, projectActiveSubmenu);
+      int32 option = gui.popupMenu(SMOL_CONTROL_ID, projectMenuOptions, numOptions, x, controlHeight, 120, projectActiveSubmenu);
       if (option != GUI::POPUP_MENU_IDLE)
       {
         if (option == GUI::POPUP_MENU_DMISMISS && projectActiveSubmenu == -1)
@@ -171,7 +171,7 @@ namespace smol
     if (activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
     {
       projectActiveSubmenu = OPTION_NEW;
-      int32 option = gui.doOptionList(SMOL_CONTROL_ID, projectTypeOptions, numProjectTypeOptions, x + gui.getLastRect().w + 1,
+      int32 option = gui.popupMenu(SMOL_CONTROL_ID, projectTypeOptions, numProjectTypeOptions, x + gui.getLastRect().w + 1,
           controlHeight, 120);
 
       if (option == GUI::POPUP_MENU_DMISMISS)
@@ -199,7 +199,7 @@ namespace smol
     }
   }
 
-  void Editor::update(int windowWidth, int windowHeight)
+  void Editor::update(float deltaTime, int windowWidth, int windowHeight)
   {
     //
     // Should game.onStart be called ?
@@ -209,6 +209,7 @@ namespace smol
     {
       if((project->state == Project::READY || (project->state == Project::GENERATED && !shouldAlwaysBuild)))
       {
+        gui.enabled = false;
         mode = Mode::MODE_RUNNING;
         loadGameModule("game.dll");
         gameModule.onStart();
@@ -221,10 +222,11 @@ namespace smol
     const int vSpacing = 5;
     int yPos;
 
-    gui.begin(windowWidth, windowHeight);
+    gui.begin(deltaTime, windowWidth, windowHeight);
 
     if (mode == MODE_EDIT)
     {
+      gui.enabled = true;
       drawMainMenu(windowWidth, controlHeight);
       if (showSecondWindow) 
       {
@@ -235,12 +237,12 @@ namespace smol
 
         GUISkin& skin = gui.getSkin();
         const int numOptions = sizeof(menuOptions)/sizeof(char*);
-        comboValue = gui.doComboBox(SMOL_CONTROL_ID, menuOptions, numOptions, comboValue, 5, yPos, 290);
+        comboValue = gui.comboBox(SMOL_CONTROL_ID, menuOptions, numOptions, comboValue, 5, yPos, 290);
         yPos += vSpacing + controlHeight;
 
         float sliderValue = skinValue[comboValue];
 
-        sliderValue = gui.doHorizontalSlider(SMOL_CONTROL_ID, sliderValue, 5, yPos, 290);
+        sliderValue = gui.horizontalSlider(SMOL_CONTROL_ID, sliderValue, 5, yPos, 290);
         skinValue[comboValue] = sliderValue;
         yPos += vSpacing + controlHeight;
 
@@ -255,7 +257,7 @@ namespace smol
         else if (comboValue == 3)
           skin.sliderThickness = sliderValue;
 
-        if (gui.doButton(SMOL_CONTROL_ID, "Close", 5, yPos, 290, controlHeight))
+        if (gui.button(SMOL_CONTROL_ID, "Close", 5, yPos, 290, controlHeight))
           showSecondWindow = false;
         gui.endWindow();
       }
@@ -267,7 +269,7 @@ namespace smol
       //
       // Toggle window button
       //
-      if (gui.doButton(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, controlHeight))
+      if (gui.button(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, controlHeight))
         showSecondWindow = !showSecondWindow;
       yPos += vSpacing + controlHeight;
 
@@ -276,7 +278,7 @@ namespace smol
       //
 
       gui.enabled = (project->state == Project::GENERATED || project->state == Project::READY);
-      if (gui.doButton(SMOL_CONTROL_ID, "Play", 5, yPos, 290, controlHeight))
+      if (gui.button(SMOL_CONTROL_ID, "Play", 5, yPos, 290, controlHeight))
       {
         toggleMode();
       }
@@ -287,7 +289,7 @@ namespace smol
       //
       // Quit button
       //
-      if (gui.doButton(SMOL_CONTROL_ID, "Quit", 5, yPos, 290, controlHeight))
+      if (gui.button(SMOL_CONTROL_ID, "Quit", 5, yPos, 290, controlHeight))
       {
         closeFlag = true;
       }
@@ -296,13 +298,13 @@ namespace smol
       //
       // Input box 1
       //
-      gui.doTextInput(SMOL_CONTROL_ID, inputBuffer1, sizeof(inputBuffer1), 5, yPos, 290);
+      gui.textBox(SMOL_CONTROL_ID, inputBuffer1, sizeof(inputBuffer1), 5, yPos, 290);
       yPos += vSpacing + controlHeight;
 
       //
       // Input box 2
       //
-      gui.doTextInput(SMOL_CONTROL_ID, inputBuffer2, sizeof(inputBuffer2), 5, yPos, 290);
+      gui.textBox(SMOL_CONTROL_ID, inputBuffer2, sizeof(inputBuffer2), 5, yPos, 290);
       yPos += vSpacing + controlHeight;
 
       //
@@ -328,7 +330,7 @@ namespace smol
       }
 
       int32 prevAspectComboValue = aspectComboValue;
-      aspectComboValue = gui.doComboBox(SMOL_CONTROL_ID, aspectOptions, sizeof(aspectOptions)/sizeof(char*), aspectComboValue, 5, yPos, 290);
+      aspectComboValue = gui.comboBox(SMOL_CONTROL_ID, aspectOptions, sizeof(aspectOptions)/sizeof(char*), aspectComboValue, 5, yPos, 290);
 
       if(prevAspectComboValue != aspectComboValue)
       {
@@ -348,7 +350,7 @@ namespace smol
       //
       bool isFullScreen = Platform::isFullScreen(window);
       bool wasFullScreen = isFullScreen;
-      isFullScreen = gui.doCheckBox(SMOL_CONTROL_ID, "FullScreen", isFullScreen, 5, yPos);
+      isFullScreen = gui.checkBox(SMOL_CONTROL_ID, "FullScreen", isFullScreen, 5, yPos);
       if(wasFullScreen != isFullScreen)
       {
         Platform::setFullScreen(window, isFullScreen);
@@ -359,14 +361,14 @@ namespace smol
       // Compile always 
       //
       GlobalEditorConfig& editorConfig = (GlobalEditorConfig&) ConfigManager::get().editorConfig();
-      editorConfig.alwaysRebuildBeforeRun = gui.doCheckBox(SMOL_CONTROL_ID, "Always compile on run", editorConfig.alwaysRebuildBeforeRun, 5, yPos);
+      editorConfig.alwaysRebuildBeforeRun = gui.checkBox(SMOL_CONTROL_ID, "Always compile on run", editorConfig.alwaysRebuildBeforeRun, 5, yPos);
       yPos += vSpacing + controlHeight;
 
 
       //
       // Crop area Color
       //
-      if (gui.doButton(SMOL_CONTROL_ID, "Bordee area color", 5, yPos, 290, controlHeight))
+      if (gui.button(SMOL_CONTROL_ID, "Bordee area color", 5, yPos, 290, controlHeight))
       {
         displayConfig .cropAreaColor = Platform::showColorPickerDialog();
       }
@@ -454,8 +456,6 @@ namespace smol
       }
       return false;
     }
-    //debugLogInfo("TextEvent %c", (char)event.textEvent.character);
-    //return true;
     return false;
   }
 
