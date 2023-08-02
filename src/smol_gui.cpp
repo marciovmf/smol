@@ -18,6 +18,9 @@ namespace smol
 
   bool GUI::onEvent(const Event& event, void* payload)
   {
+    if (!enabled)
+      return false;
+
     if (event.type == Event::TEXT)
     {
       cursorAnimateWaitMilisseconds = CURSOR_WAIT_MILLISECONDS_ON_EVENT;

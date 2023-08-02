@@ -209,6 +209,7 @@ namespace smol
     {
       if((project->state == Project::READY || (project->state == Project::GENERATED && !shouldAlwaysBuild)))
       {
+        gui.enabled = false;
         mode = Mode::MODE_RUNNING;
         loadGameModule("game.dll");
         gameModule.onStart();
@@ -225,6 +226,7 @@ namespace smol
 
     if (mode == MODE_EDIT)
     {
+      gui.enabled = true;
       drawMainMenu(windowWidth, controlHeight);
       if (showSecondWindow) 
       {
@@ -454,8 +456,6 @@ namespace smol
       }
       return false;
     }
-    //debugLogInfo("TextEvent %c", (char)event.textEvent.character);
-    //return true;
     return false;
   }
 
