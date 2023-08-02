@@ -1380,6 +1380,12 @@ namespace smol
     skin.color[GUISkin::CURSOR]             = Color::WHITE;
     skin.color[GUISkin::CURSOR_HOT]         = Color(255, 165, 0);
 
+    skin.color[GUISkin::TEXT_INPUT]         = controlSurface;
+    skin.color[GUISkin::TEXT_INPUT_HOVER]   = controlSurfaceHover;
+    skin.color[GUISkin::TEXT_INPUT_ACTIVE]  = controlBackground;
+
+    skin.color[GUISkin::CURSOR]             = Color::WHITE;
+
     skin.color[GUISkin::BUTTON]        = controlSurface;
     skin.color[GUISkin::BUTTON_HOVER]  = controlSurfaceHover;
     skin.color[GUISkin::BUTTON_ACTIVE] = controlBackground;
