@@ -1,4 +1,4 @@
-#include <smol/smol_mesh_data.h>
+#include <smol/smol_triangle_mesh.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_color.h>
@@ -7412,14 +7412,14 @@ namespace smol
     {0.0f, 0.0f},   // bottom left
   };
 
-  MeshData::MeshData(){}
+  TriangleMesh::TriangleMesh(){}
 
-  MeshData::MeshData(Vector3* positions, int numPositions, unsigned int* indices, int numIndices):
+  TriangleMesh::TriangleMesh(Vector3* positions, int numPositions, unsigned int* indices, int numIndices):
     positions(positions), indices(indices), normals(normals), colors(colors), uv0(uv0), uv1(uv1), numPositions(numPositions), numIndices(numIndices)
   {
   }
 
-  MeshData::MeshData(Vector3* positions, int numPositions,
+  TriangleMesh::TriangleMesh(Vector3* positions, int numPositions,
       unsigned int* indices,
       int numIndices,
       Color* colors,
@@ -7430,80 +7430,93 @@ namespace smol
   {
   }
 
-  MeshData::MeshData(const MeshData& other)
+  TriangleMesh::TriangleMesh(const TriangleMesh& other)
     :positions(other.positions), indices(other.indices), normals(other.normals), colors(other.colors), uv0(other.uv0), uv1(other.uv1), numPositions(other.numPositions), numIndices(other.numIndices)
   {
   }
 
-  MeshData& MeshData::setPosition(Vector3* positions)
+  TriangleMesh& TriangleMesh::setPosition(Vector3* positions)
   {
    this->positions = positions;
    return *this;
   }
 
-  MeshData& MeshData::setColors(Color* colors)
+  TriangleMesh& TriangleMesh::setColors(Color* colors)
   {
     this->colors = colors; 
     return *this;
   }
 
-  MeshData& MeshData::setUV0(Vector2* uvs)
+  TriangleMesh& TriangleMesh::setUV0(Vector2* uvs)
   {
     this->uv0 = uvs; 
     return *this;
   }
 
-  MeshData& MeshData::setUV1(Vector2* uvs)
+  TriangleMesh& TriangleMesh::setUV1(Vector2* uvs)
   {
     this->uv1 = uvs;
     return *this;
   }
 
-  MeshData& MeshData::setIndices(unsigned int* indices)
+  TriangleMesh& TriangleMesh::setIndices(unsigned int* indices)
   {
     this->indices = indices;
     return *this;
   }
 
-
-  const MeshData MeshData::getPrimitiveCube()
+  TriangleMesh& TriangleMesh::setTriangleMeshList(TriangleListInfo* triangleLists, uint32 numTriangleLists)
   {
-    MeshData cube(positionsCube, sizeof(positionsCube) / sizeof(Vector3),
+    this->triangleLists = triangleLists;
+    this->numTriangleLists = numTriangleLists;
+    return *this;
+  }
+
+  TriangleMesh& TriangleMesh::setMaterialList(Handle<Material>* materials, uint32 numMaterials)
+  {
+    this->materials = materials;
+    this->numMaterials = numMaterials;
+    return *this;
+  }
+
+  const TriangleMesh TriangleMesh::getPrimitiveCube()
+  {
+    TriangleMesh cube(positionsCube, sizeof(positionsCube) / sizeof(Vector3),
         indicesCube, sizeof(indicesCube) / sizeof(unsigned int), nullptr, normalsCube, uv0Cube);
     return cube;
   }
 
-  const MeshData MeshData::getPrimitiveArrow()
+  const TriangleMesh TriangleMesh::getPrimitiveArrow()
   {
-    MeshData arrow(positionsArrow, sizeof(positionsArrow) / sizeof(Vector3),
+    TriangleMesh arrow(positionsArrow, sizeof(positionsArrow) / sizeof(Vector3),
         indicesArrow, sizeof(indicesArrow), nullptr, normalsArrow, uv0Arrow);
     return arrow;
   }
 
-  const MeshData MeshData::getPrimitiveSphere()
+  const TriangleMesh TriangleMesh::getPrimitiveSphere()
   {
-    MeshData sphere(positionsSphere, sizeof(positionsSphere) / sizeof(Vector3),
+    TriangleMesh sphere(positionsSphere, sizeof(positionsSphere) / sizeof(Vector3),
         indicesSphere, sizeof(indicesSphere) / sizeof(unsigned int), nullptr, normalsSphere, uv0Sphere);
     return sphere;
   }
 
-  const MeshData MeshData::getPrimitiveCone()
+  const TriangleMesh TriangleMesh::getPrimitiveCone()
   {
-    MeshData cone(positionsCone, sizeof(positionsCone) / sizeof(Vector3),
+    TriangleMesh cone(positionsCone, sizeof(positionsCone) / sizeof(Vector3),
         indicesCone, sizeof(indicesCone) / sizeof(unsigned int), nullptr, normalsCone, uv0Cone);
     return cone;
   }
 
-  const MeshData MeshData::getPrimitiveCylinder()
+  const TriangleMesh TriangleMesh::getPrimitiveCylinder()
   {
-    MeshData cylinder(positionsCylinder, sizeof(positionsCylinder) / sizeof(Vector3),
+    TriangleMesh cylinder(positionsCylinder, sizeof(positionsCylinder) / sizeof(Vector3),
         indicesCylinder, sizeof(indicesCylinder), nullptr, normalsCylinder, uv0Cylinder);
     return cylinder;
   }
 
-  const MeshData MeshData::getPrimitiveQuad()
+  const TriangleMesh TriangleMesh::getPrimitiveQuad()
   {
-    MeshData quad(positionsQuad, sizeof(positionsQuad) / sizeof(Vector3),
+    TriangleMesh quad(positionsQuad, sizeof(positionsQuad) / sizeof(Vector3),
         indicesQuad, sizeof(indicesQuad) / sizeof(unsigned int), nullptr, normalsQuad, uv0Quad);
     return quad;
   }

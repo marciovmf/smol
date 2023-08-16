@@ -368,7 +368,7 @@ namespace smol
       //
       // Crop area Color
       //
-      if (gui.button(SMOL_CONTROL_ID, "Bordee area color", 5, yPos, 290, controlHeight))
+      if (gui.button(SMOL_CONTROL_ID, "Border area color", 5, yPos, 290, controlHeight))
       {
         displayConfig .cropAreaColor = Platform::showColorPickerDialog();
       }

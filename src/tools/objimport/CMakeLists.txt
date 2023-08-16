@@ -19,4 +19,5 @@ set(SOURCE_FILES src/objimport.cpp
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PRIVATE "${SMOL_PROJECT_ROOT}/include" "${SOURCE_PATH}/include/smol")
 target_compile_definitions(${PROJECT_NAME} PRIVATE SMOL_ENGINE_IMPLEMENTATION)
+target_link_libraries(${PROJECT_NAME} PRIVATE smol)
 

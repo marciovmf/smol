@@ -454,13 +454,13 @@ namespace smol
   // Mesh Resources
   //
 
-  Handle<Mesh> ResourceManager::createMesh(bool dynamic, const MeshData& meshData)
+  Handle<Mesh> ResourceManager::createMesh(bool dynamic, const TriangleMesh& triangleMesh)
   {
     return createMesh(dynamic,
         Primitive::TRIANGLE,
-        meshData.positions, meshData.numPositions,
-        meshData.indices, meshData.numIndices,
-        meshData.colors, meshData.uv0, meshData.uv1, meshData.normals);
+        triangleMesh.positions, triangleMesh.numPositions,
+        triangleMesh.indices, triangleMesh.numIndices,
+        triangleMesh.colors, triangleMesh.uv0, triangleMesh.uv1, triangleMesh.normals);
   }
 
   Handle<Mesh> ResourceManager::createMesh(bool dynamic, Primitive primitive,
@@ -477,10 +477,10 @@ namespace smol
     return handle;
   }
 
-  void ResourceManager::updateMesh(Handle<Mesh> handle, MeshData* meshData)
+  void ResourceManager::updateMesh(Handle<Mesh> handle, TriangleMesh* triangleMesh)
   {
     Mesh* mesh = meshes.lookup(handle);
-    Renderer::updateMesh(mesh, meshData);
+    Renderer::updateMesh(mesh, triangleMesh);
   }
 
   void ResourceManager::destroyMesh(Handle<Mesh> handle)

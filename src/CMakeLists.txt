@@ -133,10 +133,10 @@ list(APPEND SOURCES
   ${SOURCE_PATH}/smol_scene.cpp
   ${SOURCE_PATH}/include/smol/smol_cfg_parser.h
   ${SOURCE_PATH}/smol_cfg_parser.cpp
-  ${SOURCE_PATH}/include/smol/smol_mesh_data.h
+  ${SOURCE_PATH}/include/smol/smol_triangle_mesh.h
+  ${SOURCE_PATH}/smol_triangle_mesh.cpp
   ${SOURCE_PATH}/include/smol/smol_gui.h
   ${SOURCE_PATH}/smol_gui.cpp
-  ${SOURCE_PATH}/smol_mesh_data.cpp
   "${SMOL_WINDOWS_RESOURCE_FILE}")
 
 add_library(smol SHARED ${SOURCES} )
@@ -173,6 +173,9 @@ add_subdirectory(editor)
 add_subdirectory(tools/packer)
 add_subdirectory(template)
 add_dependencies(template packer)
+
+# Builds the objimport tool
+add_subdirectory(tools/objimport)
 
 # Make sure to only copy assets to the output folder after we generate packages
 add_dependencies(assets template editor)

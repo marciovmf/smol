@@ -11,7 +11,7 @@ namespace smol
   struct Vector3;
   struct Color;
   struct Image;
-  struct MeshData;
+  struct TriangleMesh;
   struct GlobalRendererConfig;
   struct RenderTarget;
 
@@ -77,8 +77,9 @@ namespace smol
         const Vector2* uv1,
         const Vector3* normals);
 
-    static void updateMesh(Mesh* mesh, MeshData* meshData);
+    static void updateMesh(Mesh* mesh, TriangleMesh* triangleMesh);
     static void destroyMesh(Mesh* mesh);
+    static void drawTriangleMesh(const TriangleMesh& triangleMesh, uint32 triangleListIndex);
 
     static void updateGlobalShaderParams(const Mat4& proj, const Mat4& view, const Mat4& model, float deltaTime);
 

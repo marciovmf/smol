@@ -52,7 +52,7 @@ void onStart()
 
   shader = resourceManager.loadShader("assets/default.shader");
 
-  mesh = resourceManager.createMesh(true,  smol::MeshData::getPrimitiveCube());
+  mesh = resourceManager.createMesh(true,  smol::TriangleMesh::getPrimitiveCube());
   auto checkersTexture = resourceManager.createTexture(*smol::ResourceManager::createCheckersImage(100, 100, 32), 
       smol::Texture::Wrap::REPEAT, smol::Texture::Filter::NEAREST);
   checkersMaterial = resourceManager.createMaterial(shader, &checkersTexture,
@@ -67,7 +67,7 @@ void onStart()
     .setVec4("color",(const smol::Vector4&)  smol::Color::WHITE);
 
   auto floor = scene.createRenderable(floorMaterial,
-      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad())); 
+      resourceManager.createMesh(false, smol::TriangleMesh::getPrimitiveQuad())); 
 
   auto renderable2 = scene.createRenderable(checkersMaterial, mesh);
 
@@ -127,11 +127,11 @@ void onStart()
   // Create a grass field
   auto grassRenderable1 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_03.material"),
-      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+      resourceManager.createMesh(false, smol::TriangleMesh::getPrimitiveQuad()));
 
   auto grassRenderable2 = scene.createRenderable(
       resourceManager.loadMaterial("assets/grass_02.material"),
-      resourceManager.createMesh(false, smol::MeshData::getPrimitiveQuad()));
+      resourceManager.createMesh(false, smol::TriangleMesh::getPrimitiveQuad()));
 
   const int changeLimit = 20;
   int nextChange = 0;
@@ -262,7 +262,7 @@ void onUpdate(float deltaTime)
 
   if (keyboard.getKeyDown(smol::KEYCODE_T))
   {
-    smol::MeshData m;
+    smol::TriangleMesh m;
     shape++;
     if (shape > 4)
       shape = 0;
@@ -270,25 +270,24 @@ void onUpdate(float deltaTime)
     switch(shape)
     {
       case 0:
-        m = smol::MeshData::getPrimitiveCylinder();
+        m = smol::TriangleMesh::getPrimitiveCylinder();
         break;
       case 1:
-        m = smol::MeshData::getPrimitiveSphere();
+        m = smol::TriangleMesh::getPrimitiveSphere();
         break;
       case 2:
-        m = smol::MeshData::getPrimitiveCone();
+        m = smol::TriangleMesh::getPrimitiveCone();
         break;
       case 3:
-        m = smol::MeshData::getPrimitiveQuad();
+        m = smol::TriangleMesh::getPrimitiveQuad();
         break;
       case 4:
-        m = smol::MeshData::getPrimitiveCube();
+        m = smol::TriangleMesh::getPrimitiveCube();
         break;
     }
 
     smol::ResourceManager::get().updateMesh(mesh, &m);
   }
-
 
   if (keyboard.getKey(smol::KEYCODE_I))
   {
@@ -302,7 +301,6 @@ void onUpdate(float deltaTime)
   {
     textNode->text.enableTextBackground(!textNode->text.isTextBackgroundEnabled());
   }
-
 
   if (keyboard.getKeyDown(smol::KEYCODE_F4) && once)
   {
@@ -343,7 +341,6 @@ void onUpdate(float deltaTime)
       yPos += spriteHeight;
     }
   }
-
 
   if (keyboard.getKeyDown(smol::KEYCODE_V) )
   {

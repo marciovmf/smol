@@ -114,7 +114,7 @@ namespace smol
       // Mesh Resources
       //
 
-      Handle<Mesh> createMesh(bool dynamic, const MeshData& meshData);
+      Handle<Mesh> createMesh(bool dynamic, const TriangleMesh& triangleMesh);
 
       Handle<Mesh> createMesh(bool dynamic, Primitive primitive,
           const Vector3* vertices, int numVertices,
@@ -125,7 +125,7 @@ namespace smol
           const Vector3* normals);
 
 
-      void updateMesh(Handle<Mesh> handle, MeshData* meshData);
+      void updateMesh(Handle<Mesh> handle, TriangleMesh* triangleMesh);
 
       void destroyMesh(Handle<Mesh> handle);
 

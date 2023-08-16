@@ -12,7 +12,7 @@
 #include <smol/smol_material.h>
 #include <smol/smol_shader.h>
 #include <smol/smol_texture.h>
-#include <smol/smol_mesh_data.h>
+#include <smol/smol_triangle_mesh.h>
 #include <smol/smol_mesh.h>
 #include <smol/smol_renderable.h>
 #include <smol/smol_font.h>

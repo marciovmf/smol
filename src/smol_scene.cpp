@@ -3,7 +3,7 @@
 #include <smol/smol_platform.h>
 #include <smol/smol_resource_manager.h>
 #include <smol/smol_renderer.h>
-#include <smol/smol_mesh_data.h>
+#include <smol/smol_triangle_mesh.h>
 #include <smol/smol_renderer_types.h>
 #include <smol/smol_vector3.h>
 #include <smol/smol_vector2.h>
@@ -258,6 +258,7 @@ namespace smol
         case SceneNode::MESH:
           {
             node->transform.update(*this);
+            // add a key for each triangle list in the mesh
             renderable = renderables.lookup(node->mesh.renderable);
             Handle<Material> material = renderable->material;
             key = encodeRenderKey(node->getType(), (uint16)(material.slotIndex), material->renderQueue, i);
@@ -388,6 +389,7 @@ namespace smol
               deltaTime);
 
           Renderable* renderable = renderables.lookup(node->mesh.renderable);
+          //TODO(marcio): We should call Renderer::drawTriangleMesh(); here and get rid of drawRenderable()
           drawRenderable(renderable);
         }
         else if (node->typeIs(SceneNode::TEXT))

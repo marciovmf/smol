@@ -18,7 +18,7 @@
 #include <smol/smol_scene.h>
 #include <smol/smol_vector2.h>
 #include <smol/smol_vector3.h>
-#include <smol/smol_mesh_data.h>
+#include <smol/smol_triangle_mesh.h>
 #include <smol/smol_handle_list.h>
 #include <smol/smol_material.h>
 #include <smol/smol_renderer.h>

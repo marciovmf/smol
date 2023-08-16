@@ -7,7 +7,7 @@
 #include <smol/smol_material.h>
 #include <smol/smol_image.h>
 #include <smol/smol_resource_manager.h>
-#include <smol/smol_mesh_data.h>
+#include <smol/smol_triangle_mesh.h>
 #include <smol/smol_scene.h>
 #include <smol/smol_cfg_parser.h>
 #include <smol/smol_render_target.h>
@@ -777,7 +777,7 @@ namespace smol
     return true;
   }
 
-  void Renderer::updateMesh(Mesh* mesh, MeshData* meshData)
+  void Renderer::updateMesh(Mesh* mesh, TriangleMesh* triangleMesh)
   {
     if (!mesh)
       return;
@@ -790,27 +790,27 @@ namespace smol
 
     bool resizeBuffers = false;
 
-    if (meshData->positions)
+    if (triangleMesh->positions)
     {
-      size_t verticesArraySize = meshData->numPositions * sizeof(Vector3);
+      size_t verticesArraySize = triangleMesh->numPositions * sizeof(Vector3);
 
       glBindBuffer(GL_ARRAY_BUFFER, mesh->vboPosition);
       if (verticesArraySize > mesh->verticesArraySize)
       {
         resizeBuffers = true;
         mesh->verticesArraySize = verticesArraySize;
-        glBufferData(GL_ARRAY_BUFFER, verticesArraySize, meshData->positions, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, verticesArraySize, triangleMesh->positions, GL_DYNAMIC_DRAW);
       }
       else
       {
-        glBufferSubData(GL_ARRAY_BUFFER, 0, verticesArraySize, meshData->positions);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, verticesArraySize, triangleMesh->positions);
       }
 
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       mesh->numVertices = (unsigned int) (verticesArraySize / sizeof(Vector3));
     }
 
-    if (meshData->indices)
+    if (triangleMesh->indices)
     {
       if (!mesh->ibo)
       {
@@ -818,16 +818,16 @@ namespace smol
       }
       else
       {
-        size_t indicesArraySize = meshData->numIndices * sizeof(unsigned int);
+        size_t indicesArraySize = triangleMesh->numIndices * sizeof(unsigned int);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
         if (indicesArraySize > mesh->indicesArraySize)
         {
           mesh->indicesArraySize = indicesArraySize;
-          glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, meshData->indices, GL_DYNAMIC_DRAW);
+          glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesArraySize, triangleMesh->indices, GL_DYNAMIC_DRAW);
         }
         else
         {
-          glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesArraySize, meshData->indices);
+          glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesArraySize, triangleMesh->indices);
         }
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -835,7 +835,7 @@ namespace smol
       }
     }
 
-    if(meshData->colors)
+    if(triangleMesh->colors)
     {
       if (!mesh->vboColor)
       {
@@ -847,17 +847,17 @@ namespace smol
         glBindBuffer(GL_ARRAY_BUFFER, mesh->vboColor);
         if (resizeBuffers)
         {
-          glBufferData(GL_ARRAY_BUFFER, size, meshData->colors, GL_DYNAMIC_DRAW);
+          glBufferData(GL_ARRAY_BUFFER, size, triangleMesh->colors, GL_DYNAMIC_DRAW);
         }
         else
         {
-          glBufferSubData(GL_ARRAY_BUFFER, 0, size, meshData->colors);
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, triangleMesh->colors);
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
       }
     }
 
-    if(meshData->uv0)
+    if(triangleMesh->uv0)
     {
       if (!mesh->vboUV0)
       {
@@ -869,17 +869,17 @@ namespace smol
         glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV0);
         if(resizeBuffers)
         {
-          glBufferData(GL_ARRAY_BUFFER, size, meshData->uv0, GL_DYNAMIC_DRAW);
+          glBufferData(GL_ARRAY_BUFFER, size, triangleMesh->uv0, GL_DYNAMIC_DRAW);
         }
         else
         {
-          glBufferSubData(GL_ARRAY_BUFFER, 0, size, meshData->uv0);
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, triangleMesh->uv0);
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
       }
     }
 
-    if(meshData->uv1)
+    if(triangleMesh->uv1)
     {
       if (!mesh->vboUV1)
       {
@@ -891,11 +891,11 @@ namespace smol
         glBindBuffer(GL_ARRAY_BUFFER, mesh->vboUV1);
         if(resizeBuffers)
         {
-          glBufferData(GL_ARRAY_BUFFER, size, meshData->uv1, GL_DYNAMIC_DRAW);
+          glBufferData(GL_ARRAY_BUFFER, size, triangleMesh->uv1, GL_DYNAMIC_DRAW);
         }
         else
         {
-          glBufferSubData(GL_ARRAY_BUFFER, 0, size, meshData->uv1);
+          glBufferSubData(GL_ARRAY_BUFFER, 0, size, triangleMesh->uv1);
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
       }
@@ -917,6 +917,25 @@ namespace smol
     glDeleteVertexArrays(1, (const GLuint*) &mesh->vao);
   }
 
+  void drawTriangleMesh(const TriangleMesh& triangleMesh, uint32 triangleListIndex)
+  {
+    SMOL_ASSERT(triangleListIndex < triangleMesh.numTriangleLists, "The triangle list index passed to drawTriangleMesh() is out of bounds");
+
+    const Mesh* mesh = triangleMesh.mesh.operator->();
+    glBindVertexArray(mesh->vao);
+
+    if (mesh->ibo != 0)
+    {
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+      glDrawElements(mesh->glPrimitive, mesh->numIndices, GL_UNSIGNED_INT, nullptr);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+    else
+    {
+      glDrawArrays(mesh->glPrimitive, 0, mesh->numVertices);
+    }
+    glBindVertexArray(0);
+  }
 
   //
   // StreamBuffer
