@@ -94,7 +94,7 @@ namespace smol
   void Editor::drawProjectDialog(int screenWidth, int screenHeight)
   {
     int32 width = (int32) 300;
-    int32 height = (int32) 250;
+    int32 height = (int32) 235;
     int yPos = 5;
 
     const char* generators[] =
@@ -108,17 +108,17 @@ namespace smol
     gui.beginWindow(SMOL_CONTROL_ID, "New Project", screenWidth/2 - width/2, screenHeight/2 - height/2, width, height, true);
 
     gui.label(SMOL_CONTROL_ID, "Project name", 10, yPos, width);
-    yPos += controlHeight + vSpacing;
+    yPos += controlHeight;
 
     gui.textBox(SMOL_CONTROL_ID, projectWindow.projectNameBuffer, sizeof(inputBuffer1), 5, yPos, 290);
     yPos += controlHeight + vSpacing;
 
     gui.label(SMOL_CONTROL_ID, "Generator", 10, yPos, width);
-    yPos += controlHeight + vSpacing;
+    yPos += controlHeight;
 
     projectWindow.selectedGeneratorIndex = gui.comboBox(SMOL_CONTROL_ID, generators,
         sizeof(generators)/sizeof(char*), projectWindow.selectedGeneratorIndex, 5, yPos, 290);
-    yPos += controlHeight + vSpacing;
+    yPos += controlHeight + vSpacing + vSpacing;
 
     if (gui.button(SMOL_CONTROL_ID, "Create", 5, yPos, 290, controlHeight))
     {
