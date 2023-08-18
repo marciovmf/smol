@@ -26,17 +26,27 @@ void dummyOnGameGUICallback(smol::GUI&) {}
 
 namespace smol
 {
+
+  struct ProjectWindow
+  {
+    bool active;
+    char projectNameBuffer[32];
+    int selectedGeneratorIndex;
+  };
+
+  ProjectWindow projectWindow = { };
+
   enum MainMenu
   {
     NONE = 0,
     PROJECT = 1,
-    PROJECT_SUBMENU_NEW = 2,
   };
 
   char inputBuffer1[32] = {"Hello, Sailor!"};
   char inputBuffer2[32] = {"Hello my friend!"};
   std::string pipe;
   const int controlHeight = GUI::DEFAULT_CONTROL_HEIGHT;
+  const int vSpacing = 10;
   Point2 windowPos = Point2{550, 150};
   Point2 windowPos2 = Point2{100, 300};
   bool radioOption = false;
@@ -81,6 +91,66 @@ namespace smol
     EventManager::get().addHandler(callbackForward, Event::TEXT | Event::KEYBOARD, this);
   }
 
+  void Editor::drawProjectDialog(int screenWidth, int screenHeight)
+  {
+    int32 width = (int32) 300;
+    int32 height = (int32) 250;
+    int yPos = 5;
+
+    const char* generators[] =
+    {
+      (const char*) "Visual Studio 2019 project", 
+      (const char*) "Visual Studio 2017 project", 
+      (const char*) "Makefile project", 
+      (const char*) "Ninja project", 
+    };
+
+    gui.beginWindow(SMOL_CONTROL_ID, "New Project", screenWidth/2 - width/2, screenHeight/2 - height/2, width, height, true);
+
+    gui.label(SMOL_CONTROL_ID, "Project name", 10, yPos, width);
+    yPos += controlHeight + vSpacing;
+
+    gui.textBox(SMOL_CONTROL_ID, projectWindow.projectNameBuffer, sizeof(inputBuffer1), 5, yPos, 290);
+    yPos += controlHeight + vSpacing;
+
+    gui.label(SMOL_CONTROL_ID, "Generator", 10, yPos, width);
+    yPos += controlHeight + vSpacing;
+
+    projectWindow.selectedGeneratorIndex = gui.comboBox(SMOL_CONTROL_ID, generators,
+        sizeof(generators)/sizeof(char*), projectWindow.selectedGeneratorIndex, 5, yPos, 290);
+    yPos += controlHeight + vSpacing;
+
+    if (gui.button(SMOL_CONTROL_ID, "Create", 5, yPos, 290, controlHeight))
+    {
+      Project::CMakeGenerator generator = Project::CMakeGenerator::GENERATOR_COUNT;
+      bool success = Platform::showSaveFileDialog("New project", reopenProjectFilePath,
+          (const char*)"Smol project Files\0project.smol\0\0",
+          (const char*) "project.smol");
+      if (success)
+      {
+        generator = (Project::CMakeGenerator) projectWindow.selectedGeneratorIndex;
+        const char* projectName = projectWindow.projectNameBuffer;
+        if (ProjectManager::createProject(reopenProjectFilePath, projectName, generator))
+        {
+          closeFlag = true;
+        }
+
+        projectWindow.active = false;
+        projectWindow.projectNameBuffer[0] = 0;
+        projectWindow.selectedGeneratorIndex = 0;
+      }
+    }
+    yPos += controlHeight + vSpacing;
+
+    if (gui.button(SMOL_CONTROL_ID, "Cancel", 5, yPos, 290, controlHeight))
+    {
+      projectWindow.active = false;
+      projectWindow.projectNameBuffer[0] = 0;
+      projectWindow.selectedGeneratorIndex = 0;
+    }
+    gui.endWindow();
+  }
+
   void drawModalWaitMessage(GUI& gui, int screenWidth, int screenHeight, const char* title, const char* message)
   {
     int32 width = (int32) (screenWidth * 0.8f);
@@ -94,24 +164,13 @@ namespace smol
   void Editor::drawMainMenu(int width, int height)
   {
     static MainMenu activeMenu = MainMenu::NONE;
-    static int32 projectActiveSubmenu = -1;
-
     const char* projectMenuOptions[] = 
     { 
-      (const char*) ">New", 
+      (const char*) "New", 
       (const char*) "Open project"
     };
 
-    const char* projectTypeOptions[] =
-    {
-      (const char*) "Visual Studio 2019 project", 
-      (const char*) "Visual Studio 2017 project", 
-      (const char*) "Makefile project", 
-      (const char*) "Ninja project", 
-    };
-
     const int numOptions = sizeof(projectMenuOptions) / sizeof(char*);
-    const int numProjectTypeOptions = sizeof(projectTypeOptions) / sizeof(char*);
 
     const int32 OPTION_NEW = 0;
     const int32 OPTION_OPEN = 1;
@@ -124,34 +183,24 @@ namespace smol
     if (gui.labelButton(SMOL_CONTROL_ID, "Project", x, 0, 64, controlHeight))
     {
       activeMenu = MainMenu::PROJECT;
-      projectActiveSubmenu = -1;
     }
-
-    // 
-    // Menus
-    //
 
     //
     // Project
     //
-
-    if (activeMenu == MainMenu::PROJECT || activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
+    if (activeMenu == MainMenu::PROJECT)
     {
-      int32 option = gui.popupMenu(SMOL_CONTROL_ID, projectMenuOptions, numOptions, x, controlHeight, 120, projectActiveSubmenu);
+      int32 option = gui.popupMenu(SMOL_CONTROL_ID, projectMenuOptions, numOptions, x, controlHeight, 120);
       if (option != GUI::POPUP_MENU_IDLE)
       {
-        if (option == GUI::POPUP_MENU_DMISMISS && projectActiveSubmenu == -1)
+        if (option == GUI::POPUP_MENU_DMISMISS)
         {
           activeMenu = MainMenu::NONE;
         }
-        else if (option & GUI::POPUP_HOVER)
+        else if (option == OPTION_NEW)
         {
-          activeMenu = MainMenu::PROJECT;
-          projectActiveSubmenu = -1;
-          if (option == (GUI::POPUP_HOVER | OPTION_NEW))
-          {
-            activeMenu = MainMenu::PROJECT_SUBMENU_NEW;
-          }
+          activeMenu = MainMenu::NONE;
+          projectWindow.active = true;
         }
         else if (option == OPTION_OPEN)
         {
@@ -160,37 +209,6 @@ namespace smol
               (const char*)"Smol project Files\0project.smol\0\0",
               (const char*) "project.smol");
           if (success)
-          {
-            closeFlag = true;
-          }
-        }
-      }
-    }
-
-    // project/new submenu
-    if (activeMenu == MainMenu::PROJECT_SUBMENU_NEW)
-    {
-      projectActiveSubmenu = OPTION_NEW;
-      int32 option = gui.popupMenu(SMOL_CONTROL_ID, projectTypeOptions, numProjectTypeOptions, x + gui.getLastRect().w + 1,
-          controlHeight, 120);
-
-      if (option == GUI::POPUP_MENU_DMISMISS)
-      {
-        activeMenu = MainMenu::NONE;
-      }
-      else if (option >= 0 && option < numProjectTypeOptions)
-      {
-        activeMenu = MainMenu::NONE;
-
-        Project::CMakeGenerator generator = Project::CMakeGenerator::GENERATOR_COUNT;
-        bool success = Platform::showSaveFileDialog("New project", reopenProjectFilePath,
-            (const char*)"Smol project Files\0project.smol\0\0",
-            (const char*) "project.smol");
-        if (success)
-        {
-          generator = (Project::CMakeGenerator) option;
-          const char* projectName = "Smol Game";
-          if (ProjectManager::createProject(reopenProjectFilePath, projectName, generator))
           {
             closeFlag = true;
           }
@@ -228,7 +246,12 @@ namespace smol
     {
       gui.enabled = true;
       drawMainMenu(windowWidth, controlHeight);
-      if (showSecondWindow) 
+
+      if (projectWindow.active)
+      {
+        drawProjectDialog(windowWidth, windowHeight);
+      }
+      else if (showSecondWindow) 
       {
         const char* menuOptions[] = {"Font Size", "Line Spacing", "Window Opacity", "Slider thickness"};
         // Window 2
@@ -261,120 +284,122 @@ namespace smol
           showSecondWindow = false;
         gui.endWindow();
       }
-
-      // Window 1
-      windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 800);
-      yPos = 5;
-
-      //
-      // Toggle window button
-      //
-      if (gui.button(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, controlHeight))
-        showSecondWindow = !showSecondWindow;
-      yPos += vSpacing + controlHeight;
-
-      //
-      // Run button
-      //
-
-      gui.enabled = (project->state == Project::GENERATED || project->state == Project::READY);
-      if (gui.button(SMOL_CONTROL_ID, "Play", 5, yPos, 290, controlHeight))
+      else
       {
-        toggleMode();
-      }
+        // Window 1
+        windowPos = gui.beginWindow(SMOL_CONTROL_ID, "Test window", windowPos.x, windowPos.y, 300, 800);
+        yPos = 5;
 
-      gui.enabled = true;
-      yPos += vSpacing + controlHeight;
+        //
+        // Toggle window button
+        //
+        if (gui.button(SMOL_CONTROL_ID, "Toggle second widow", 5, yPos, 290, controlHeight))
+          showSecondWindow = !showSecondWindow;
+        yPos += vSpacing + controlHeight;
 
-      //
-      // Quit button
-      //
-      if (gui.button(SMOL_CONTROL_ID, "Quit", 5, yPos, 290, controlHeight))
-      {
-        closeFlag = true;
-      }
-      yPos += vSpacing + controlHeight;
+        //
+        // Run button
+        //
 
-      //
-      // Input box 1
-      //
-      gui.textBox(SMOL_CONTROL_ID, inputBuffer1, sizeof(inputBuffer1), 5, yPos, 290);
-      yPos += vSpacing + controlHeight;
-
-      //
-      // Input box 2
-      //
-      gui.textBox(SMOL_CONTROL_ID, inputBuffer2, sizeof(inputBuffer2), 5, yPos, 290);
-      yPos += vSpacing + controlHeight;
-
-      //
-      // Fixed aspect ratio
-      //
-
-      // Yes, it's a hack. 
-      GlobalDisplayConfig& displayConfig = (GlobalDisplayConfig&) ConfigManager::get().displayConfig();
-      if (aspectComboValue == -1)
-      {
-        for (int i = 0; i < sizeof(aspectValues); i++)
+        gui.enabled = (project->state == Project::GENERATED || project->state == Project::READY);
+        if (gui.button(SMOL_CONTROL_ID, "Play", 5, yPos, 290, controlHeight))
         {
-          if (displayConfig.aspectRatio == aspectValues[0])
-          {
-            debugLogInfo("Initial aspect ration = %d", i);
-            aspectComboValue = i;
-            break;
-          }
+          toggleMode();
         }
 
+        gui.enabled = true;
+        yPos += vSpacing + controlHeight;
+
+        //
+        // Quit button
+        //
+        if (gui.button(SMOL_CONTROL_ID, "Quit", 5, yPos, 290, controlHeight))
+        {
+          closeFlag = true;
+        }
+        yPos += vSpacing + controlHeight;
+
+        //
+        // Input box 1
+        //
+        gui.textBox(SMOL_CONTROL_ID, inputBuffer1, sizeof(inputBuffer1), 5, yPos, 290);
+        yPos += vSpacing + controlHeight;
+
+        //
+        // Input box 2
+        //
+        gui.textBox(SMOL_CONTROL_ID, inputBuffer2, sizeof(inputBuffer2), 5, yPos, 290);
+        yPos += vSpacing + controlHeight;
+
+        //
+        // Fixed aspect ratio
+        //
+
+        // Yes, it's a hack. 
+        GlobalDisplayConfig& displayConfig = (GlobalDisplayConfig&) ConfigManager::get().displayConfig();
         if (aspectComboValue == -1)
-          aspectComboValue = 0;
+        {
+          for (int i = 0; i < sizeof(aspectValues); i++)
+          {
+            if (displayConfig.aspectRatio == aspectValues[0])
+            {
+              debugLogInfo("Initial aspect ration = %d", i);
+              aspectComboValue = i;
+              break;
+            }
+          }
+
+          if (aspectComboValue == -1)
+            aspectComboValue = 0;
+        }
+
+        int32 prevAspectComboValue = aspectComboValue;
+        aspectComboValue = gui.comboBox(SMOL_CONTROL_ID, aspectOptions, sizeof(aspectOptions)/sizeof(char*), aspectComboValue, 5, yPos, 290);
+
+        if(prevAspectComboValue != aspectComboValue)
+        {
+          displayConfig.aspectRatio = aspectValues[aspectComboValue];
+          debugLogInfo("Changing aspect to %f", displayConfig.aspectRatio);
+          Event evt;
+          evt.type = Event::DISPLAY;
+          evt.displayEvent.type = DisplayEvent::RESIZED;
+          evt.displayEvent.width = displayConfig.width;
+          evt.displayEvent.height = displayConfig.height;
+          EventManager::get().pushEvent(evt);
+        }
+        yPos += vSpacing + controlHeight;
+
+        //
+        // Fullscreen 
+        //
+        bool isFullScreen = Platform::isFullScreen(window);
+        bool wasFullScreen = isFullScreen;
+        isFullScreen = gui.checkBox(SMOL_CONTROL_ID, "FullScreen", isFullScreen, 5, yPos);
+        if(wasFullScreen != isFullScreen)
+        {
+          Platform::setFullScreen(window, isFullScreen);
+        }
+        yPos += vSpacing + controlHeight;
+
+        //
+        // Compile always 
+        //
+        GlobalEditorConfig& editorConfig = (GlobalEditorConfig&) ConfigManager::get().editorConfig();
+        editorConfig.alwaysRebuildBeforeRun = gui.checkBox(SMOL_CONTROL_ID, "Always compile on run", editorConfig.alwaysRebuildBeforeRun, 5, yPos);
+        yPos += vSpacing + controlHeight;
+
+
+        //
+        // Crop area Color
+        //
+        if (gui.button(SMOL_CONTROL_ID, "Bordee area color", 5, yPos, 290, controlHeight))
+        {
+          displayConfig .cropAreaColor = Platform::showColorPickerDialog();
+        }
+        yPos += vSpacing + controlHeight;
+
+        gui.endWindow();
       }
-
-      int32 prevAspectComboValue = aspectComboValue;
-      aspectComboValue = gui.comboBox(SMOL_CONTROL_ID, aspectOptions, sizeof(aspectOptions)/sizeof(char*), aspectComboValue, 5, yPos, 290);
-
-      if(prevAspectComboValue != aspectComboValue)
-      {
-        displayConfig.aspectRatio = aspectValues[aspectComboValue];
-        debugLogInfo("Changing aspect to %f", displayConfig.aspectRatio);
-        Event evt;
-        evt.type = Event::DISPLAY;
-        evt.displayEvent.type = DisplayEvent::RESIZED;
-        evt.displayEvent.width = displayConfig.width;
-        evt.displayEvent.height = displayConfig.height;
-        EventManager::get().pushEvent(evt);
-      }
-      yPos += vSpacing + controlHeight;
-
-      //
-      // Fullscreen 
-      //
-      bool isFullScreen = Platform::isFullScreen(window);
-      bool wasFullScreen = isFullScreen;
-      isFullScreen = gui.checkBox(SMOL_CONTROL_ID, "FullScreen", isFullScreen, 5, yPos);
-      if(wasFullScreen != isFullScreen)
-      {
-        Platform::setFullScreen(window, isFullScreen);
-      }
-      yPos += vSpacing + controlHeight;
-
-      //
-      // Compile always 
-      //
-      GlobalEditorConfig& editorConfig = (GlobalEditorConfig&) ConfigManager::get().editorConfig();
-      editorConfig.alwaysRebuildBeforeRun = gui.checkBox(SMOL_CONTROL_ID, "Always compile on run", editorConfig.alwaysRebuildBeforeRun, 5, yPos);
-      yPos += vSpacing + controlHeight;
-
-
-      //
-      // Crop area Color
-      //
-      if (gui.button(SMOL_CONTROL_ID, "Bordee area color", 5, yPos, 290, controlHeight))
-      {
-        displayConfig .cropAreaColor = Platform::showColorPickerDialog();
-      }
-      yPos += vSpacing + controlHeight;
-
-      gui.endWindow();
 
     }
 

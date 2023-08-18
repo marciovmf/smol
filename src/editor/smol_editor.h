@@ -29,6 +29,7 @@ namespace smol
     Mode mode;
 
     void drawMainMenu(int windowWidth, int windowHeight);
+    void drawProjectDialog(int screenWidth, int screenHeight);
     bool loadGameModule(const char* modulePath);
     bool unloadGameModule();
     void toggleMode();
