@@ -1,4 +1,4 @@
-vertexShader:"
+vertexShader "
 #version 330 core
 
   layout (std140) uniform smol
@@ -26,15 +26,15 @@ vertexShader:"
   uv = vertUVIn;
 }
 ",
-fragmentShader:"
+fragmentShader "
 #version 330 core
   out vec4 fragColor;
   uniform sampler2D mainTex;
   in vec4 vertColor;
   in vec2 uv;
 
-  const float width = 0.18;
-  const float edge = 0.5;
+  const float width = 0.10;
+  const float edge = 0.8;
 
   void main()
   {

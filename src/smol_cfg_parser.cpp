@@ -39,13 +39,14 @@ namespace smol
 
   struct Lexer
   {
+    const char* fileName;
     const char* data;
     const char* eof;
     int line;
     int column;
 
-    Lexer(const char* buffer, size_t size):
-      data(buffer), eof(data + size), line(1), column(1)
+    Lexer(const char* fileName, const char* buffer, size_t size):
+      fileName(fileName), data(buffer), eof(data + size), line(1), column(1)
     {
     }
 
@@ -138,7 +139,7 @@ namespace smol
       QUOTE,
       BACKSLASH,
       LINEBREAK,
-      COLON,
+      //COLON,
       END_OF_FILE,
       VECTOR_START,
       VECTOR_END,
@@ -205,12 +206,12 @@ namespace smol
 
       if (lexer.isEOF())
       {
-        smol::Log::error("Unexpected EOF while parsing string at %d, %d", lexer.line, lexer.column);
+        smol::Log::error("Error parsing file '%s': Unexpected EOF while parsing string at %d, %d", lexer.fileName, lexer.line, lexer.column);
       }
 
       if (c != '"')
       {
-        smol::Log::error("Unexpected character '%x' while parsing string at %d, %d", c, lexer.line, lexer.column);
+        smol::Log::error("Error parsing file '%s': Unexpected character '%x' while parsing string at %d, %d", lexer.fileName, c, lexer.line, lexer.column);
         return token;
       }
 
@@ -228,11 +229,11 @@ namespace smol
       token.type = Token::COMMA;
       token.size = 1;
     }
-    else if (c == ':')
-    {
-      token.type = Token::COLON;
-      token.size = 1;
-    }
+    //else if (c == ':')
+    //{
+    //  token.type = Token::COLON;
+    //  token.size = 1;
+    //}
     else if (c == '\\')
     {
       token.type = Token::BACKSLASH;
@@ -301,9 +302,9 @@ namespace smol
       case Token::LINEBREAK:
         name = (const char*) "LINEBREAK";
         break;
-      case Token::COLON:
-        name = (const char*) "COLON";
-        break;
+      //case Token::COLON:
+      //  name = (const char*) "COLON";
+      //  break;
       case Token::END_OF_FILE:
         name = (const char*) "END_OF_FILE";
         break;
@@ -319,7 +320,7 @@ namespace smol
         break;
     }
 
-    smol::Log::error("Unexpected %s at line: %d, %d", name, lexer.line, lexer.column);
+    smol::Log::error("Error parsing file: '%s': Unexpected %s at line: %d, %d", lexer.fileName, name, lexer.line, lexer.column);
   }
 
   static bool parseEntry(Lexer& lexer, Arena& arena, ConfigEntry** out)
@@ -356,12 +357,14 @@ namespace smol
         return false;
       }
 
-      // VARNAME:
-      if (!requireToken(lexer, Token::Type::COLON, t))
-      {
-        unexpectedTokenError(t.type, lexer);
-        return false;
-      }
+      lexer.skipWhiteSpaceAndLineBreak();
+
+      //// VARNAME:
+      //if (!requireToken(lexer, Token::Type::COLON, t))
+      //{
+      //  unexpectedTokenError(t.type, lexer);
+      //  return false;
+      //}
 
       // null terminate variable name on the original source file buffer
       // Notice we already got the ":" after the variable name, so it's safe
@@ -512,7 +515,7 @@ namespace smol
     if (!buffer)
       return false;
 
-    Lexer lexer(buffer, bufferSize);
+    Lexer lexer(path, buffer, bufferSize);
     bool hasErrors = false;
     ConfigEntry* previousEntry;
 
