@@ -4,6 +4,19 @@
 
 namespace smol
 {
+
+  struct KeyboardState
+  {
+    enum
+    {
+      PRESSED_BIT = 1,
+      CHANGED_THIS_FRAME_BIT = 1 << 1,
+      MAX_KEYS = 256
+    };
+
+    unsigned char key[MAX_KEYS];
+  };
+
 #define SMOL_KEYBOARD_KEYCODES \
   X(KEYCODE_INVALID, "", 0x00) \
   X(KEYCODE_BACKSPACE, "BACK", 0x08) \
@@ -132,7 +145,7 @@ namespace smol
 
   class SMOL_ENGINE_API Keyboard
   {
-    const unsigned char* mKeyboardState = nullptr;
+    const KeyboardState* mKeyboardState = nullptr;
 #ifndef SMOL_MODULE_GAME
     const char* keycodeNames[Keycode::NUM_KEYCODES];
     size_t keycodeNameHashes[Keycode::NUM_KEYCODES];

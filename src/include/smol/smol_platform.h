@@ -24,33 +24,8 @@ namespace smol
 {
   struct Window;
   struct Module;
-
-  struct KeyboardState
-  {
-    enum
-    {
-      PRESSED_BIT = 1,
-      CHANGED_THIS_FRAME_BIT = 1 << 1,
-      MAX_KEYS = 256
-    };
-
-    unsigned char key[MAX_KEYS];
-  };
-
-  struct MouseState
-  {
-    enum
-    {
-      PRESSED_BIT = 1,
-      CHANGED_THIS_FRAME_BIT = 1 << 1,
-      MAX_BUTTONS = 5
-    };
-
-    int wheelDelta;
-    Point2 cursor;
-    unsigned char button[MAX_BUTTONS];
-  };
-
+  struct MouseState;
+  struct KeyboardState;
 
   struct SMOL_PLATFORM_API Platform final
   {
@@ -61,14 +36,18 @@ namespace smol
 
 #ifndef SMOL_MODULE_GAME
     // Basic windowing functions
-    static Window* createWindow(int width, int height, const char* title);
+    static Window* createWindow(int32 width, int32 height, const char* title);
     static void updateWindowEvents(Window* window);
-    static void swapBuffers(Window* window);
     static bool getWindowCloseFlag(Window* window);
     static void clearWindowCloseFlag(Window* window);
     static void destroyWindow(Window* window);
-    static bool initOpenGL(int glVersionMajor, int glVersionMinor, int colorBits = 32, int depthBits = 24);
-    static void getWindowSize(Window* window, int* width, int* height);
+    static void getWindowSize(Window* window, int32* width, int32* height);
+
+    // Graphics
+    static bool initOpenGL(int32 glVersionMajor, int32 glVersionMinor, int32 colorBits = 32, int32 depthBits = 24);
+    static void swapBuffers(Window* window);
+
+    // Full screen
     static void setFullScreen(Window* window, bool fullScreen);
     static bool isFullScreen(Window* window);
  
@@ -79,13 +58,14 @@ namespace smol
 #endif
 
     // Keyboard and mouse handling
-    static const unsigned char* getKeyboardState();
+    static const KeyboardState* getKeyboardState();
     static const MouseState* getMouseState();
     static const Point2& getCursorPosition();
     static void captureCursor(Window* window);
     static void releaseCursor(Window* window);
     static void showCursor(bool status);
-    // Basic file handling
+
+    // File handling
     static char* loadFileToBuffer(const char* fileName, size_t* loadedFileSize=nullptr, size_t extraBytes=0, size_t offset=0);
     static char* loadFileToBufferNullTerminated(const char* fileName, size_t* fileSize = nullptr);
     static void unloadFileBuffer(const char* fileBuffer);
@@ -105,7 +85,7 @@ namespace smol
     static bool getWorkingDirectory(char* buffer, size_t buffSize);
     static bool setWorkingDirectory(const char* buffer);
 
-    // File and directory manipulation
+    // Filesystem/path manipulation
     static char pathSeparator();
     static bool copyFile(const char* source, const char* dest, bool failIfExists);
     static bool createDirectoryRecursive(const char* path);

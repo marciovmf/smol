@@ -6,7 +6,20 @@
 
 namespace smol
 {
-  struct MouseState;
+  struct MouseState
+  {
+    enum
+    {
+      PRESSED_BIT = 1,
+      CHANGED_THIS_FRAME_BIT = 1 << 1,
+      MAX_BUTTONS = 5
+    };
+
+    int32 wheelDelta;
+    Point2 cursor;
+    unsigned char button[MAX_BUTTONS];
+  };
+
 
   enum MouseButton : unsigned char
   {

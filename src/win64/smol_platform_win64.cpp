@@ -670,9 +670,9 @@ namespace smol
     return addr;
   }
 
-  const unsigned char* Platform::getKeyboardState()
+  const KeyboardState* Platform::getKeyboardState()
   {
-    return (const unsigned char*)&internal.keyboardState;
+    return &internal.keyboardState;
   }
 
   const MouseState* Platform::getMouseState()
